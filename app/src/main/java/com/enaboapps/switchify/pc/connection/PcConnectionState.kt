@@ -29,6 +29,7 @@ sealed class PcConnectionState {
     data class PermissionDenied(val saved: List<PcSavedPc>) : PcConnectionState()
     data class BluetoothOff(val saved: List<PcSavedPc>) : PcConnectionState()
     data class Unsupported(val saved: List<PcSavedPc>) : PcConnectionState()
+    data class LocationOff(val saved: List<PcSavedPc>) : PcConnectionState()
     data class Scanning(val saved: List<PcSavedPc>, val discovered: List<PcDiscoveredDesktop>) : PcConnectionState()
     data class Connecting(val desktop: PcDiscoveredDesktop) : PcConnectionState()
     data class Reconnecting(val desktop: PcDiscoveredDesktop, val attempt: Int) : PcConnectionState()
@@ -46,6 +47,7 @@ sealed class PcConnectionState {
             is PermissionDenied -> saved
             is BluetoothOff -> saved
             is Unsupported -> saved
+            is LocationOff -> saved
             is Scanning -> saved
             is Failed -> saved
             else -> null
@@ -65,6 +67,7 @@ sealed class PcConnectionState {
         is PermissionDenied -> copy(saved = saved)
         is BluetoothOff -> copy(saved = saved)
         is Unsupported -> copy(saved = saved)
+        is LocationOff -> copy(saved = saved)
         is Scanning -> copy(saved = saved)
         is Failed -> copy(saved = saved)
         else -> this

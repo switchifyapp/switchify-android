@@ -14,7 +14,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -22,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -50,7 +50,7 @@ fun PcDiagnosticsScreen(navController: NavController) {
     val context = LocalContext.current
     val graph = remember { PcConnectionGraph.getInstance(context) }
     val viewModel: PcDiagnosticsViewModel = viewModel { PcDiagnosticsViewModel(graph.diagnostics) }
-    val entries by viewModel.entries.collectAsState()
+    val entries by viewModel.entries.collectAsStateWithLifecycle()
     val timeFormat = remember { DateFormat.getTimeInstance(DateFormat.MEDIUM) }
     val copiedMessage = stringResource(R.string.pc_diagnostics_copied)
     val exportTitle = stringResource(R.string.pc_diagnostics_export_title)

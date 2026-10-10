@@ -40,6 +40,12 @@ class InMemoryPcKeyValueStore : PcKeyValueStore {
         if (failRemove(key)) throw IllegalStateException("fixture remove failed")
         values.remove(key)
     }
+
+    override suspend fun clear() {
+        yield()
+        log += "clear"
+        values.clear()
+    }
 }
 
 class PcPairingStoreTest {

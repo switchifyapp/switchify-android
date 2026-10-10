@@ -2,7 +2,6 @@ package com.enaboapps.switchify.pc.connection
 
 import com.enaboapps.switchify.pc.protocol.PcClock
 import com.enaboapps.switchify.pc.protocol.PcPlatform
-import com.enaboapps.switchify.pc.storage.PcCredentialProtectedStorage
 import com.enaboapps.switchify.pc.storage.PcSavedPc
 import com.enaboapps.switchify.pc.transport.PcConnectionStage
 import com.enaboapps.switchify.pc.transport.PcConnectionStageOutcome
@@ -84,21 +83,7 @@ class PcConnectionSupportTest {
         assertEquals("old-address", offline.desktop.peripheralId)
     }
 
-    @Test
-    fun derivesCredentialProtectedStorageFromTheDeviceProtectedDirectory() {
-        assertEquals(
-            "/data/user/0/com.enaboapps.switchify",
-            PcCredentialProtectedStorage.credentialProtectedRoot("/data/user_de/0/com.enaboapps.switchify")
-        )
-        assertEquals(
-            "/mnt/expand/1234/user/10/com.enaboapps.switchify",
-            PcCredentialProtectedStorage.credentialProtectedRoot("/mnt/expand/1234/user_de/10/com.enaboapps.switchify")
-        )
-        assertFailsClosed("/data/data/com.enaboapps.switchify")
-        assertFailsClosed("/data/user_de/0")
-    }
-
-    @Test
+        @Test
     fun requestsPermissionOnlyThroughAnAttachedScreen() = runTest {
         var granted = false
         val requester = PcPermissionRequester { granted }
@@ -124,14 +109,5 @@ class PcConnectionSupportTest {
         runCurrent()
         requester.detachHost()
         assertFalse(abandoned.await())
-    }
-
-    private fun assertFailsClosed(path: String) {
-        try {
-            PcCredentialProtectedStorage.credentialProtectedRoot(path)
-        } catch (_: IllegalStateException) {
-            return
-        }
-        throw AssertionError("Expected $path to be rejected.")
     }
 }

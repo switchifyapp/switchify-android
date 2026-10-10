@@ -25,6 +25,7 @@ import com.enaboapps.switchify.pc.transport.PcTransport
 import com.enaboapps.switchify.pc.transport.PcUnsubscribe
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +69,10 @@ class PcConnectionManager(
     private val nonces: PcIdGenerator = PcIdGenerator.Nonce,
     private val reconnectDelay: suspend (Long) -> Unit = { delay(it) },
     private val remoteName: suspend () -> String = { PcRemoteName.FALLBACK },
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
+    private val locationServicesOff: () -> Boolean = { false },
+    private val scope: CoroutineScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Default.limitedParallelism(1) + CoroutineExceptionHandler { _, _ -> }
+    )
 ) {
     private val _state = MutableStateFlow<PcConnectionState>(PcConnectionState.Idle(emptyList()))
     val state: StateFlow<PcConnectionState> = _state.asStateFlow()
@@ -157,6 +161,8 @@ class PcConnectionManager(
 
     suspend fun defaultDesktopId(): String? = storage.defaultDesktopId()
 
+    fun isLocationOff(): Boolean = locationServicesOff()
+
     suspend fun setDefaultDesktopId(desktopId: String?) = operate {
         storage.setDefaultDesktopId(desktopId)
         val saved = orderedSaved()
@@ -203,6 +209,10 @@ class PcConnectionManager(
         if (!isCurrent(current)) return
         if (availability != PcBluetoothAvailability.Ready) {
             set(availabilityState(availability, saved))
+            return
+        }
+        if (locationServicesOff()) {
+            set(PcConnectionState.LocationOff(saved))
             return
         }
         diagnostics.add(PcDiagnosticEvent.ScanStarted)
@@ -271,6 +281,10 @@ class PcConnectionManager(
         if (!isCurrent(current)) return
         if (availability != PcBluetoothAvailability.Ready) {
             set(availabilityState(availability, saved))
+            return
+        }
+        if (locationServicesOff()) {
+            set(PcConnectionState.LocationOff(saved))
             return
         }
 
@@ -683,8 +697,12 @@ class PcConnectionManager(
                 if (!isCurrent(current)) return
                 authenticate(resolved, savedToken, current)
                 if (isCurrent(current) && _state.value is PcConnectionState.Connected) return
-            } catch (_: Exception) {
+            } catch (error: Exception) {
                 if (!isCurrent(current)) return
+                if (error is PcInvalidSavedAccessException) {
+                    fail(PcConnectionFailure.SavedAccessInvalid, current, auth = true)
+                    return
+                }
                 teardownConnection()
             }
         }
@@ -850,7 +868,9 @@ class PcConnectionManager(
     }
 
     companion object {
-        const val PAIRING_TIMEOUT_MS = 120_000L
+        const val PC_PAIRING_EXPIRY_MS = 120_000L
+        const val PAIRING_GRACE_MS = 5_000L
+        const val PAIRING_TIMEOUT_MS = PC_PAIRING_EXPIRY_MS + PAIRING_GRACE_MS
         const val COMMAND_TIMEOUT_MS = 5_000L
         const val PROFILE_TIMEOUT_MS = 5_000L
         const val HEALTH_INTERVAL_MS = 5_000L

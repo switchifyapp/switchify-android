@@ -7,13 +7,13 @@ import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcList
 import com.enaboapps.switchify.pc.connection.PcListItem
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
+import com.enaboapps.switchify.pc.storage.PcSavedPc
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,61 +24,98 @@ class PcConnectionViewModel(
     val state: StateFlow<PcConnectionState> = manager.state
     val permissionRequested: StateFlow<Boolean> = permissions.requested
 
-    val pcs: StateFlow<List<PcListItem>> = manager.state
-        .map { current ->
-            val discovered = (current as? PcConnectionState.Scanning)?.discovered.orEmpty()
-            PcList.merge(current.savedPcs.orEmpty(), discovered)
-        }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    private val connectedSaved = MutableStateFlow<List<PcSavedPc>>(emptyList())
+
+    val pcs: StateFlow<List<PcListItem>> = combine(manager.state, connectedSaved) { current, savedWhileConnected ->
+        val saved = current.savedPcs ?: if (current is PcConnectionState.Connected) savedWhileConnected else emptyList()
+        PcList.merge(saved, (current as? PcConnectionState.Scanning)?.discovered.orEmpty())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _defaultDesktopId = MutableStateFlow<String?>(null)
     val defaultDesktopId: StateFlow<String?> = _defaultDesktopId.asStateFlow()
 
+    private val _operationFailed = MutableStateFlow(false)
+    val operationFailed: StateFlow<Boolean> = _operationFailed.asStateFlow()
+
     init {
         permissions.attachHost()
-        viewModelScope.launch {
+        launchSafely {
             if (manager.state.value is PcConnectionState.Idle) manager.load()
         }
         viewModelScope.launch {
-            manager.state.map { it.savedPcs }.distinctUntilChanged().collect { refreshDefault() }
+            var previous: Class<out PcConnectionState>? = null
+            manager.state.collect { current ->
+                if (current.javaClass != previous) {
+                    previous = current.javaClass
+                    try {
+                        refreshSaved()
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: Exception) {
+                    }
+                }
+            }
         }
     }
 
-    fun scan() {
-        viewModelScope.launch { manager.scan() }
-    }
+    fun scan() = launchSafely { manager.scan() }
 
-    fun connect(item: PcListItem) {
-        viewModelScope.launch {
-            val saved = item.savedForConnection()
-            if (saved != null) manager.connectSaved(saved) else manager.connect(item.desktop)
+    fun connect(item: PcListItem) = launchSafely {
+        val saved = item.savedForConnection()
+        when {
+            saved == null -> manager.connect(item.desktop)
+            manager.state.value is PcConnectionState.Connected -> manager.switchSaved(saved)
+            else -> manager.connectSaved(saved)
         }
     }
 
-    fun disconnect() {
-        viewModelScope.launch { manager.disconnect() }
+    fun disconnect() = launchSafely { manager.disconnect() }
+
+    fun unpair(desktopId: String) = launchSafely {
+        manager.unpair(desktopId)
+        refreshSaved()
     }
 
-    fun unpair(desktopId: String) {
-        viewModelScope.launch { manager.unpair(desktopId) }
+    fun setDefault(desktopId: String?) = launchSafely {
+        manager.setDefaultDesktopId(desktopId)
+        refreshSaved()
     }
 
-    fun setDefault(desktopId: String?) {
-        viewModelScope.launch {
-            manager.setDefaultDesktopId(desktopId)
-            refreshDefault()
+    fun stopScan() {
+        manager.stopScan()
+    }
+
+    fun onResume() {
+        val current = manager.state.value
+        val resolved = when (current) {
+            is PcConnectionState.PermissionDenied -> permissions.isGranted()
+            is PcConnectionState.LocationOff -> !manager.isLocationOff()
+            else -> false
         }
+        if (resolved) scan()
     }
 
     fun onPermissionResult(granted: Boolean) = permissions.complete(granted)
 
-    private suspend fun refreshDefault() {
-        _defaultDesktopId.value = try {
-            manager.defaultDesktopId()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            null
+    fun dismissFailure() {
+        _operationFailed.value = false
+    }
+
+    private suspend fun refreshSaved() {
+        _defaultDesktopId.value = manager.defaultDesktopId()
+        if (manager.state.value is PcConnectionState.Connected) connectedSaved.value = manager.listSaved()
+    }
+
+    private fun launchSafely(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                _operationFailed.value = false
+                block()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                _operationFailed.value = true
+            }
         }
     }
 

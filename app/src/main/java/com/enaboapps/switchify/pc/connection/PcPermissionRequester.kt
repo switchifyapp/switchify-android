@@ -12,6 +12,8 @@ class PcPermissionRequester(private val hasPermission: () -> Boolean) {
     private val _requested = MutableStateFlow(false)
     val requested: StateFlow<Boolean> = _requested.asStateFlow()
 
+    fun isGranted(): Boolean = hasPermission()
+
     suspend fun request(): Boolean {
         if (hasPermission()) return true
         val result = synchronized(lock) {

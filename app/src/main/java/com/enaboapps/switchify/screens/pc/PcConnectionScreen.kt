@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -69,19 +71,32 @@ fun PcConnectionScreen(navController: NavController) {
     val context = LocalContext.current
     val graph = remember { PcConnectionGraph.getInstance(context) }
     val viewModel: PcConnectionViewModel = viewModel { PcConnectionViewModel(graph.manager, graph.permissions) }
-    val state by viewModel.state.collectAsState()
-    val pcs by viewModel.pcs.collectAsState()
-    val defaultDesktopId by viewModel.defaultDesktopId.collectAsState()
-    val permissionRequested by viewModel.permissionRequested.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val pcs by viewModel.pcs.collectAsStateWithLifecycle()
+    val defaultDesktopId by viewModel.defaultDesktopId.collectAsStateWithLifecycle()
+    val permissionRequested by viewModel.permissionRequested.collectAsStateWithLifecycle()
+    val operationFailed by viewModel.operationFailed.collectAsStateWithLifecycle()
     var unpairTarget by rememberSaveable { mutableStateOf<String?>(null) }
+    var permissionPromptShown by rememberSaveable { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { results -> viewModel.onPermissionResult(PcBluetoothPermissions.allGranted(results)) }
+    ) { results ->
+        permissionPromptShown = false
+        viewModel.onPermissionResult(PcBluetoothPermissions.allGranted(results))
+    }
 
     LaunchedEffect(permissionRequested) {
-        if (permissionRequested) permissionLauncher.launch(PcBluetoothPermissions.required().toTypedArray())
+        if (permissionRequested && !permissionPromptShown) {
+            permissionPromptShown = true
+            permissionLauncher.launch(PcBluetoothPermissions.required().toTypedArray())
+        } else if (!permissionRequested) {
+            permissionPromptShown = false
+        }
     }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.stopScan() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
 
     BaseView(titleResId = R.string.screen_title_pcs, navController = navController) {
         Column(
@@ -95,6 +110,20 @@ fun PcConnectionScreen(navController: NavController) {
             )
 
             ConnectionStatus(state = state, onDisconnect = viewModel::disconnect)
+
+            if (operationFailed) {
+                MessagePanel(
+                    titleResId = R.string.pc_operation_failed_title,
+                    bodyResId = R.string.pc_operation_failed_body
+                ) {
+                    ActionButton(
+                        textResId = R.string.pc_dismiss,
+                        type = ActionButtonType.SECONDARY,
+                        onClick = viewModel::dismissFailure,
+                        applyPadding = false
+                    )
+                }
+            }
 
             val searching = state is PcConnectionState.Scanning
             if (state.activeDesktop == null) {
@@ -135,6 +164,21 @@ fun PcConnectionScreen(navController: NavController) {
                     titleResId = R.string.pc_unsupported_title,
                     bodyResId = R.string.pc_unsupported_body
                 )
+                is PcConnectionState.LocationOff -> MessagePanel(
+                    titleResId = R.string.pc_location_off_title,
+                    bodyResId = R.string.pc_location_off_body
+                ) {
+                    ActionButton(
+                        textResId = R.string.pc_open_location_settings,
+                        type = ActionButtonType.SECONDARY,
+                        onClick = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        },
+                        applyPadding = false
+                    )
+                }
                 is PcConnectionState.Scanning -> if (current.discovered.isEmpty()) {
                     MessagePanel(titleResId = R.string.pc_looking_title, bodyResId = R.string.pc_looking_body)
                 }
@@ -152,6 +196,7 @@ fun PcConnectionScreen(navController: NavController) {
                         pc = pc,
                         preferred = pc.saved != null && index == 0,
                         isDefault = pc.saved != null && pc.desktopId == defaultDesktopId,
+                        isActive = pc.desktopId == state.activeDesktop?.desktopId,
                         onConnect = { viewModel.connect(pc) },
                         onToggleDefault = {
                             viewModel.setDefault(if (pc.desktopId == defaultDesktopId) null else pc.desktopId)
@@ -299,6 +344,7 @@ private fun PcCard(
     pc: PcListItem,
     preferred: Boolean,
     isDefault: Boolean,
+    isActive: Boolean,
     onConnect: () -> Unit,
     onToggleDefault: () -> Unit,
     onUnpair: () -> Unit
@@ -349,21 +395,23 @@ private fun PcCard(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
                 verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
             ) {
-                val connectDescription = stringResource(
-                    if (pc.action == PcListAction.Connect) R.string.pc_action_connect_description
-                    else R.string.pc_action_request_access_description,
-                    name
-                )
-                Button(
-                    onClick = onConnect,
-                    modifier = Modifier.semantics { contentDescription = connectDescription }
-                ) {
-                    Text(
-                        stringResource(
-                            if (pc.action == PcListAction.Connect) R.string.pc_action_connect
-                            else R.string.pc_action_request_access
-                        )
+                if (!isActive) {
+                    val connectDescription = stringResource(
+                        if (pc.action == PcListAction.Connect) R.string.pc_action_connect_description
+                        else R.string.pc_action_request_access_description,
+                        name
                     )
+                    Button(
+                        onClick = onConnect,
+                        modifier = Modifier.semantics { contentDescription = connectDescription }
+                    ) {
+                        Text(
+                            stringResource(
+                                if (pc.action == PcListAction.Connect) R.string.pc_action_connect
+                                else R.string.pc_action_request_access
+                            )
+                        )
+                    }
                 }
                 if (pc.saved != null) {
                     val defaultDescription = stringResource(

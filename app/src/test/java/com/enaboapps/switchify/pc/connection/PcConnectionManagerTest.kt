@@ -188,6 +188,7 @@ class PcConnectionManagerTest {
         val storage = PcPairingStore(publicStore, secretStore, PcIdGenerator { "device-1" })
         val diagnostics = PcDiagnosticLog(PcClock { 0 })
         var permission = true
+        var locationOff = false
         var now = 1_000L
         private var requestCounter = 0
         private var nonceCounter = 0
@@ -202,6 +203,7 @@ class PcConnectionManagerTest {
             nonces = PcIdGenerator { "nonce-${++nonceCounter}" },
             reconnectDelay = { reconnectDelays += it },
             remoteName = { "Owen's Pixel" },
+            locationServicesOff = { locationOff },
             scope = scope
         )
 
@@ -298,6 +300,51 @@ class PcConnectionManagerTest {
         advanceTimeBy(2)
         runCurrent()
         assertEquals(PcConnectionFailure.PairingExpired, (h.manager.state.value as PcConnectionState.Failed).failure)
+        assertNull(h.storage.token("desktop-1"))
+    }
+
+    @Test
+    fun waitsPastThePcExpirySoThePcsOwnExpiryErrorWins() = managerTest { h ->
+        assertTrue(PcConnectionManager.PAIRING_TIMEOUT_MS > PcConnectionManager.PC_PAIRING_EXPIRY_MS)
+        h.transport.dropTypes += "pairing.request"
+        backgroundScope.launch { h.manager.connect(office) }
+        advanceTimeBy(PcConnectionManager.PC_PAIRING_EXPIRY_MS)
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Pairing)
+        val id = h.transport.messages.single().getString("id")
+        h.transport.emit(LoopbackTransport.error(id, "invalid_auth", "pairing_request_expired"), id)
+        runCurrent()
+        assertEquals(PcConnectionFailure.PairingExpired, (h.manager.state.value as PcConnectionState.Failed).failure)
+        assertTrue("pairing_rejected" in h.codes)
+    }
+
+    @Test
+    fun asksForLocationOnOlderAndroidBeforeScanningOrConnecting() = managerTest { h ->
+        h.locationOff = true
+        h.manager.scan()
+        assertTrue(h.manager.state.value is PcConnectionState.LocationOff)
+        assertNull(h.transport.onScanDesktop)
+        h.savePc()
+        h.manager.connectSaved(savedOffice())
+        assertTrue(h.manager.state.value is PcConnectionState.LocationOff)
+        assertEquals(listOf("desktop-1"), h.manager.state.value.savedPcs?.map { it.desktopId })
+        assertEquals(0, h.transport.resolveCount)
+        h.locationOff = false
+        assertFalse(h.manager.isLocationOff())
+        h.manager.scan()
+        assertTrue(h.manager.state.value is PcConnectionState.Scanning)
+    }
+
+    @Test
+    fun invalidAccessDuringReconnectFailsAsInvalidAccessInsteadOfRetrying() = managerTest { h ->
+        connect(h)
+        h.transport.pingErrorCode = "invalid_auth"
+        h.transport.onDisconnect?.invoke()
+        runCurrent()
+        assertEquals(PcConnectionFailure.SavedAccessInvalid, (h.manager.state.value as PcConnectionState.Failed).failure)
+        assertEquals(2, h.transport.resolveCount)
+        assertEquals(listOf(500L), h.reconnectDelays)
+        assertTrue("authentication_failed" in h.codes)
         assertNull(h.storage.token("desktop-1"))
     }
 

@@ -1,10 +1,12 @@
 package com.enaboapps.switchify.pc.connection
 
 import android.content.Context
+import android.location.LocationManager
 import android.os.Build
-import com.enaboapps.switchify.pc.storage.CredentialProtectedPcKeyValueStore
-import com.enaboapps.switchify.pc.storage.KeystorePcSecretStore
+import androidx.core.location.LocationManagerCompat
+import com.enaboapps.switchify.pc.storage.DeviceProtectedPcKeyValueStore
 import com.enaboapps.switchify.pc.storage.PcPairingStore
+import com.enaboapps.switchify.pc.storage.keystorePcSecretStore
 import com.enaboapps.switchify.pc.transport.AndroidPcGattAdapter
 import com.enaboapps.switchify.pc.transport.PcBleTransport
 import com.enaboapps.switchify.pc.transport.PcBluetoothPermissions
@@ -19,13 +21,20 @@ class PcConnectionGraph private constructor(context: Context) {
     val manager = PcConnectionManager(
         transport = PcBleTransport(AndroidPcGattAdapter(appContext), stageObserver = diagnostics),
         storage = PcPairingStore(
-            publicStore = CredentialProtectedPcKeyValueStore(appContext),
-            secretStore = KeystorePcSecretStore(appContext)
+            publicStore = DeviceProtectedPcKeyValueStore(appContext),
+            secretStore = keystorePcSecretStore(appContext)
         ),
         diagnostics = diagnostics,
         requestPermission = permissions::request,
-        remoteName = { PcRemoteName.deviceModelName(Build.MODEL) }
+        remoteName = { PcRemoteName.deviceModelName(Build.MODEL) },
+        locationServicesOff = ::locationServicesOff
     )
+
+    private fun locationServicesOff(): Boolean {
+        if (!PcBluetoothScanRequirements.requiresLocationServices(Build.VERSION.SDK_INT)) return false
+        val locationManager = appContext.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+        return !LocationManagerCompat.isLocationEnabled(locationManager)
+    }
 
     companion object {
         @Volatile
@@ -36,4 +45,8 @@ class PcConnectionGraph private constructor(context: Context) {
                 instance ?: PcConnectionGraph(context).also { instance = it }
             }
     }
+}
+
+object PcBluetoothScanRequirements {
+    fun requiresLocationServices(sdkInt: Int): Boolean = sdkInt < Build.VERSION_CODES.S
 }

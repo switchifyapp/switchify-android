@@ -8,43 +8,28 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
-import java.security.GeneralSecurityException
 import java.security.KeyStore
-import java.util.Base64
-import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
-import javax.crypto.spec.GCMParameterSpec
 
-object PcCredentialProtectedStorage {
-    const val DIRECTORY = "switchify_pc"
+class DeviceProtectedPcKeyValueStore(
+    context: Context,
+    private val fileName: String = FILE_NAME
+) : PcKeyValueStore {
+    private val directory = File(context.applicationContext.createDeviceProtectedStorageContext().filesDir, DIRECTORY)
+    private val lock = Any()
 
-    fun directory(context: Context): File {
-        val deviceProtectedRoot = context.applicationContext.createDeviceProtectedStorageContext().dataDir
-        return File(File(credentialProtectedRoot(deviceProtectedRoot.path), "files"), DIRECTORY)
-    }
+    private fun file() = File(directory, fileName)
 
-    fun credentialProtectedRoot(deviceProtectedRoot: String): String {
-        val segments = deviceProtectedRoot.split('/')
-        val index = segments.lastIndexOf(DEVICE_PROTECTED_SEGMENT)
-        check(index >= 0 && index == segments.size - 3) { "Credential-protected storage is unavailable." }
-        return segments.toMutableList().also { it[index] = CREDENTIAL_PROTECTED_SEGMENT }.joinToString("/")
-    }
-
-    private const val DEVICE_PROTECTED_SEGMENT = "user_de"
-    private const val CREDENTIAL_PROTECTED_SEGMENT = "user"
-}
-
-private class PcJsonFile(private val file: File) {
-    private val atomicFile = AtomicFile(file)
-
-    fun read(): JSONObject {
+    private fun read(): JSONObject {
+        val file = file()
         if (!file.exists()) return JSONObject()
-        return JSONObject(String(atomicFile.readFully(), Charsets.UTF_8))
+        return JSONObject(String(AtomicFile(file).readFully(), Charsets.UTF_8))
     }
 
-    fun write(value: JSONObject) {
-        file.parentFile?.let { parent -> if (!parent.isDirectory && !parent.mkdirs()) throw IllegalStateException(UNAVAILABLE) }
+    private fun write(value: JSONObject) {
+        if (!directory.isDirectory && !directory.mkdirs()) throw IllegalStateException(UNAVAILABLE)
+        val atomicFile = AtomicFile(file())
         val stream = atomicFile.startWrite()
         try {
             stream.write(value.toString().toByteArray(Charsets.UTF_8))
@@ -55,86 +40,45 @@ private class PcJsonFile(private val file: File) {
         }
     }
 
-    companion object {
-        const val UNAVAILABLE = "PC pairing storage is unavailable."
-    }
-}
-
-open class CredentialProtectedPcKeyValueStore(
-    context: Context,
-    fileName: String = FILE_NAME
-) : PcKeyValueStore {
-    private val appContext = context.applicationContext
-    private val name = fileName
-    private val lock = Any()
-
-    private fun file() = PcJsonFile(File(PcCredentialProtectedStorage.directory(appContext), name))
-
-    protected open fun encode(key: String, value: String): String = value
-
-    protected open fun decode(key: String, stored: String): String? = stored
-
     override suspend fun get(key: String): String? = withContext(Dispatchers.IO) {
-        val stored = synchronized(lock) { file().read().optString(key, "").ifEmpty { null } }
-        stored?.let { decode(key, it) }
+        synchronized(lock) { read().optString(key, "").ifEmpty { null } }
     }
 
     override suspend fun put(key: String, value: String) = withContext(Dispatchers.IO) {
-        val encoded = encode(key, value)
-        synchronized(lock) {
-            val store = file()
-            store.write(store.read().put(key, encoded))
-        }
+        synchronized(lock) { write(read().put(key, value)) }
     }
 
     override suspend fun remove(key: String) = withContext(Dispatchers.IO) {
         synchronized(lock) {
-            val store = file()
-            val current = store.read()
+            val current = read()
             if (current.has(key)) {
                 current.remove(key)
-                store.write(current)
+                write(current)
             }
         }
     }
 
+    override suspend fun clear() = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            AtomicFile(file()).delete()
+        }
+    }
+
     companion object {
+        const val DIRECTORY = "switchify_pc"
         const val FILE_NAME = "pairings.json"
+        const val SECRETS_FILE_NAME = "secrets.json"
+        private const val UNAVAILABLE = "PC pairing storage is unavailable."
     }
 }
 
-class KeystorePcSecretStore(context: Context) : CredentialProtectedPcKeyValueStore(context, FILE_NAME) {
-    override fun encode(key: String, value: String): String {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey())
-        cipher.updateAAD(key.toByteArray(Charsets.UTF_8))
-        val sealed = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
-        return Base64.getEncoder().encodeToString(cipher.iv + sealed)
-    }
-
-    override fun decode(key: String, stored: String): String? = try {
-        val bytes = Base64.getDecoder().decode(stored)
-        val secretKey = existingKey()
-        if (bytes.size <= IV_BYTES || secretKey == null) {
-            null
-        } else {
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(TAG_BITS, bytes, 0, IV_BYTES))
-            cipher.updateAAD(key.toByteArray(Charsets.UTF_8))
-            String(cipher.doFinal(bytes, IV_BYTES, bytes.size - IV_BYTES), Charsets.UTF_8)
-        }
-    } catch (_: GeneralSecurityException) {
-        null
-    } catch (_: IllegalArgumentException) {
-        null
-    }
-
-    private fun existingKey(): SecretKey? {
+class AndroidKeystorePcSecretKeySource : PcSecretKeySource {
+    override fun existingKey(): SecretKey? {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        return (keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.secretKey
+        return keyStore.getKey(KEY_ALIAS, null) as? SecretKey
     }
 
-    private fun secretKey(): SecretKey = synchronized(keyLock) {
+    override fun createKey(): SecretKey = synchronized(keyLock) {
         existingKey() ?: KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE).run {
             init(
                 KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
@@ -148,13 +92,14 @@ class KeystorePcSecretStore(context: Context) : CredentialProtectedPcKeyValueSto
     }
 
     companion object {
-        const val FILE_NAME = "secrets.json"
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
         private const val KEY_ALIAS = "switchify_pc_pairing_secrets"
-        private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val KEY_BITS = 256
-        private const val TAG_BITS = 128
-        private const val IV_BYTES = 12
         private val keyLock = Any()
     }
 }
+
+fun keystorePcSecretStore(context: Context): PcKeyValueStore = EncryptedPcKeyValueStore(
+    backing = DeviceProtectedPcKeyValueStore(context, DeviceProtectedPcKeyValueStore.SECRETS_FILE_NAME),
+    cipher = PcSecretCipher(AndroidKeystorePcSecretKeySource())
+)
