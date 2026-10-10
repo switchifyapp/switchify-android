@@ -31,17 +31,11 @@ class PcLiveTypingModel(
 
     fun change(next: String) {
         if (_submitting.value) return
-        val newline = next.indexOfAny(charArrayOf('\n', '\r'))
-        if (newline >= 0) {
-            val withoutNewlines = next.filterNot { it == '\n' || it == '\r' }.take(PcLiveTypingController.MAX_TEXT_LENGTH)
-            if (withoutNewlines != _text.value) {
-                _text.value = withoutNewlines
-                reconcile(withoutNewlines)
-            }
+        if (isEnterPress(_text.value, next)) {
             scope.launch(start = CoroutineStart.UNDISPATCHED) { submit() }
             return
         }
-        val limited = next.take(PcLiveTypingController.MAX_TEXT_LENGTH)
+        val limited = PcTextLimit.limit(next)
         _text.value = limited
         reconcile(limited)
     }
@@ -70,6 +64,12 @@ class PcLiveTypingModel(
             val sent = controller.update(next)
             if (current == revision) _failure.value = if (sent) null else PcLiveTypingFailure.Text
         }
+    }
+
+    private fun isEnterPress(current: String, next: String): Boolean {
+        if (next.length != current.length + 1) return false
+        val index = next.indices.firstOrNull { it >= current.length || next[it] != current[it] } ?: return false
+        return next[index] == '\n' && next.removeRange(index, index + 1) == current
     }
 
     private companion object {

@@ -62,7 +62,7 @@ open class InMemoryPcRemotePreferences(
     }
 
     override fun setDraft(text: String) {
-        _draft.value = text.take(PcLiveTypingController.MAX_TEXT_LENGTH)
+        _draft.value = PcTextLimit.limit(text)
     }
 }
 

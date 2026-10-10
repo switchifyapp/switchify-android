@@ -144,4 +144,13 @@
     <string name="pc_action_unavailable_wait_enter">Wait for Enter to finish sending.</string>
     <string name="pc_action_unavailable_draft_mode">Switch to Write a draft to use this action.</string>
     <string name="pc_action_unavailable_draft_empty">The draft is empty.</string>
+    <string name="pc_modifier_ctrl">Ctrl</string>
+    <string name="pc_modifier_control">Control</string>
+    <string name="pc_modifier_alt">Alt</string>
+    <string name="pc_modifier_option">Option</string>
+    <string name="pc_modifier_shift">Shift</string>
+    <string name="pc_modifier_command">Command</string>
+    <string name="pc_modifier_start">Start</string>
+    <string name="pc_repeat_movement_announcement">Pointer movement is repeating.</string>
+    <string name="pc_repeat_key_announcement">Key is repeating.</string>
 </resources>

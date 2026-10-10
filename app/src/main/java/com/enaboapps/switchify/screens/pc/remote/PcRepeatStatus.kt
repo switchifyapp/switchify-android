@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.screens.pc.remote
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.enaboapps.switchify.R
@@ -27,6 +30,7 @@ import com.enaboapps.switchify.pc.protocol.PcCommandTypes
 import com.enaboapps.switchify.pc.remote.PcRemotePresentation
 import com.enaboapps.switchify.pc.remote.PcRemoteSession
 import com.enaboapps.switchify.pc.remote.PcRemoteSessionState
+import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -37,50 +41,65 @@ fun PcRepeatStatus(
     onStop: () -> Unit
 ) {
     val repeat = state.repeat
-    if (repeat != null) {
-        val stopLabel = PcRemotePresentation.repeatStopLabel(repeat)
-        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-            ActionButton(
-                textResId = stopLabel,
-                onClick = onStop,
-                type = ActionButtonType.DESTRUCTIVE,
-                leadingIcon = Icons.Rounded.StopCircle,
-                applyPadding = false,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
-            ) {
-                Row(
-                    modifier = Modifier.padding(Dimens.spaceS),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
-                    verticalAlignment = Alignment.CenterVertically
+    val announcement = when {
+        repeat == null -> ""
+        state.repeatingKey -> stringResource(R.string.pc_repeat_key_announcement)
+        else -> stringResource(R.string.pc_repeat_movement_announcement)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+        Box(
+            modifier = Modifier
+                .size(1.dp)
+                .semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = announcement
+                }
+        )
+        if (repeat != null) {
+            val stopLabel = PcRemotePresentation.repeatStopLabel(repeat)
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+                ActionButton(
+                    textResId = stopLabel,
+                    onClick = onStop,
+                    type = ActionButtonType.DESTRUCTIVE,
+                    leadingIcon = Icons.Rounded.StopCircle,
+                    applyPadding = false,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) {}
                 ) {
-                    Icon(imageVector = Icons.Rounded.Autorenew, contentDescription = null)
-                    Text(
-                        text = stringResource(
-                            if (state.repeatingKey) R.string.pc_repeat_key_status else R.string.pc_repeat_movement_status,
-                            stringResource(stopLabel)
-                        ),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Row(
+                        modifier = Modifier.padding(Dimens.spaceS),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Rounded.Autorenew, contentDescription = null)
+                        Text(
+                            text = stringResource(
+                                if (state.repeatingKey) R.string.pc_repeat_key_status else R.string.pc_repeat_movement_status,
+                                stringResource(stopLabel)
+                            ),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         }
-    }
-    if (!physicalSwitchStopAvailable && repeatCouldStart(session)) {
-        Panel(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = stringResource(R.string.pc_repeat_switch_stop_unavailable),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(Dimens.spaceM)
-            )
+        if (!physicalSwitchStopAvailable && repeatCouldStart(session)) {
+            Panel(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.pc_repeat_switch_stop_unavailable),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(Dimens.spaceM)
+                )
+            }
         }
     }
 }

@@ -54,7 +54,7 @@ class PcRemoteSessionTest {
             sender.types
         )
         assertEquals(PcResponseMode.None, sender.calls[4].mode)
-        assertEquals(PcResponseMode.None, sender.calls[6].mode)
+        assertEquals(PcResponseMode.Ack, sender.calls[6].mode)
         assertEquals(PcRemoteSessionState(), session.snapshot())
     }
 
@@ -429,6 +429,92 @@ class PcRemoteSessionTest {
         assertTrue(session.snapshot().modifiers.isEmpty())
         assertEquals(listOf("keyboard.modifierDown", "keyboard.shortcut", "keyboard.shortcut", "keyboard.modifierUp"), sender.types)
         assertEquals("{\"keys\":[\"Ctrl\",\"C\"]}", sender.calls[2].payload)
+    }
+
+    @Test
+    fun cleanupEndsDragStartedJustBeforeIt() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        val dragAck = sender.gate("mouse.dragStart")
+        val drag = async { session.toggleDrag() }
+        runCurrent()
+        val cleanup = async { session.cleanup() }
+        runCurrent()
+        assertEquals(listOf("mouse.dragStart"), sender.types)
+        dragAck.complete(true)
+        drag.await()
+        cleanup.await()
+        assertEquals(listOf("mouse.dragStart", "mouse.dragEnd"), sender.types)
+        assertFalse(session.snapshot().dragging)
+    }
+
+    @Test
+    fun cleanupStopsRepeatStartedJustBeforeItAndReleasesSwitchStop() = runTest {
+        val sender = FakeRemoteSender()
+        val switchStop = FakeSwitchStop()
+        val session = session(sender, switchStop = switchStop)
+        val startAck = sender.gate("mouse.repeat.start")
+        val start = async { session.mouse(PcCommands.move(10.0, 0.0), repeatable = true) }
+        runCurrent()
+        val cleanup = async { session.cleanup() }
+        runCurrent()
+        startAck.complete(true)
+        start.await()
+        cleanup.await()
+        assertEquals(listOf(moveRepeat, stop), sender.calls)
+        assertNull(session.snapshot().repeat)
+        assertNull(switchStop.armed)
+        assertEquals(1, switchStop.releaseCount)
+    }
+
+    @Test
+    fun actionsRequestedBeforeCleanupRunsAreDroppedAndLaterActionsWork() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        val clickAck = sender.gate("mouse.click")
+        val click = async { session.command(PcCommands.click()) }
+        runCurrent()
+        val drag = async { session.toggleDrag() }
+        val repeat = async { session.key("ArrowDown") }
+        val modifier = async { session.toggleModifier("Shift") }
+        val typing = async { session.streamChunk("late") }
+        runCurrent()
+        val cleanup = async { session.cleanup() }
+        runCurrent()
+        clickAck.complete(true)
+        click.await()
+        assertFalse(drag.await())
+        assertFalse(repeat.await())
+        assertFalse(modifier.await())
+        assertFalse(typing.await())
+        cleanup.await()
+        assertEquals(listOf("mouse.click"), sender.types)
+        assertEquals(PcRemoteSessionState(), session.snapshot())
+
+        assertTrue(session.toggleDrag())
+        assertEquals("mouse.dragStart", sender.types.last())
+    }
+
+    @Test
+    fun closedSessionSendsNothingFurther() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        session.toggleModifier("Ctrl")
+        session.close()
+        assertFalse(session.key("ArrowDown"))
+        assertFalse(session.toggleDrag())
+        assertEquals(listOf("keyboard.modifierDown", "keyboard.modifierUp"), sender.types)
+    }
+
+    @Test
+    fun closeStreamUsesAcknowledgedModeThePcAccepts() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        session.streamChunk("a")
+        session.closeStream()
+        assertEquals("keyboard.textStream.close", sender.calls.last().type)
+        assertEquals(PcResponseMode.Ack, sender.calls.last().mode)
+        assertFalse(session.snapshot().streamOpen)
     }
 
     @Test

@@ -38,8 +38,12 @@ import com.enaboapps.switchify.pc.remote.actions.PcResolvedAction
 
 @Composable
 fun PcText.resolve(): String = when (this) {
-    is PcText.Res -> stringResource(id, *args.toTypedArray())
+    is PcText.Res -> {
+        val resolved = args.map { arg -> if (arg is PcText) arg.resolve() else arg }
+        stringResource(id, *resolved.toTypedArray())
+    }
     is PcText.Literal -> text
+    is PcText.Joined -> parts.map { it.resolve() }.joinToString(separator)
 }
 
 fun PcActionIcon.vector(): ImageVector = when (this) {

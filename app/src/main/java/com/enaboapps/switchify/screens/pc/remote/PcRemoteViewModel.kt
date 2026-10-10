@@ -2,9 +2,9 @@ package com.enaboapps.switchify.screens.pc.remote
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.enaboapps.switchify.pc.connection.PcConnectionManager
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.remote.PcLiveTypingModel
+import com.enaboapps.switchify.pc.remote.PcRemoteConnection
 import com.enaboapps.switchify.pc.remote.PcRemotePreferences
 import com.enaboapps.switchify.pc.remote.PcRemoteSession
 import com.enaboapps.switchify.pc.remote.PcRepeatSwitchStop
@@ -31,7 +31,7 @@ import kotlinx.coroutines.withContext
 class PcRemoteSessionHolder(val desktopId: String, val session: PcRemoteSession, val liveTyping: PcLiveTypingModel)
 
 class PcRemoteViewModel(
-    private val manager: PcConnectionManager,
+    private val manager: PcRemoteConnection,
     val preferences: PcRemotePreferences,
     val layouts: PcLayoutStore,
     private val switchStop: PcRepeatSwitchStop,
@@ -61,8 +61,11 @@ class PcRemoteViewModel(
         viewModelScope.launch { manager.connectPreferred() }
     }
 
-    fun onStop() {
+    fun onStop(changingConfigurations: Boolean) {
         viewModelScope.launch { manager.cancelPreferredConnection() }
+        if (changingConfigurations) return
+        val session = _holder.value?.session ?: return
+        sessionScope.launch(start = CoroutineStart.UNDISPATCHED) { session.cleanup() }
     }
 
     fun refreshPhysicalSwitchStop() {
@@ -139,7 +142,7 @@ class PcRemoteViewModel(
     private fun retire(holder: PcRemoteSessionHolder) {
         sessionScope.launch {
             try {
-                holder.session.cleanup()
+                holder.session.close()
             } finally {
                 holder.session.dispose()
             }

@@ -170,11 +170,14 @@ class PcActionRuntimeTest {
         PcActionRuntime.execute(action("modifier.Meta"), setup.context)
         val mac = PcActionRuntime.resolve(setup.context.copy(platform = PcPlatform.MacOs))
         val meta = mac.first { it.id == "modifier.Meta" }
-        assertEquals(PcText.Literal("Command"), meta.presentation.label)
+        assertEquals(PcText.Res(R.string.pc_modifier_command), meta.presentation.label)
         assertEquals(true, meta.presentation.selected)
-        assertEquals(PcText.Res(R.string.pc_action_hold_modifier, listOf("Command")), meta.name)
-        assertEquals(PcText.Literal("Command+C"), mac.first { it.id == "shortcut.C" }.presentation.label)
-        assertEquals(PcText.Literal("Start"), PcActionRuntime.resolve(setup.context).first { it.id == "modifier.Meta" }.presentation.label)
+        assertEquals(PcText.Res(R.string.pc_action_hold_modifier, listOf(PcText.Res(R.string.pc_modifier_command))), meta.name)
+        assertEquals(
+            PcText.Joined(listOf(PcText.Res(R.string.pc_modifier_command), PcText.Literal("C")), "+"),
+            mac.first { it.id == "shortcut.C" }.presentation.label
+        )
+        assertEquals(PcText.Res(R.string.pc_modifier_start), PcActionRuntime.resolve(setup.context).first { it.id == "modifier.Meta" }.presentation.label)
         assertEquals(PcActionCatalog.actions.count { it.behavior !is PcActionBehavior.Draft }, mac.size)
 
         val singleMonitor = setup(runtimeCommands)

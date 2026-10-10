@@ -54,6 +54,27 @@ class PcLiveTypingModelTest {
     }
 
     @Test
+    fun pastedNewlinesAreTypedAsText() = runTest {
+        val sender = FakeRemoteSender()
+        val session = PcRemoteSession(sender, { remoteProfile() }, this) { "stream-1" }
+        val model = PcLiveTypingModel(session, this)
+        model.change("first\nsecond")
+        advanceUntilIdle()
+        assertEquals("first\nsecond", model.text.value)
+        assertEquals(listOf("keyboard.textStream.open", "keyboard.textStream.chunk"), sender.types)
+        assertTrue(sender.calls[1].payload.contains("first\\nsecond"))
+    }
+
+    @Test
+    fun textLimitNeverSplitsSurrogatePair() {
+        val emoji = "🙂"
+        val text = "a".repeat(1_999) + emoji
+        assertEquals("a".repeat(1_999), PcTextLimit.limit(text))
+        assertEquals("a".repeat(1_998) + emoji, PcTextLimit.limit("a".repeat(1_998) + emoji + "b"))
+        assertEquals("short", PcTextLimit.limit("short"))
+    }
+
+    @Test
     fun limitsLiveTextToPcMaximum() = runTest {
         val session = PcRemoteSession(FakeRemoteSender(), { remoteProfile() }, this) { "stream-1" }
         val model = PcLiveTypingModel(session, this)

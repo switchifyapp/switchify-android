@@ -45,6 +45,5 @@ class PcLiveTypingController(private val stream: PcLiveTypingStream) {
     companion object {
         const val ENTER = "Enter"
         const val BACKSPACE = "Backspace"
-        const val MAX_TEXT_LENGTH = 2_000
     }
 }

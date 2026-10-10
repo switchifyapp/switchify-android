@@ -23,6 +23,7 @@ object SwitchifyRemoteBridgeCoordinator {
     private var callbackCount = 0
     private val lock = Any()
     private var externalSwitches: (() -> List<Pair<Int, String>>)? = null
+    private var cameraSwitchesConfigured: () -> Boolean = { false }
     private var configuredSwitchFingerprint = emptyList<Pair<Int, String>>()
     private var repeatGeneration = 0L
     private var repeatGenerationHighWater = 0L
@@ -32,10 +33,11 @@ object SwitchifyRemoteBridgeCoordinator {
     private val activePresses = mutableMapOf<Int, Long>()
     internal var setScanningPaused: (Boolean) -> Unit = ::postScanningPaused
 
-    fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
-    internal fun attach(provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
+    fun attach(provider: SwitchEventProvider) = attach(provider::hasCameraSwitches) { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
+    internal fun attach(cameraSwitches: () -> Boolean = { false }, provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
         synchronized(lock) {
             externalSwitches = provider
+            cameraSwitchesConfigured = cameraSwitches
             configuredSwitchFingerprint = configuredSwitchFingerprintLocked()
         }
         publishSnapshot()
@@ -43,6 +45,7 @@ object SwitchifyRemoteBridgeCoordinator {
     fun detach() = callbackDispatcher.dispatch {
         synchronized(lock) {
             externalSwitches = null
+            cameraSwitchesConfigured = { false }
             configuredSwitchFingerprint = emptyList()
             clearActiveLocked()
         }
@@ -119,8 +122,8 @@ object SwitchifyRemoteBridgeCoordinator {
         return stopBridgedRepeat()
     }
 
-    fun hasConfiguredExternalSwitches(): Boolean = synchronized(lock) {
-        externalSwitches?.invoke()?.isNotEmpty() == true
+    fun hasConfiguredSwitches(): Boolean = synchronized(lock) {
+        externalSwitches?.invoke()?.isNotEmpty() == true || cameraSwitchesConfigured()
     }
 
     private fun stopBridgedRepeat(): Boolean = callbackDispatcher.dispatch {

@@ -19,15 +19,18 @@ interface PcRepeatSwitchStop {
     }
 }
 
-class PcSwitchRepeatStopHook(private val availability: () -> Boolean = { false }) : PcRepeatSwitchStop {
+class PcSwitchRepeatStopHook(
+    private val availability: () -> Boolean = { false },
+    private val onArmedChanged: (Boolean) -> Unit = {}
+) : PcRepeatSwitchStop {
     private class Armed(val onStop: () -> Unit)
 
     private val armed = AtomicReference<Armed?>(null)
 
     override fun arm(onStop: () -> Unit): PcSwitchStopHandle {
         val entry = Armed(onStop)
-        armed.set(entry)
-        return PcSwitchStopHandle { armed.compareAndSet(entry, null) }
+        if (armed.getAndSet(entry) == null) onArmedChanged(true)
+        return PcSwitchStopHandle { if (armed.compareAndSet(entry, null)) onArmedChanged(false) }
     }
 
     override fun isAvailable(): Boolean = availability()
@@ -36,6 +39,7 @@ class PcSwitchRepeatStopHook(private val availability: () -> Boolean = { false }
 
     fun requestStop(): Boolean {
         val entry = armed.getAndSet(null) ?: return false
+        onArmedChanged(false)
         entry.onStop()
         return true
     }
@@ -45,7 +49,12 @@ object PcSwitchRepeatStop {
     @Volatile
     var availability: () -> Boolean = { false }
 
-    val hook = PcSwitchRepeatStopHook { availability() }
+    @Volatile
+    var armedListener: (Boolean) -> Unit = {}
+
+    val hook = PcSwitchRepeatStopHook({ availability() }, { armedListener(it) })
 
     fun requestStop(): Boolean = hook.requestStop()
+
+    fun isActive(): Boolean = hook.isArmed()
 }

@@ -35,7 +35,6 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.pc.protocol.PcCommandTypes
 import com.enaboapps.switchify.pc.protocol.PcPlatform
-import com.enaboapps.switchify.pc.remote.PcLiveTypingController
 import com.enaboapps.switchify.pc.remote.PcLiveTypingFailure
 import com.enaboapps.switchify.pc.remote.PcRemoteSessionState
 import com.enaboapps.switchify.pc.remote.PcTypingMode
@@ -206,7 +205,7 @@ fun PcTypingSurface(
             value = if (mode == PcTypingMode.Live) liveText else draft,
             onValueChange = { next ->
                 if (mode == PcTypingMode.Live) live.change(next)
-                else viewModel.setDraft(next.take(PcLiveTypingController.MAX_TEXT_LENGTH))
+                else viewModel.setDraft(next)
             },
             enabled = if (mode == PcTypingMode.Live) liveSupported else draftSupported,
             readOnly = mode == PcTypingMode.Live && submitting,

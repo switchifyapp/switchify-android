@@ -1,5 +1,8 @@
 package com.enaboapps.switchify.screens.pc.remote
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,6 +49,7 @@ import com.enaboapps.switchify.pc.connection.PcProfileStatus
 import com.enaboapps.switchify.pc.remote.PcRemoteGraph
 import com.enaboapps.switchify.pc.remote.PcRemotePresentation
 import com.enaboapps.switchify.pc.remote.PcRemoteSurface
+import com.enaboapps.switchify.pc.remote.asRemoteConnection
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -54,7 +58,7 @@ fun PcRemoteScreen(navController: NavController) {
     val graph = remember { PcRemoteGraph.getInstance(context) }
     val viewModel: PcRemoteViewModel = viewModel {
         PcRemoteViewModel(
-            manager = graph.connection.manager,
+            manager = graph.connection.manager.asRemoteConnection(),
             preferences = graph.preferences,
             layouts = graph.layouts,
             switchStop = graph.switchStop,
@@ -68,7 +72,9 @@ fun PcRemoteScreen(navController: NavController) {
     val physicalSwitchStopAvailable by viewModel.physicalSwitchStopAvailable.collectAsState()
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        viewModel.onStop(changingConfigurations = context.findActivity()?.isChangingConfigurations == true)
+    }
 
     val managePcs = { navController.navigate(NavigationRoute.PcConnection.name) }
 
@@ -242,4 +248,10 @@ private fun EmptyState(
             actions()
         }
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

@@ -60,11 +60,33 @@ class PcSwitchRepeatStopBridgeTest {
         assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
     }
 
+    @Test fun hookReportsArmedChangesForEveryEndPath() {
+        val changes = mutableListOf<Boolean>()
+        val hook = PcSwitchRepeatStopHook(onArmedChanged = { changes += it })
+        val first = hook.arm {}
+        first.release()
+        first.release()
+        hook.arm {}
+        hook.requestStop()
+        val replaced = hook.arm {}
+        val replacement = hook.arm {}
+        replaced.release()
+        replacement.release()
+        assertEquals(listOf(true, false, true, false, true, false), changes)
+    }
+
+    @Test fun cameraSwitchesCountAsConfigured() {
+        SwitchifyRemoteBridgeCoordinator.attach({ true }) { emptyList() }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches())
+        SwitchifyRemoteBridgeCoordinator.detach()
+        assertFalse(SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches())
+    }
+
     @Test fun reportsConfiguredExternalSwitches() {
-        assertFalse(SwitchifyRemoteBridgeCoordinator.hasConfiguredExternalSwitches())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches())
         SwitchifyRemoteBridgeCoordinator.attach { emptyList() }
-        assertFalse(SwitchifyRemoteBridgeCoordinator.hasConfiguredExternalSwitches())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches())
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.hasConfiguredExternalSwitches())
+        assertTrue(SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches())
     }
 }

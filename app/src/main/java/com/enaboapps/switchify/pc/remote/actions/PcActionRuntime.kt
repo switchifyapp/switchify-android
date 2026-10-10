@@ -73,20 +73,17 @@ data class PcResolvedAction(
 }
 
 object PcActionRuntime {
-    fun modifierLabel(key: String, platform: PcPlatform?): String =
-        if (platform == PcPlatform.MacOs) {
-            when (key) {
-                "Ctrl" -> "Control"
-                "Alt" -> "Option"
-                "Shift" -> "Shift"
-                "Meta" -> "Command"
-                else -> key
-            }
-        } else if (key == "Meta") {
-            "Start"
-        } else {
-            key
+    fun modifierLabel(key: String, platform: PcPlatform?): PcText {
+        val mac = platform == PcPlatform.MacOs
+        val res = when (key) {
+            "Ctrl" -> if (mac) R.string.pc_modifier_control else R.string.pc_modifier_ctrl
+            "Alt" -> if (mac) R.string.pc_modifier_option else R.string.pc_modifier_alt
+            "Shift" -> R.string.pc_modifier_shift
+            "Meta" -> if (mac) R.string.pc_modifier_command else R.string.pc_modifier_start
+            else -> return PcText.Literal(key)
         }
+        return PcText.Res(res)
+    }
 
     fun movementStep(session: PcRemoteSession): Double {
         val profile = session.profile
@@ -186,13 +183,14 @@ object PcActionRuntime {
                 accessibilityLabel = PcText.Res(action.nameRes)
             )
             is PcActionBehavior.Modifier -> PcActionPresentation(
-                label = PcText.Literal(modifierLabel(behavior.key, context.platform)),
+                label = modifierLabel(behavior.key, context.platform),
                 accessibilityLabel = name(action, context),
                 selected = behavior.key in state.modifiers
             )
             is PcActionBehavior.Shortcut -> PcActionPresentation(
-                label = PcText.Literal(
-                    (state.modifiers.map { modifierLabel(it, context.platform) } + behavior.key).joinToString("+")
+                label = PcText.Joined(
+                    state.modifiers.map { modifierLabel(it, context.platform) } + PcText.Literal(behavior.key),
+                    "+"
                 )
             )
             is PcActionBehavior.Window -> if (behavior.action == CLOSE_FOCUSED) {
