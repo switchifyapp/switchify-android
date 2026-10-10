@@ -23,10 +23,8 @@ import com.enaboapps.switchify.screens.account.AccountScreen
 import com.enaboapps.switchify.screens.account.AuthScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
-import com.enaboapps.switchify.screens.pc.PcConnectionScreen
+import com.enaboapps.switchify.screens.pc.PcControlScreen
 import com.enaboapps.switchify.screens.pc.PcDiagnosticsScreen
-import com.enaboapps.switchify.screens.pc.PcForwardingScreen
-import com.enaboapps.switchify.screens.pc.remote.PcRemoteScreen
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
@@ -248,17 +246,11 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.GemmaTerms.name) {
             GemmaTermsScreen(navController)
         }
-        composable(NavigationRoute.PcConnection.name) {
-            PcConnectionScreen(navController)
+        composable(NavigationRoute.PcControl.name) {
+            PcControlScreen(navController)
         }
         composable(NavigationRoute.PcDiagnostics.name) {
             PcDiagnosticsScreen(navController)
-        }
-        composable(NavigationRoute.PcRemote.name) {
-            PcRemoteScreen(navController)
-        }
-        composable(NavigationRoute.PcForwarding.name) {
-            PcForwardingScreen(navController)
         }
         composable("${NavigationRoute.SwitchActionSelection.name}/{currentActionId}") {
             it.arguments?.getString("currentActionId")?.toIntOrNull()?.let { actionId ->

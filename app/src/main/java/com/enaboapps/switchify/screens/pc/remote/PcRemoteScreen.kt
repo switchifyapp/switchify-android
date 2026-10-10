@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.screens.pc.remote
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -43,9 +45,6 @@ import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
-import com.enaboapps.switchify.components.PillTab
-import com.enaboapps.switchify.components.PillTabRow
-import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcProfileStatus
 import com.enaboapps.switchify.pc.remote.PcRemoteGraph
@@ -54,10 +53,17 @@ import com.enaboapps.switchify.pc.remote.PcRemoteSurface
 import com.enaboapps.switchify.pc.remote.asRemoteConnection
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlock
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlocking
+import com.enaboapps.switchify.screens.pc.PcForwardingSurface
 import com.enaboapps.switchify.theme.Dimens
+import com.enaboapps.switchify.utils.findActivity
 
 @Composable
-fun PcRemoteScreen(navController: NavController) {
+fun PcRemoteScreen(
+    navController: NavController,
+    tabBar: @Composable () -> Unit,
+    onManagePcs: () -> Unit,
+    onBackPressed: () -> Unit
+) {
     val context = LocalContext.current
     val graph = remember { PcRemoteGraph.getInstance(context) }
     val viewModel: PcRemoteViewModel = viewModel {
@@ -77,24 +83,32 @@ fun PcRemoteScreen(navController: NavController) {
     val editingLayout by viewModel.editingLayout.collectAsState()
     val layoutEditor by viewModel.layoutEditor.collectAsState()
 
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onVisible() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
-        viewModel.onStop(changingConfigurations = context.findActivity()?.isChangingConfigurations == true)
+        viewModel.onHidden(changingConfigurations = context.findActivity()?.isChangingConfigurations == true)
     }
 
-    val managePcs = { navController.navigate(NavigationRoute.PcConnection.name) }
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.onHidden(changingConfigurations = context.findActivity()?.isChangingConfigurations == true) }
+    }
+
+    val managePcs = onManagePcs
 
     BaseView(
         titleResId = R.string.screen_title_pc_remote,
+        onBackPressed = onBackPressed,
         navController = navController,
         bottomBar = {
-            PcRemoteDeviceSwitcher(
-                connection = connection,
-                loadSaved = viewModel::listSaved,
-                onSelect = viewModel::switchTo,
-                onManagePcs = managePcs,
-                modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceXs)
-            )
+            Column {
+                PcRemoteDeviceSwitcher(
+                    connection = connection,
+                    loadSaved = viewModel::listSaved,
+                    onSelect = viewModel::switchTo,
+                    onManagePcs = managePcs,
+                    modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceXs)
+                )
+                tabBar()
+            }
         }
     ) {
         Column(
@@ -105,19 +119,16 @@ fun PcRemoteScreen(navController: NavController) {
             val activeHolder = holder
             when {
                 current !is PcConnectionState.Connected -> {
-                    SurfaceSelector(surface, viewModel::selectSurface)
+                    PcSurfaceSelector(surface, viewModel::selectSurface)
                     DisconnectedContent(current, onRetry = viewModel::retry, onChoose = managePcs)
                 }
                 current.profile == null -> ProfileUnavailable(current.profileStatus)
                 activeHolder != null && activeHolder.desktopId == current.desktop.desktopId -> {
-                    ConnectedHeader(current)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) { SurfaceSelector(surface, viewModel::selectSurface) }
-                        PcLayoutEditToggle(editingLayout, viewModel::toggleLayoutEditing)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.weight(1f)) { ConnectedHeader(current) }
+                        if (surface.usesLayouts) PcLayoutEditToggle(editingLayout, viewModel::toggleLayoutEditing)
                     }
+                    PcSurfaceSelector(surface, viewModel::selectSurface)
                     val state by activeHolder.session.state.collectAsState()
                     val submittingEnter by activeHolder.liveTyping.submitting.collectAsState()
                     LaunchedEffect(state.repeat) { viewModel.refreshPhysicalSwitchStop() }
@@ -148,6 +159,7 @@ fun PcRemoteScreen(navController: NavController) {
                             PcRemoteSurface.Window -> PcWindowSurface(
                                 viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
                             )
+                            PcRemoteSurface.Forwarding -> PcForwardingSurface(onOpenPcs = managePcs)
                         }
                     }
                 }
@@ -155,22 +167,6 @@ fun PcRemoteScreen(navController: NavController) {
         }
     }
     layoutEditor?.let { session -> PcLayoutEditorDialog(session, viewModel) }
-}
-
-@Composable
-private fun SurfaceSelector(selected: PcRemoteSurface, onSelect: (PcRemoteSurface) -> Unit) {
-    val surfaces = PcRemoteSurface.entries
-    PillTabRow(
-        tabs = surfaces.map { PillTab(label = stringResource(surfaceLabel(it))) },
-        selectedIndex = surfaces.indexOf(selected),
-        onTabSelected = { index -> onSelect(surfaces[index]) }
-    )
-}
-
-private fun surfaceLabel(surface: PcRemoteSurface) = when (surface) {
-    PcRemoteSurface.Mouse -> R.string.pc_surface_mouse
-    PcRemoteSurface.Typing -> R.string.pc_surface_typing
-    PcRemoteSurface.Window -> R.string.pc_surface_window
 }
 
 @Composable
@@ -216,6 +212,28 @@ private fun DisconnectedContent(connection: PcConnectionState, onRetry: () -> Un
         title = stringResource(presentation.titleRes),
         body = presentation.message.resolve()
     ) {
+        val context = LocalContext.current
+        val settingsIntent = when (connection) {
+            is PcConnectionState.PermissionDenied -> R.string.pc_open_settings to Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                "package:${context.packageName}".toUri()
+            )
+            is PcConnectionState.LocationOff -> R.string.pc_open_location_settings to Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            else -> null
+        }
+        settingsIntent?.let { (labelRes, intent) ->
+            ActionButton(
+                textResId = labelRes,
+                onClick = {
+                    try {
+                        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (_: ActivityNotFoundException) {
+                    }
+                },
+                applyPadding = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         if (presentation.retry) {
             ActionButton(
                 textResId = R.string.pc_remote_retry,
@@ -280,10 +298,4 @@ private fun EmptyState(
             actions()
         }
     }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

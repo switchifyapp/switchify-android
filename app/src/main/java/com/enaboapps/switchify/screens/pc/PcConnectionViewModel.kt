@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -43,18 +45,23 @@ class PcConnectionViewModel(
             if (manager.state.value is PcConnectionState.Idle) manager.load()
         }
         viewModelScope.launch {
-            var previous: Class<out PcConnectionState>? = null
-            manager.state.collect { current ->
-                if (current.javaClass != previous) {
-                    previous = current.javaClass
-                    try {
-                        refreshSaved()
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: Exception) {
-                    }
-                }
-            }
+            manager.state
+                .map { it.javaClass to it.savedPcs }
+                .distinctUntilChanged()
+                .collect { refreshQuietly() }
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch { refreshQuietly() }
+    }
+
+    private suspend fun refreshQuietly() {
+        try {
+            refreshSaved()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
         }
     }
 
@@ -87,13 +94,6 @@ class PcConnectionViewModel(
 
     fun onResume() {
         if (permissions.requested.value) permissions.complete(permissions.isGranted())
-        val (resolved, retry) = when (val current = manager.state.value) {
-            is PcConnectionState.PermissionDenied -> permissions.isGranted() to current.retry
-            is PcConnectionState.LocationOff -> !manager.isLocationOff() to current.retry
-            else -> false to null
-        }
-        if (!resolved) return
-        if (retry != null) launchSafely { manager.connectSaved(retry) } else scan()
     }
 
     fun onPermissionResult(granted: Boolean) = permissions.complete(granted)

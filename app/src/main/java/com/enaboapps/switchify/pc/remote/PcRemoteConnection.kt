@@ -17,8 +17,6 @@ interface PcRemoteConnection {
 
     suspend fun connectPreferred()
 
-    suspend fun cancelPreferredConnection()
-
     suspend fun listSaved(): List<PcSavedPc>
 
     suspend fun switchSaved(pc: PcSavedPc)
@@ -34,8 +32,6 @@ fun PcConnectionManager.asRemoteConnection(): PcRemoteConnection {
         override fun registerCleanup(cleanup: suspend () -> Unit) = manager.registerCleanup(cleanup)
 
         override suspend fun connectPreferred() = manager.connectPreferred()
-
-        override suspend fun cancelPreferredConnection() = manager.cancelPreferredConnection()
 
         override suspend fun listSaved() = manager.listSaved()
 

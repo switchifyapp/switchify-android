@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 class PcRemoteGraph private constructor(context: Context) {
     val connection = PcConnectionGraph.getInstance(context)
 
-    val preferences: PcRemotePreferences = SharedPcRemotePreferences(context)
+    val preferences: PcRemotePreferences = PersistedPcRemotePreferences(context)
 
     val layouts: PcLayoutStore = PersistentPcLayoutStore(
         DeviceProtectedPcKeyValueStore(context, PersistentPcLayoutStore.FILE_NAME, PersistentPcLayoutStore.DIRECTORY)

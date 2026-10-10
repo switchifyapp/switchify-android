@@ -71,6 +71,10 @@ class PcForwardingSession(
         _holdToStopMs.value = preferences.holdToStopMs()
     }
 
+    fun refreshHoldToStop() {
+        _holdToStopMs.value = preferences.holdToStopMs()
+    }
+
     fun stopForBackground(changingConfigurations: Boolean) {
         if (changingConfigurations) return
         val controller = active?.controller ?: return

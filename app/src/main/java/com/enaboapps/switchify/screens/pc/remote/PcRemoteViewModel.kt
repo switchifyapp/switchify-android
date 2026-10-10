@@ -72,14 +72,15 @@ class PcRemoteViewModel(
         }
     }
 
-    fun onStart() {
+    fun onVisible() {
         refreshPhysicalSwitchStop()
-        viewModelScope.launch { manager.connectPreferred() }
     }
 
-    fun onStop(changingConfigurations: Boolean) {
-        viewModelScope.launch { manager.cancelPreferredConnection() }
-        if (changingConfigurations) return
+    fun onHidden(changingConfigurations: Boolean) {
+        if (!changingConfigurations) releaseHeldInput()
+    }
+
+    private fun releaseHeldInput() {
         val session = _holder.value?.session ?: return
         sessionScope.launch(start = CoroutineStart.UNDISPATCHED) { session.cleanup() }
     }
@@ -92,7 +93,13 @@ class PcRemoteViewModel(
         viewModelScope.launch { manager.connectPreferred() }
     }
 
-    fun selectSurface(surface: PcRemoteSurface) = preferences.setSurface(surface)
+    fun selectSurface(surface: PcRemoteSurface) {
+        if (!surface.usesLayouts) {
+            _editingLayout.value = false
+            releaseHeldInput()
+        }
+        preferences.setSurface(surface)
+    }
 
     fun selectTypingMode(mode: PcTypingMode) {
         if (mode == PcTypingMode.Draft) _holder.value?.session?.let { session -> launchAction { session.closeStream() } }

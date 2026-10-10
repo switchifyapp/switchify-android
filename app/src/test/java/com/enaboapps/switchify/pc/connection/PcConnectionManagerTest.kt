@@ -206,6 +206,7 @@ class PcConnectionManagerTest {
         val unexpectedErrors = mutableListOf<Throwable>()
         val diagnostics = PcDiagnosticLog(PcClock { 0 })
         var permission = true
+        var permissionGate: CompletableDeferred<Boolean>? = null
         var locationOff = false
         var now = 1_000L
         private var requestCounter = 0
@@ -215,7 +216,7 @@ class PcConnectionManagerTest {
             transport = transport,
             storage = faultyStorage,
             diagnostics = diagnostics,
-            requestPermission = { permission },
+            requestPermission = { permissionGate?.await() ?: permission },
             clock = PcClock { now },
             requestIds = PcIdGenerator { "req-${++requestCounter}" },
             nonces = PcIdGenerator { "nonce-${++nonceCounter}" },
@@ -742,5 +743,25 @@ class PcConnectionManagerTest {
         val export = h.diagnostics.export()
         assertFalse(export.contains("fixture-secret"))
         assertFalse(export.contains("ble-1"))
+    }
+
+    @Test
+    fun aSecondConnectToTheSamePcWhileTheFirstIsInFlightDoesNotTearItDown() = managerTest { h ->
+        h.savePc()
+        val gate = CompletableDeferred<Boolean>()
+        h.permissionGate = gate
+        backgroundScope.launch { h.manager.connectSaved(savedOffice()) }
+        runCurrent()
+        val disconnects = h.transport.disconnectCount
+        backgroundScope.launch { h.manager.connectSaved(savedOffice()) }
+        backgroundScope.launch { h.manager.connectPreferred() }
+        runCurrent()
+
+        gate.complete(true)
+        runCurrent()
+
+        assertTrue(h.manager.state.value is PcConnectionState.Connected)
+        assertEquals(1, h.transport.resolveCount)
+        assertEquals(disconnects, h.transport.disconnectCount)
     }
 }

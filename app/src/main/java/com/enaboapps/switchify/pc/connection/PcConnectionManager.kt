@@ -60,6 +60,8 @@ class PcPairingException(val failure: PcConnectionFailure) : Exception("Pairing 
 
 private class PcInvalidSavedAccessException : Exception("Saved access is no longer valid.")
 
+private class SavedConnectAttempt(val operation: Int, val desktopId: String)
+
 class PcConnectionManager(
     private val transport: PcTransport,
     private val storage: PcPairingStorage,
@@ -93,6 +95,7 @@ class PcConnectionManager(
     private var operation = 0
     private var switchIntent = 0
     private var preferredConnect: Deferred<Unit>? = null
+    private var savedConnectInFlight: SavedConnectAttempt? = null
     private var disconnecting: Deferred<Unit>? = null
     private var profileRecoveryDeadline: Job? = null
     private var healthTimer: Job? = null
@@ -251,7 +254,19 @@ class PcConnectionManager(
     }
 
     private suspend fun connectSavedNow(pc: PcSavedPc) {
+        val inFlight = savedConnectInFlight
+        if (inFlight != null && inFlight.desktopId == pc.desktopId && isCurrent(inFlight.operation)) return
         val current = ++operation
+        val attempt = SavedConnectAttempt(current, pc.desktopId)
+        savedConnectInFlight = attempt
+        try {
+            connectSavedAttempt(pc, current)
+        } finally {
+            if (savedConnectInFlight === attempt) savedConnectInFlight = null
+        }
+    }
+
+    private suspend fun connectSavedAttempt(pc: PcSavedPc, current: Int) {
         stopScanning()
         teardownConnection()
         if (!isCurrent(current)) return

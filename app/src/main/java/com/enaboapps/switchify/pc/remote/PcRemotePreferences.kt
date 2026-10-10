@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.pc.remote
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
+import com.enaboapps.switchify.pc.control.PcPreferenceStorage
+import com.enaboapps.switchify.pc.control.SharedPreferencesPcStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,7 +10,10 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class PcRemoteSurface(val storageKey: String) {
     Mouse("mouse"),
     Typing("typing"),
-    Window("window");
+    Window("window"),
+    Forwarding("forwarding");
+
+    val usesLayouts: Boolean get() = this != Forwarding
 
     companion object {
         fun fromStorageKey(value: String?): PcRemoteSurface = entries.firstOrNull { it.storageKey == value } ?: Mouse
@@ -66,27 +69,25 @@ open class InMemoryPcRemotePreferences(
     }
 }
 
-class SharedPcRemotePreferences private constructor(
-    private val preferences: SharedPreferences
+class PersistedPcRemotePreferences(
+    private val storage: PcPreferenceStorage
 ) : InMemoryPcRemotePreferences(
-    PcRemoteSurface.fromStorageKey(preferences.getString(SURFACE_KEY, null)),
-    PcTypingMode.fromStorageKey(preferences.getString(TYPING_MODE_KEY, null))
+    PcRemoteSurface.fromStorageKey(storage.getString(SURFACE_KEY)),
+    PcTypingMode.fromStorageKey(storage.getString(TYPING_MODE_KEY))
 ) {
-    constructor(context: Context) : this(
-        context.applicationContext.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
-    )
+    constructor(context: Context) : this(SharedPreferencesPcStorage(context, FILE_NAME))
 
     override fun setSurface(surface: PcRemoteSurface) {
         super.setSurface(surface)
-        preferences.edit { putString(SURFACE_KEY, surface.storageKey) }
+        storage.putString(SURFACE_KEY, surface.storageKey)
     }
 
     override fun setTypingMode(mode: PcTypingMode) {
         super.setTypingMode(mode)
-        preferences.edit { putString(TYPING_MODE_KEY, mode.storageKey) }
+        storage.putString(TYPING_MODE_KEY, mode.storageKey)
     }
 
-    private companion object {
+    companion object {
         const val FILE_NAME = "switchify_pc_remote"
         const val SURFACE_KEY = "surface"
         const val TYPING_MODE_KEY = "typingMode"
