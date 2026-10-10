@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,6 +52,8 @@ import com.enaboapps.switchify.pc.remote.PcRemoteGraph
 import com.enaboapps.switchify.pc.remote.PcRemotePresentation
 import com.enaboapps.switchify.pc.remote.PcRemoteSurface
 import com.enaboapps.switchify.pc.remote.asRemoteConnection
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlock
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlocking
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -70,6 +74,8 @@ fun PcRemoteScreen(navController: NavController) {
     val surface by viewModel.preferences.surface.collectAsState()
     val layouts by viewModel.layouts.layouts.collectAsState()
     val physicalSwitchStopAvailable by viewModel.physicalSwitchStopAvailable.collectAsState()
+    val editingLayout by viewModel.editingLayout.collectAsState()
+    val layoutEditor by viewModel.layoutEditor.collectAsState()
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
@@ -105,24 +111,50 @@ fun PcRemoteScreen(navController: NavController) {
                 current.profile == null -> ProfileUnavailable(current.profileStatus)
                 activeHolder != null && activeHolder.desktopId == current.desktop.desktopId -> {
                     ConnectedHeader(current)
-                    SurfaceSelector(surface, viewModel::selectSurface)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) { SurfaceSelector(surface, viewModel::selectSurface) }
+                        PcLayoutEditToggle(editingLayout, viewModel::toggleLayoutEditing)
+                    }
                     val state by activeHolder.session.state.collectAsState()
+                    val submittingEnter by activeHolder.liveTyping.submitting.collectAsState()
                     LaunchedEffect(state.repeat) { viewModel.refreshPhysicalSwitchStop() }
-                    when (surface) {
-                        PcRemoteSurface.Mouse -> PcMouseSurface(
-                            viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                    val blocked = when (PcLayoutEditBlocking.block(state, surface, submittingEnter)) {
+                        PcLayoutEditBlock.SendingEnter -> stringResource(R.string.pc_layout_blocked_enter)
+                        PcLayoutEditBlock.HeldInput -> stringResource(
+                            R.string.pc_layout_blocked_input,
+                            stringResource(PcRemotePresentation.repeatStopLabel(state.repeat))
                         )
-                        PcRemoteSurface.Typing -> PcTypingSurface(
-                            viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                        null -> null
+                    }
+                    val editing = remember(editingLayout, blocked, viewModel) {
+                        PcLayoutEditing(
+                            enabled = editingLayout,
+                            blocked = blocked,
+                            open = viewModel::openLayoutEditor,
+                            refreshControls = viewModel::refreshLayoutEditorControls
                         )
-                        PcRemoteSurface.Window -> PcWindowSurface(
-                            viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
-                        )
+                    }
+                    CompositionLocalProvider(LocalPcLayoutEditing provides editing) {
+                        when (surface) {
+                            PcRemoteSurface.Mouse -> PcMouseSurface(
+                                viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                            )
+                            PcRemoteSurface.Typing -> PcTypingSurface(
+                                viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                            )
+                            PcRemoteSurface.Window -> PcWindowSurface(
+                                viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                            )
+                        }
                     }
                 }
             }
         }
     }
+    layoutEditor?.let { session -> PcLayoutEditorDialog(session, viewModel) }
 }
 
 @Composable

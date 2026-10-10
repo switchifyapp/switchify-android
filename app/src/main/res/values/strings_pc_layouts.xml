@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pc_layout_edit_layout">Edit layout</string>
+    <string name="pc_layout_done_editing">Done editing</string>
+    <string name="pc_layout_edit_section">Edit section</string>
+    <string name="pc_layout_edit_section_description">Edit %1$s section</string>
+    <string name="pc_layout_blocked_input">%1$s, end dragging, and release modifiers before editing.</string>
+    <string name="pc_layout_blocked_enter">Finish sending Enter before editing.</string>
+
+    <string name="pc_layout_editor_title">Edit %1$s</string>
+    <string name="pc_layout_save">Save layout</string>
+    <string name="pc_layout_saving">Saving layout</string>
+    <string name="pc_layout_cancel">Cancel</string>
+    <string name="pc_layout_save_failed">Layout could not be saved. Try again.</string>
+    <string name="pc_layout_help">Select a button, row handle, or column handle to edit it. Buttons do not control your PC here.</string>
+    <string name="pc_layout_cell_heading">Row %1$d, column %2$d</string>
+    <string name="pc_layout_row_heading">Row %1$d</string>
+    <string name="pc_layout_column_heading">Column %1$d</string>
+    <string name="pc_layout_cell_description">Row %1$d, column %2$d: %3$s</string>
+    <string name="pc_layout_empty">Empty</string>
+    <string name="pc_layout_move_cell_instruction">Select a destination cell to move or swap this button.</string>
+    <string name="pc_layout_move_row_instruction">Select the row at the final position. Other rows shift to make room.</string>
+    <string name="pc_layout_move_column_instruction">Select the column at the final position. Other columns shift to make room.</string>
+    <string name="pc_layout_move_button">Move button</string>
+    <string name="pc_layout_move_row">Move row</string>
+    <string name="pc_layout_move_column">Move column</string>
+    <string name="pc_layout_move_up">Move up</string>
+    <string name="pc_layout_move_down">Move down</string>
+    <string name="pc_layout_move_left">Move left</string>
+    <string name="pc_layout_move_right">Move right</string>
+    <string name="pc_layout_remove_button">Remove button</string>
+    <string name="pc_layout_insert_row_before">Insert row before</string>
+    <string name="pc_layout_insert_row_after">Insert row after</string>
+    <string name="pc_layout_remove_row">Remove row</string>
+    <string name="pc_layout_insert_column_before">Insert column before</string>
+    <string name="pc_layout_insert_column_after">Insert column after</string>
+    <string name="pc_layout_remove_column">Remove column</string>
+    <string name="pc_layout_close_actions">Close editing actions</string>
+    <string name="pc_layout_add_row">Add row at end</string>
+    <string name="pc_layout_add_column">Add column at end</string>
+    <string name="pc_layout_reset">Reset to default</string>
+
+    <string name="pc_layout_discard_title">Discard layout changes?</string>
+    <string name="pc_layout_discard_body">Your saved section will stay as it was.</string>
+    <string name="pc_layout_keep_editing">Keep editing</string>
+    <string name="pc_layout_discard">Discard</string>
+    <string name="pc_layout_remove_row_title">Remove row?</string>
+    <string name="pc_layout_remove_column_title">Remove column?</string>
+    <string name="pc_layout_remove_track_body">Removed actions will be available in Choose action again.</string>
+    <string name="pc_layout_remove">Remove</string>
+    <string name="pc_layout_reset_title">Reset section?</string>
+    <string name="pc_layout_reset_body">Save to restore this section’s original responsive arrangement.</string>
+    <string name="pc_layout_reset_confirm">Reset</string>
+
+    <string name="pc_layout_announce_cell_moved">Moved to row %1$d, column %2$d.</string>
+    <string name="pc_layout_announce_row_moved">Moved row %1$d to position %2$d.</string>
+    <string name="pc_layout_announce_column_moved">Moved column %1$d to position %2$d.</string>
+    <string name="pc_layout_announce_assigned">%1$s assigned to row %2$d, column %3$d.</string>
+    <string name="pc_layout_announce_removed">Removed button from row %1$d, column %2$d.</string>
+
+    <string name="pc_picker_title">Choose action</string>
+    <string name="pc_picker_search">Search actions</string>
+    <string name="pc_picker_assign">assign to this cell</string>
+    <string name="pc_picker_unavailable_hint">%1$s You can still add this action.</string>
+    <string name="pc_picker_no_match">No actions match your search.</string>
+    <string name="pc_picker_all_placed">All available actions are already in this section.</string>
+    <string name="pc_picker_close">Close</string>
+
+    <string name="pc_category_pointer_movement">Pointer movement</string>
+    <string name="pc_category_mouse_buttons">Mouse buttons</string>
+    <string name="pc_category_scrolling">Scrolling</string>
+    <string name="pc_category_pointer_speed">Pointer speed</string>
+    <string name="pc_category_monitors">Monitors</string>
+    <string name="pc_category_modifiers">Modifiers</string>
+    <string name="pc_category_windows">Windows</string>
+    <string name="pc_category_shortcuts">Shortcuts</string>
+    <string name="pc_category_pc_keys">PC keys</string>
+    <string name="pc_category_draft_text">Draft text</string>
+</resources>
