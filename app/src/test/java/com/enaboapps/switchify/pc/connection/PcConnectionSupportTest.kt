@@ -50,6 +50,12 @@ class PcConnectionSupportTest {
         assertTrue(original.stackTrace.contentEquals(sanitized.stackTrace))
         assertFalse(sanitized.stackTraceToString().contains("fixture-secret"))
         assertFalse(sanitized.stackTraceToString().contains("ble-1"))
+
+        val first = IllegalStateException("a")
+        val second = IllegalArgumentException("b", first)
+        first.initCause(second)
+        val cyclic = generateSequence<Throwable>(PcSanitizedError.from(first)) { it.cause }.count()
+        assertTrue(cyclic in 2..9)
     }
 
     @Test

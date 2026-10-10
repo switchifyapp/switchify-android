@@ -22,10 +22,13 @@ interface PcKeyValueStore {
     suspend fun put(key: String, value: String)
     suspend fun remove(key: String)
     suspend fun clear()
+
+    suspend fun resetForPairingIfUnusable(): Boolean = false
 }
 
 interface PcPairingStorage {
     suspend fun deviceId(): String
+    suspend fun deviceIdForPairing(): String
     suspend fun list(): List<PcSavedPc>
     suspend fun token(desktopId: String): String?
     suspend fun save(pc: PcSavedPc, token: String)
@@ -41,11 +44,21 @@ class PcPairingStore(
 ) : PcPairingStorage {
     private val mutex = Mutex()
 
-    override suspend fun deviceId(): String = mutex.withLock {
+    override suspend fun deviceId(): String = mutex.withLock { readOrCreateDeviceId() }
+
+    override suspend fun deviceIdForPairing(): String = mutex.withLock {
+        try {
+            readOrCreateDeviceId()
+        } catch (_: PcSecureStorageUnavailableException) {
+            secretStore.resetForPairingIfUnusable()
+            readOrCreateDeviceId()
+        }
+    }
+
+    private suspend fun readOrCreateDeviceId(): String =
         secretStore.get(DEVICE_ID_KEY)?.takeIf { it.isNotEmpty() } ?: deviceIds.nextId().also {
             secretStore.put(DEVICE_ID_KEY, it)
         }
-    }
 
     override suspend fun list(): List<PcSavedPc> = try {
         mutex.withLock { reconcileIndex() }

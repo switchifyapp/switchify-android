@@ -181,6 +181,12 @@ internal class LoopbackTransport(private val scope: CoroutineScope) : PcTranspor
 
 internal class FaultyPcPairingStorage(private val delegate: PcPairingStorage) : PcPairingStorage by delegate {
     var failList = false
+    var pairingDeviceIdRequests = 0
+
+    override suspend fun deviceIdForPairing(): String {
+        pairingDeviceIdRequests += 1
+        return delegate.deviceIdForPairing()
+    }
 
     override suspend fun list(): List<PcSavedPc> {
         if (failList) throw IllegalStateException("fixture list failed")
@@ -386,6 +392,24 @@ class PcConnectionManagerTest {
         assertEquals("desktop-1", (h.manager.state.value as PcConnectionState.LocationOff).retry?.desktopId)
         h.manager.scan()
         assertNull((h.manager.state.value as PcConnectionState.LocationOff).retry)
+    }
+
+    @Test
+    fun onlyAUserStartedPairingUsesTheResettableDeviceIdPath() = managerTest { h ->
+        h.savePc()
+        h.manager.connectSaved(savedOffice())
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Connected)
+        h.transport.onDisconnect?.invoke()
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Connected)
+        assertEquals(0, h.faultyStorage.pairingDeviceIdRequests)
+
+        h.manager.unpair("desktop-1")
+        h.manager.connect(office)
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Connected)
+        assertEquals(1, h.faultyStorage.pairingDeviceIdRequests)
     }
 
     @Test

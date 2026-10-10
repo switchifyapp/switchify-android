@@ -347,15 +347,19 @@ class PcConnectionManager(
             if (!isCurrent(current)) return
             val activeClient = startClient(desktop, current) ?: return
             client = activeClient
-            deviceId = storage.deviceId()
-            if (!isCurrent(current)) return
             val accessToken = if (desktop.desktopId in invalidSavedDesktopIds) {
                 null
             } else {
                 savedToken ?: storage.token(desktop.desktopId)
             }
             if (!isCurrent(current)) return
-            if (accessToken != null) authenticate(desktop, accessToken, current) else pair(desktop, current)
+            if (accessToken != null) {
+                deviceId = storage.deviceId()
+                if (!isCurrent(current)) return
+                authenticate(desktop, accessToken, current)
+            } else {
+                pair(desktop, current)
+            }
         } catch (error: Exception) {
             if (!isCurrent(current)) return
             when (error) {
@@ -476,7 +480,9 @@ class PcConnectionManager(
 
     private suspend fun pair(desktop: PcDiscoveredDesktop, current: Int) {
         val activeClient = client ?: throw PcBluetoothException(NOT_CONNECTED)
-        val activeDeviceId = deviceId ?: throw PcBluetoothException(NOT_CONNECTED)
+        val activeDeviceId = storage.deviceIdForPairing()
+        if (!isCurrent(current)) return
+        deviceId = activeDeviceId
         val requestId = requestIds.nextId()
         val nonce = nonces.nextId()
         set(

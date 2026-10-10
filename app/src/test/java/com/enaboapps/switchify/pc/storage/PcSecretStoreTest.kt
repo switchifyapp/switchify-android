@@ -5,10 +5,12 @@ import com.enaboapps.switchify.pc.protocol.PcPlatform
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import java.security.InvalidKeyException
 import java.security.KeyStoreException
 import java.security.ProviderException
 import java.security.UnrecoverableKeyException
@@ -18,14 +20,21 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
 class PcSecretStoreTest {
+    private class PermanentlyInvalidated : InvalidKeyException("fixture permanent invalidation")
+
     private class FakeKeySource : PcSecretKeySource {
         var key: SecretKey? = null
         var failure: Exception? = null
+        var rejectedKeyAttempts = 0
         var created = 0
         var deleted = 0
 
         override fun existingKey(): SecretKey? {
             failure?.let { throw it }
+            if (rejectedKeyAttempts > 0 && key != null) {
+                rejectedKeyAttempts -= 1
+                return SecretKeySpec(ByteArray(7), "AES")
+            }
             return key
         }
 
@@ -36,7 +45,6 @@ class PcSecretStoreTest {
         }
 
         override fun deleteKey() {
-            failure?.takeUnless { it is UnrecoverableKeyException }?.let { throw it }
             deleted += 1
             failure = null
             key = null
@@ -45,30 +53,23 @@ class PcSecretStoreTest {
 
     private val keys = FakeKeySource()
     private val backing = InMemoryPcKeyValueStore()
-    private val secrets = EncryptedPcKeyValueStore(backing, PcSecretCipher(keys))
-
-    @Test
-    fun treatsAnUnrecoverableKeyAsPermanentAndRegeneratesItOnTheNextPairing() = runTest {
-        secrets.put("token.a", "fixture-secret")
-        keys.failure = UnrecoverableKeyException("corrupted after update")
-        assertNull(secrets.get("token.a"))
-        assertEquals(0, keys.deleted)
-        secrets.put("token.b", "new-secret")
-        assertEquals(1, keys.deleted)
-        assertEquals(setOf("token.b"), backing.values.keys)
-        assertEquals("new-secret", secrets.get("token.b"))
-        assertEquals(2, keys.created)
+    private val classifier = PcKeyFailureClassifier { error ->
+        PcSecretCipher.causes(error).any { it is PermanentlyInvalidated }
     }
+    private val secrets = EncryptedPcKeyValueStore(backing, PcSecretCipher(keys, classifier), retryDelayMs = 10)
+    private val publicStore = InMemoryPcKeyValueStore()
+    private var nextDevice = 0
+    private val store = PcPairingStore(publicStore, secrets, PcIdGenerator { "device-${++nextDevice}" })
+    private val office = PcSavedPc("pc-1", "Office", PcPlatform.Windows, "ble-1", 1)
 
-    @Test
-    fun treatsAKeyTheCipherRejectsAsPermanentAndRegeneratesItOnTheNextPairing() = runTest {
-        secrets.put("token.a", "fixture-secret")
-        keys.key = SecretKeySpec(ByteArray(7), "AES")
-        assertNull(secrets.get("token.a"))
-        secrets.put("token.b", "new-secret")
-        assertEquals(1, keys.deleted)
-        assertEquals(setOf("token.b"), backing.values.keys)
-        assertEquals("new-secret", secrets.get("token.b"))
+    private fun transientDaemonError() =
+        UnrecoverableKeyException("Failed to load information about key").apply { initCause(KeyStoreException("system error")) }
+
+    private suspend fun pairedStore(): Map<String, String> {
+        assertEquals("device-1", store.deviceId())
+        store.save(office, "fixture-secret")
+        store.setDefaultDesktopId("pc-1")
+        return backing.values.toMap()
     }
 
     @Test
@@ -97,21 +98,7 @@ class PcSecretStoreTest {
     }
 
     @Test
-    fun reportsTransientKeystoreFailuresWithoutTouchingStoredSecrets() = runTest {
-        secrets.put("token.a", "fixture-secret")
-        val stored = backing.values.toMap()
-        listOf(KeyStoreException("busy"), ProviderException("busy")).forEach { failure ->
-            keys.failure = failure
-            expectUnavailable { secrets.get("token.a") }
-            expectUnavailable { secrets.put("token.b", "other") }
-        }
-        assertEquals(stored, backing.values)
-        keys.failure = null
-        assertEquals("fixture-secret", secrets.get("token.a"))
-    }
-
-    @Test
-    fun clearsSecretsWhenTheKeyIsGoneSoTheUserPairsAgain() = runTest {
+    fun clearsSecretsOnlyWhenTheKeyAliasIsGenuinelyMissing() = runTest {
         secrets.put("token.a", "fixture-secret")
         secrets.put("device", "device-1")
         keys.key = null
@@ -119,31 +106,79 @@ class PcSecretStoreTest {
         assertTrue(backing.values.isEmpty())
         secrets.put("token.a", "new-secret")
         assertEquals("new-secret", secrets.get("token.a"))
+        assertEquals(0, keys.deleted)
     }
 
     @Test
-    fun pairingStoreKeepsPairingsAndDeviceIdWhileSecureStorageIsUnavailable() = runTest {
-        val publicStore = InMemoryPcKeyValueStore()
-        var created = 0
-        val store = PcPairingStore(publicStore, secrets, PcIdGenerator { "device-${++created}" })
-        val pc = PcSavedPc("pc-1", "Office", PcPlatform.Windows, "ble-1", 1)
-        assertEquals("device-1", store.deviceId())
-        store.save(pc, "fixture-secret")
+    fun transientDaemonErrorsLoseNoPairingDefaultOrDeviceId() = runTest {
+        val stored = pairedStore()
         val index = publicStore.values.toMap()
-        val stored = backing.values.toMap()
-
-        keys.failure = ProviderException("busy")
-        expectUnavailable { store.deviceId() }
-        expectUnavailable { store.token("pc-1") }
-        assertEquals(emptyList<PcSavedPc>(), store.list())
-        assertEquals(index, publicStore.values)
-        assertEquals(stored, backing.values)
-
+        listOf(transientDaemonError(), KeyStoreException("busy"), ProviderException("busy"), InvalidKeyException("Keystore operation failed"))
+            .forEach { failure ->
+                keys.failure = failure
+                expectUnavailable { secrets.get(PcPairingStore.tokenKey("pc-1")) }
+                expectUnavailable { store.token("pc-1") }
+                expectUnavailable { store.deviceId() }
+                expectUnavailable { store.save(office.copy(desktopId = "pc-2"), "other") }
+                assertEquals(emptyList<PcSavedPc>(), store.list())
+                store.setDefaultDesktopId("pc-1")
+                assertEquals(index, publicStore.values)
+                assertEquals(stored, backing.values)
+            }
+        assertEquals(0, keys.deleted)
         keys.failure = null
         assertEquals("device-1", store.deviceId())
-        assertEquals(listOf(pc), store.list())
+        assertEquals(listOf(office), store.list())
+        assertEquals("pc-1", store.defaultDesktopId())
         assertEquals("fixture-secret", store.token("pc-1"))
-        assertEquals(1, created)
+    }
+
+    @Test
+    fun aSingleRejectedCipherInitIsTransient() = runTest {
+        val stored = pairedStore()
+        keys.rejectedKeyAttempts = 1
+        expectUnavailable { store.token("pc-1") }
+        assertEquals("fixture-secret", store.token("pc-1"))
+        assertEquals(stored, backing.values)
+        assertEquals(0, keys.deleted)
+    }
+
+    @Test
+    fun pairingRetriesATransientFailureWithoutResettingWhenItRecovers() = runTest {
+        pairedStore()
+        keys.rejectedKeyAttempts = 1
+        assertEquals("device-1", store.deviceIdForPairing())
+        assertEquals(0, keys.deleted)
+        assertEquals("fixture-secret", store.token("pc-1"))
+    }
+
+    @Test
+    fun onlyPairingResetsAPermanentlyInvalidatedKey() = runTest {
+        pairedStore()
+        keys.failure = InvalidKeyException("wrapped").apply { initCause(PermanentlyInvalidated()) }
+        expectUnavailable { store.deviceId() }
+        expectUnavailable { store.token("pc-1") }
+        expectUnavailable { store.save(office.copy(desktopId = "pc-2"), "other") }
+        store.setDefaultDesktopId("pc-1")
+        assertEquals(0, keys.deleted)
+
+        val pairingDeviceId = store.deviceIdForPairing()
+        assertEquals(1, keys.deleted)
+        assertNotEquals("device-1", pairingDeviceId)
+        assertEquals(pairingDeviceId, store.deviceId())
+        assertNull(store.token("pc-1"))
+        assertEquals(emptyList<PcSavedPc>(), store.list())
+    }
+
+    @Test
+    fun pairingResetsAKeyThatStaysUnavailableAfterRetrying() = runTest {
+        pairedStore()
+        keys.failure = transientDaemonError()
+        val pairingDeviceId = store.deviceIdForPairing()
+        assertEquals(1, keys.deleted)
+        assertNotEquals("device-1", pairingDeviceId)
+        store.save(office, "new-secret")
+        assertEquals("new-secret", store.token("pc-1"))
     }
 
     private suspend fun expectUnavailable(action: suspend () -> Unit) {

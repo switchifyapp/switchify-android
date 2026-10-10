@@ -58,9 +58,15 @@ object PcBluetoothScanRequirements {
 
 class PcSanitizedError private constructor(type: String) : Exception(type) {
     companion object {
-        fun from(error: Throwable): PcSanitizedError = PcSanitizedError(error.javaClass.name).also { sanitized ->
-            sanitized.stackTrace = error.stackTrace
-            error.cause?.let { sanitized.initCause(from(it)) }
-        }
+        private const val MAX_CAUSE_DEPTH = 8
+
+        fun from(error: Throwable): PcSanitizedError = from(error, 0)
+
+        private fun from(error: Throwable, depth: Int): PcSanitizedError =
+            PcSanitizedError(error.javaClass.name).also { sanitized ->
+                sanitized.stackTrace = error.stackTrace
+                val cause = error.cause
+                if (cause != null && cause !== error && depth < MAX_CAUSE_DEPTH) sanitized.initCause(from(cause, depth + 1))
+            }
     }
 }

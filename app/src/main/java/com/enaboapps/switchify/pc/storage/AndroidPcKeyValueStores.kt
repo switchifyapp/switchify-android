@@ -1,8 +1,11 @@
 package com.enaboapps.switchify.pc.storage
 
 import android.content.Context
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
+import androidx.annotation.RequiresApi
 import androidx.core.util.AtomicFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -107,5 +110,16 @@ class AndroidKeystorePcSecretKeySource : PcSecretKeySource {
 
 fun keystorePcSecretStore(context: Context): PcKeyValueStore = EncryptedPcKeyValueStore(
     backing = DeviceProtectedPcKeyValueStore(context, DeviceProtectedPcKeyValueStore.SECRETS_FILE_NAME),
-    cipher = PcSecretCipher(AndroidKeystorePcSecretKeySource())
+    cipher = PcSecretCipher(AndroidKeystorePcSecretKeySource(), AndroidPcKeyFailureClassifier)
 )
+
+object AndroidPcKeyFailureClassifier : PcKeyFailureClassifier {
+    override fun isPermanent(error: Throwable): Boolean = PcSecretCipher.causes(error).any { cause ->
+        cause is KeyPermanentlyInvalidatedException ||
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && isPermanentKeystoreFailure(cause))
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun isPermanentKeystoreFailure(cause: Throwable): Boolean =
+        cause is android.security.KeyStoreException && !cause.isTransientFailure
+}
