@@ -124,7 +124,9 @@ class EncryptedPcKeyValueStore(
     override suspend fun clear() = backing.clear()
 
     override suspend fun resetForPairingIfUnusable(): Boolean {
+        var unavailable: PcSecureStorageUnavailableException? = null
         repeat(PAIRING_VERIFY_ATTEMPTS) { attempt ->
+            unavailable = null
             try {
                 if (cipher.keyStatus() == PcSecretKeyStatus.Present) {
                     cipher.verifyKey()
@@ -132,10 +134,12 @@ class EncryptedPcKeyValueStore(
                 }
             } catch (_: PcSecretKeyInvalidatedException) {
                 return reset()
-            } catch (_: PcSecureStorageUnavailableException) {
+            } catch (error: PcSecureStorageUnavailableException) {
+                unavailable = error
             }
             if (attempt < PAIRING_VERIFY_ATTEMPTS - 1) delay(retryDelayMs)
         }
+        unavailable?.let { throw it }
         return reset()
     }
 

@@ -27,9 +27,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.pc.remote.PcText
@@ -66,7 +70,7 @@ fun PcActionControl(action: PcResolvedAction, onClick: () -> Unit, modifier: Mod
         onClick = onClick,
         modifier = modifier,
         icon = presentation.icon?.vector(),
-        selected = presentation.selected,
+        checked = presentation.selected,
         enabled = action.enabled,
         danger = presentation.danger,
         emphasized = presentation.emphasized,
@@ -83,6 +87,7 @@ fun PcControlButton(
     accessibilityLabel: String? = null,
     icon: ImageVector? = null,
     selected: Boolean? = null,
+    checked: Boolean? = null,
     enabled: Boolean = true,
     danger: Boolean = false,
     emphasized: Boolean = false,
@@ -90,7 +95,7 @@ fun PcControlButton(
     stacked: Boolean = false
 ) {
     val scheme = MaterialTheme.colorScheme
-    val isSelected = selected == true
+    val isSelected = selected == true || checked == true
     val container = when {
         isSelected -> scheme.primary
         emphasized -> scheme.primaryContainer
@@ -119,6 +124,10 @@ fun PcControlButton(
             .semantics {
                 if (accessibilityLabel != null) contentDescription = accessibilityLabel
                 if (selected != null) this.selected = selected
+                if (checked != null) {
+                    role = Role.Switch
+                    toggleableState = ToggleableState(checked)
+                }
             }
     ) {
         val inner = Modifier

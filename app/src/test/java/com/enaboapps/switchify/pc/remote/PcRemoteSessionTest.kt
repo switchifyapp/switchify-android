@@ -396,6 +396,30 @@ class PcRemoteSessionTest {
     }
 
     @Test
+    fun rotatesTheTextStreamBeforeThePcSequenceCap() = runTest {
+        val sender = FakeRemoteSender()
+        var streams = 0
+        val session = PcRemoteSession(sender, { remoteProfile() }, this, streamRotationSequence = 2) { "stream-${++streams}" }
+        assertTrue(session.streamChunk("a"))
+        assertTrue(session.streamKey("Backspace"))
+        assertTrue(session.streamChunk("b"))
+        assertEquals(
+            listOf(
+                "keyboard.textStream.open",
+                "keyboard.textStream.chunk",
+                "keyboard.textStream.key",
+                "keyboard.textStream.close",
+                "keyboard.textStream.open",
+                "keyboard.textStream.chunk"
+            ),
+            sender.types
+        )
+        assertEquals("{\"streamId\":\"stream-1\",\"expectedCount\":2}", sender.calls[3].payload)
+        assertEquals("{\"streamId\":\"stream-2\",\"seq\":0,\"text\":\"b\"}", sender.calls[5].payload)
+        assertTrue(session.snapshot().streamOpen)
+    }
+
+    @Test
     fun neverSendsCapabilitiesThePcDidNotAdvertise() = runTest {
         val sender = FakeRemoteSender()
         val session = session(sender, remoteProfile(listOf("mouse.move")))

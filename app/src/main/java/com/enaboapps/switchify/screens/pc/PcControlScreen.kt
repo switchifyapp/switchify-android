@@ -31,6 +31,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -50,10 +52,12 @@ import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.utils.findActivity
 
 @Composable
-fun PcControlScreen(navController: NavController) {
+fun pcControlViewModel(
+    viewModelStoreOwner: ViewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current)
+): PcControlViewModel {
     val context = LocalContext.current
     val graph = remember { PcRemoteGraph.getInstance(context) }
-    val viewModel: PcControlViewModel = viewModel {
+    return viewModel(viewModelStoreOwner) {
         PcControlViewModel(
             connection = graph.connection.manager.asControlConnection(),
             setup = PcControlSetup(SharedPreferencesPcStorage(context, PcControlStorage.FILE_NAME)),
@@ -62,6 +66,20 @@ fun PcControlScreen(navController: NavController) {
             cleanupScope = graph.scope
         )
     }
+}
+
+@Composable
+fun ObservePcControlActivity(viewModel: PcControlViewModel) {
+    val activity = LocalContext.current.findActivity()
+    LaunchedEffect(activity, viewModel) {
+        val owner = activity as? LifecycleOwner ?: return@LaunchedEffect
+        viewModel.observeActivity(owner.lifecycle) { activity?.isChangingConfigurations == true }
+    }
+}
+
+@Composable
+fun PcControlScreen(navController: NavController) {
+    val viewModel = pcControlViewModel()
     val phase by viewModel.setupPhase.collectAsStateWithLifecycle()
     val tab by viewModel.tab.collectAsStateWithLifecycle()
     val permissionRequested by viewModel.permissionRequested.collectAsStateWithLifecycle()
@@ -83,11 +101,7 @@ fun PcControlScreen(navController: NavController) {
         }
     }
 
-    val activity = context.findActivity()
-    LaunchedEffect(activity, viewModel) {
-        val owner = activity as? LifecycleOwner ?: return@LaunchedEffect
-        viewModel.observeActivity(owner.lifecycle) { activity?.isChangingConfigurations == true }
-    }
+    ObservePcControlActivity(viewModel)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
 
     if (phase != PcControlSetupPhase.Complete) {

@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Computer
@@ -93,6 +96,10 @@ fun PcRemoteScreen(
     }
 
     val managePcs = onManagePcs
+    val scrollState = rememberScrollState()
+    val connectedControls = (connection as? PcConnectionState.Connected)?.let { current ->
+        current.profile != null && holder?.desktopId == current.desktop.desktopId
+    } == true
 
     BaseView(
         titleResId = R.string.screen_title_pc_remote,
@@ -108,6 +115,12 @@ fun PcRemoteScreen(
                     modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceXs)
                 )
                 tabBar()
+            }
+        },
+        scrollState = scrollState,
+        contentOverlay = {
+            if (connectedControls) {
+                PcScrollToTopButton(scrollState, Modifier.align(Alignment.BottomEnd).padding(Dimens.spaceM))
             }
         }
     ) {
@@ -162,6 +175,7 @@ fun PcRemoteScreen(
                             PcRemoteSurface.Forwarding -> PcForwardingSurface(onOpenPcs = managePcs)
                         }
                     }
+                    Spacer(modifier = Modifier.height(PcScrollToTop.CLEARANCE))
                 }
             }
         }

@@ -1,7 +1,11 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -26,6 +30,8 @@ import androidx.compose.ui.unit.dp
  * @param onBackPressed Custom back button action. If null, uses default nav controller pop.
  * @param headerContent Optional content to display above the main content.
  * @param bottomBar Optional bar rendered below content (e.g., action row).
+ * @param scrollState Optional scroll state for the scrolling content, for screens that control scrolling.
+ * @param contentOverlay Optional content drawn over the scrolling content, above the bottom bar.
  * @param content The content of the screen.
  */
 @Composable
@@ -41,6 +47,8 @@ fun BaseView(
     onBackPressed: (() -> Unit)? = null,
     headerContent: @Composable (() -> Unit)? = null,
     bottomBar: @Composable (() -> Unit)? = null,
+    scrollState: ScrollState? = null,
+    contentOverlay: @Composable (BoxScope.() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val title = stringResource(titleResId)
@@ -66,8 +74,16 @@ fun BaseView(
             headerContent?.invoke()
 
             // Main content
-            if (enableScroll) {
-                ScrollableView(modifier = Modifier.weight(1f)) { content() }
+            if (enableScroll && contentOverlay != null) {
+                Box(modifier = Modifier.weight(1f)) {
+                    ScrollableView(scrollState = scrollState ?: rememberScrollState()) { content() }
+                    contentOverlay()
+                }
+            } else if (enableScroll) {
+                ScrollableView(
+                    modifier = Modifier.weight(1f),
+                    scrollState = scrollState ?: rememberScrollState()
+                ) { content() }
             } else {
                 Column(
                     modifier = Modifier

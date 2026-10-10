@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -372,7 +371,6 @@ private fun EditorGrid(
                     PcControlButton(
                         label = "${column + 1}",
                         accessibilityLabel = stringResource(R.string.pc_layout_column_heading, column + 1),
-                        icon = Icons.Rounded.DragIndicator,
                         stacked = true,
                         selected = selectedOrNull(selected, PcLayoutSelectionKind.Column, column),
                         enabled = enabled,
@@ -386,7 +384,6 @@ private fun EditorGrid(
                     PcControlButton(
                         label = "${row + 1}",
                         accessibilityLabel = stringResource(R.string.pc_layout_row_heading, row + 1),
-                        icon = Icons.Rounded.DragIndicator,
                         stacked = true,
                         selected = selectedOrNull(selected, PcLayoutSelectionKind.Row, row),
                         enabled = enabled,
