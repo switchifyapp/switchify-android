@@ -142,6 +142,10 @@ class SwitchEventProvider(private val context: Context) {
         }
     }
 
+    fun hasCameraSwitches(): Boolean = synchronized(switchEvents) {
+        effectiveSwitchEvents().any { it.type == SWITCH_EVENT_TYPE_CAMERA }
+    }
+
     fun externalSwitches(): List<SwitchEvent> = synchronized(switchEvents) {
         effectiveSwitchEvents().filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }.map { it.copy() }
     }

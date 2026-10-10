@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.core
 
+import com.enaboapps.switchify.pc.remote.PcSwitchRepeatStop
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
@@ -19,7 +20,8 @@ class Tasks private constructor() {
     fun hasActiveStoppableTask(): Boolean {
         return GestureRepeatManager.instance.isRepeatSessionActive() ||
                 AutoScrollManager.getInstance().isAutoScrolling() ||
-                GesturePatternManager.isGesturePatternActive()
+                GesturePatternManager.isGesturePatternActive() ||
+                PcSwitchRepeatStop.isActive()
     }
 
     fun stopActiveStoppableTask(): Boolean {

@@ -57,6 +57,15 @@ fun DebugScreen(navController: NavController) {
                 applyPadding = false
             )
             ActionButton(
+                textResId = R.string.debug_open_pc_remote,
+                type = ActionButtonType.SECONDARY,
+                onClick = { navController.navigate(NavigationRoute.PcRemote.name) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                applyPadding = false
+            )
+            ActionButton(
                 textResId = R.string.debug_open_pc_forwarding,
                 type = ActionButtonType.SECONDARY,
                 onClick = { navController.navigate(NavigationRoute.PcForwarding.name) },

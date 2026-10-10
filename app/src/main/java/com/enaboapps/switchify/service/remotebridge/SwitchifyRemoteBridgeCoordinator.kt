@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.RemoteCallbackList
+import com.enaboapps.switchify.pc.remote.PcSwitchRepeatStop
 import com.enaboapps.switchify.remotebridge.ISwitchifyRemoteBridgeCallback
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -23,6 +24,7 @@ object SwitchifyRemoteBridgeCoordinator {
     private var callbackCount = 0
     private val lock = Any()
     private var externalSwitches: (() -> List<Pair<Int, String>>)? = null
+    private var cameraSwitchesConfigured: () -> Boolean = { false }
     private var configuredSwitchFingerprint = emptyList<Pair<Int, String>>()
     private var repeatGeneration = 0L
     private var repeatGenerationHighWater = 0L
@@ -34,12 +36,14 @@ object SwitchifyRemoteBridgeCoordinator {
     private var edgeSequence = 0L
     private val activePresses = mutableMapOf<Int, Long>()
     private val inAppListeners = CopyOnWriteArraySet<InAppSwitchForwardingListener>()
+    private val scanningHolds = ScanningHolds()
     internal var setScanningPaused: (Boolean) -> Unit = ::postScanningPaused
 
-    fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
-    internal fun attach(provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
+    fun attach(provider: SwitchEventProvider) = attach(provider::hasCameraSwitches) { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
+    internal fun attach(cameraSwitches: () -> Boolean = { false }, provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
         synchronized(lock) {
             externalSwitches = provider
+            cameraSwitchesConfigured = cameraSwitches
             configuredSwitchFingerprint = configuredSwitchFingerprintLocked()
         }
         publishSnapshot()
@@ -47,6 +51,7 @@ object SwitchifyRemoteBridgeCoordinator {
     fun detach() = callbackDispatcher.dispatch {
         synchronized(lock) {
             externalSwitches = null
+            cameraSwitchesConfigured = { false }
             configuredSwitchFingerprint = emptyList()
             clearActiveLocked()
         }
@@ -143,7 +148,16 @@ object SwitchifyRemoteBridgeCoordinator {
         publishSnapshot()
     }
 
-    fun stopRemoteRepeatForSwitch(): Boolean = callbackDispatcher.dispatch {
+    fun stopRemoteRepeatForSwitch(): Boolean {
+        if (PcSwitchRepeatStop.requestStop()) return true
+        return stopBridgedRepeat()
+    }
+
+    fun hasConfiguredSwitches(): Boolean = synchronized(lock) {
+        externalSwitches?.invoke()?.isNotEmpty() == true || cameraSwitchesConfigured()
+    }
+
+    private fun stopBridgedRepeat(): Boolean = callbackDispatcher.dispatch {
         val generation = synchronized(lock) { repeatGeneration.also { repeatGeneration = 0 } }
         if (generation == 0L) return@dispatch false
         broadcast { it.onRepeatStopRequested(generation) }
@@ -220,10 +234,13 @@ object SwitchifyRemoteBridgeCoordinator {
             inAppListeners.forEach { listener -> runCatching { listener.onForwardingRevoked(generation) } }
         }
     }
-    private fun postScanningPaused(paused: Boolean) {
+    private fun postScanningPaused(paused: Boolean) = setScanningHeld(ScanningHold.Forwarding, paused)
+
+    fun setScanningHeld(hold: ScanningHold, held: Boolean) {
         Handler(Looper.getMainLooper()).post {
+            if (scanningHolds.update(hold, held) == null) return@post
             val scanningManager = ServiceCore.getScanningManager() ?: return@post
-            if (paused) scanningManager.pauseScanning() else scanningManager.resumeScanning()
+            if (scanningHolds.isHeld()) scanningManager.pauseScanning() else scanningManager.resumeScanning()
         }
     }
     private fun publishSnapshot() {

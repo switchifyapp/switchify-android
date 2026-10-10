@@ -26,6 +26,7 @@ import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.pc.PcConnectionScreen
 import com.enaboapps.switchify.screens.pc.PcDiagnosticsScreen
 import com.enaboapps.switchify.screens.pc.PcForwardingScreen
+import com.enaboapps.switchify.screens.pc.remote.PcRemoteScreen
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
@@ -252,6 +253,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.PcDiagnostics.name) {
             PcDiagnosticsScreen(navController)
+        }
+        composable(NavigationRoute.PcRemote.name) {
+            PcRemoteScreen(navController)
         }
         composable(NavigationRoute.PcForwarding.name) {
             PcForwardingScreen(navController)
