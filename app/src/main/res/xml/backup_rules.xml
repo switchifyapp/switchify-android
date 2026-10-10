@@ -5,7 +5,8 @@
    preferences file and must never leave the device. RevenueCat caches are
    rebuilt from the network and are excluded to keep the backup small.
    PC pairing metadata, the PC device ID and Keystore-encrypted pairing tokens
-   must stay on this device.
+   must stay on this device, as must the plain-text PC pairing stores left by
+   versions before 3.1.0.
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="com.enaboapps.switchify_preferences.xml" />
@@ -20,4 +21,8 @@
     <exclude domain="device_file" path="RevenueCat" />
     <exclude domain="file" path="switchify_pc" />
     <exclude domain="device_file" path="switchify_pc" />
+    <exclude domain="sharedpref" path="switchify_pc_pairings.xml" />
+    <exclude domain="device_sharedpref" path="switchify_pc_pairings.xml" />
+    <exclude domain="sharedpref" path="pc_switch_forwarding_profiles.xml" />
+    <exclude domain="device_sharedpref" path="pc_switch_forwarding_profiles.xml" />
 </full-backup-content>
