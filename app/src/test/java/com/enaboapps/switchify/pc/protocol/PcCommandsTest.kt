@@ -61,7 +61,7 @@ class PcCommandsTest {
             PcCommands.windowControl("minimize") to ("window.control" to "{\"action\":\"minimize\"}"),
             PcCommands.switchProfileList(false) to ("switch.profile.list" to "{}"),
             PcCommands.switchProfileList(true) to ("switch.profile.list" to "{\"includeScanning\":true}"),
-            PcCommands.switchSessionStart(SESSION, "keyboard", 2, 3) to
+            PcCommands.switchSessionStart(SESSION, "keyboard", 2L, 3) to
                 ("switch.session.start" to "{\"sessionId\":\"$SESSION\",\"profileId\":\"keyboard\",\"profileVersion\":2,\"switchCount\":3}"),
             PcCommands.switchEdge(1, true, SESSION, 5) to
                 ("switch.edge" to "{\"switchId\":1,\"state\":\"down\",\"sessionId\":\"$SESSION\",\"sequence\":5}"),
@@ -78,6 +78,19 @@ class PcCommandsTest {
             assertEquals(shape.first, command.type)
             assertEquals(shape.first, shape.second, payloadJson(command))
         }
+    }
+
+    @Test
+    fun acceptsTheDesktopsUnsignedThirtyTwoBitProfileVersions() {
+        assertEquals(
+            "{\"sessionId\":\"$SESSION\",\"profileId\":\"keyboard\",\"profileVersion\":4294967295,\"switchCount\":1}",
+            payloadJson(PcCommands.switchSessionStart(SESSION, "keyboard", 4_294_967_295L, 1))
+        )
+        assertEquals(true, PcCommands.isValidProfileVersion(1))
+        assertEquals(true, PcCommands.isValidProfileVersion(4_294_967_295L))
+        assertFalse(PcCommands.isValidProfileVersion(0))
+        assertFalse(PcCommands.isValidProfileVersion(-1))
+        assertFalse(PcCommands.isValidProfileVersion(4_294_967_296L))
     }
 
     @Test

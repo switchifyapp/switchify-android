@@ -16,6 +16,6 @@ class SwitchifyRemoteBridgeService : Service() {
         override fun setForwardingActive(generation: Long, active: Boolean) = SwitchifyRemoteBridgeCoordinator.setForwardingActive(generation, active)
     }
     override fun onBind(intent: Intent?): IBinder = binder
-    override fun onUnbind(intent: Intent?): Boolean { SwitchifyRemoteBridgeCoordinator.clearActive(); return false }
-    override fun onDestroy() { SwitchifyRemoteBridgeCoordinator.clearActive(); super.onDestroy() }
+    override fun onUnbind(intent: Intent?): Boolean { SwitchifyRemoteBridgeCoordinator.clearRemoteActive(); return false }
+    override fun onDestroy() { SwitchifyRemoteBridgeCoordinator.clearRemoteActive(); super.onDestroy() }
 }
