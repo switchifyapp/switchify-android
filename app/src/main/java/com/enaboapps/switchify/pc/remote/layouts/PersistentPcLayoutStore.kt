@@ -2,11 +2,13 @@ package com.enaboapps.switchify.pc.remote.layouts
 
 import com.enaboapps.switchify.pc.storage.PcKeyValueStore
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 class PersistentPcLayoutStore(private val storage: PcKeyValueStore) : PcLayoutStore {
     private val _layouts = MutableStateFlow<PcSurfaceLayouts>(emptyMap())
@@ -38,10 +40,12 @@ class PersistentPcLayoutStore(private val storage: PcKeyValueStore) : PcLayoutSt
         require(layout == null || PcLayoutSections.isValidSectionLayout(surface, section, layout)) { INVALID }
         val snapshot = layout?.let { PcButtonLayout(it.columns, it.cells.toList()) }
         load()
-        writeLock.withLock {
-            val next = PcLayoutCodec.withSection(_layouts.value, surface, section, snapshot)
-            storage.put(KEY, PcLayoutCodec.encode(next))
-            _layouts.value = next
+        withContext(NonCancellable) {
+            writeLock.withLock {
+                val next = PcLayoutCodec.withSection(_layouts.value, surface, section, snapshot)
+                storage.put(KEY, PcLayoutCodec.encode(next))
+                _layouts.value = next
+            }
         }
     }
 

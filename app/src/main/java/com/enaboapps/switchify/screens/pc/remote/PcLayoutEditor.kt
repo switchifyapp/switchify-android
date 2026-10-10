@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.pc.remote
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,11 +24,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -39,92 +43,56 @@ import androidx.compose.ui.window.DialogProperties
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
+import com.enaboapps.switchify.pc.remote.PcText
 import com.enaboapps.switchify.pc.remote.actions.PcResolvedAction
 import com.enaboapps.switchify.pc.remote.layouts.PcActionOption
 import com.enaboapps.switchify.pc.remote.layouts.PcActionPickerModel
-import com.enaboapps.switchify.pc.remote.layouts.PcButtonLayout
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutAnnouncement
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutAxis
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditorState
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutNudge
-import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSaveRequest
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSections
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSelection
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSelectionKind
 import com.enaboapps.switchify.theme.Dimens
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
-
-private sealed class PcLayoutConfirmation {
-    data object Discard : PcLayoutConfirmation()
-    data object Reset : PcLayoutConfirmation()
-    data class RemoveTrack(val axis: PcLayoutAxis, val index: Int) : PcLayoutConfirmation()
-}
 
 @Composable
-fun PcLayoutEditorDialog(
-    title: String,
-    initialState: PcLayoutEditorState,
-    controls: List<PcResolvedAction>,
-    onSave: suspend (PcButtonLayout?) -> Unit,
-    onClose: () -> Unit
-) {
-    var state by remember(initialState) { mutableStateOf(initialState) }
-    var saving by remember { mutableStateOf(false) }
-    var failed by remember { mutableStateOf(false) }
-    var confirmation by remember { mutableStateOf<PcLayoutConfirmation?>(null) }
-    val scope = rememberCoroutineScope()
+fun PcLayoutEditorDialog(session: PcLayoutEditorSession, viewModel: PcRemoteViewModel) {
+    val state = session.state
+    val saving = session.saving
+    val resources = LocalResources.current
     val scroll = rememberScrollState()
-    val byId = controls.associateBy { it.id }
-    val options = controls.map { control ->
-        PcActionOption(
-            id = control.id,
-            name = control.name.resolve(),
-            category = stringResource(PcActionPickerModel.categoryLabel(control.definition.category)),
-            keywords = control.definition.keywords,
-            explanation = control.unavailable?.let { stringResource(it.messageRes) }
-        )
-    }
-
-    fun update(next: PcLayoutEditorState) {
-        if (saving) return
-        if (next.draft !== state.draft || next.reset != state.reset) failed = false
-        state = next
-    }
-
-    fun dismiss() {
-        if (saving) return
-        if (state.dirty) confirmation = PcLayoutConfirmation.Discard else onClose()
-    }
-
-    fun save() {
-        if (saving) return
-        saving = true
-        val request = state.saveRequest()
-        scope.launch {
-            try {
-                if (request is PcLayoutSaveRequest.Save) onSave(request.layout)
-                onClose()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                failed = true
-            } finally {
-                saving = false
-            }
+    val byId = remember(session.controls) { session.controls.associateBy { it.id } }
+    val options = remember(session.controls, resources) {
+        session.controls.map { control ->
+            PcActionOption(
+                id = control.id,
+                name = control.name.text(resources),
+                category = resources.getString(PcActionPickerModel.categoryLabel(control.definition.category)),
+                keywords = control.definition.keywords,
+                explanation = control.unavailable?.let { resources.getString(it.messageRes) }
+            )
         }
+    }
+    val title = stringResource(session.titleRes)
+    var status by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(state.announcementCount) {
+        if (state.announcementCount > 0) status = announcementText(resources, state.announcement, byId)
+    }
+    LaunchedEffect(session.failureCount) {
+        if (session.failureCount > 0) status = resources.getString(R.string.pc_layout_save_failed)
     }
 
     fun resize(axis: PcLayoutAxis, index: Int, insert: Boolean) {
         if (!insert && state.isTrackOccupied(axis, index)) {
-            confirmation = PcLayoutConfirmation.RemoveTrack(axis, index)
+            viewModel.requestLayoutConfirmation(PcLayoutConfirmation.RemoveTrack(axis, index))
         } else {
-            update(state.resize(axis, index, insert))
+            viewModel.editLayout { it.resize(axis, index, insert) }
         }
     }
 
     Dialog(
-        onDismissRequest = { if (state.pickerCell != null) update(state.closePicker()) else dismiss() },
+        onDismissRequest = viewModel::dismissLayoutEditor,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -134,8 +102,8 @@ fun PcLayoutEditorDialog(
                     row = state.rowOf(pickerCell) + 1,
                     column = state.columnOf(pickerCell) + 1,
                     options = state.pickerOptions(options),
-                    onSelect = { id -> update(state.assign(id, byId.keys)) },
-                    onClose = { update(state.closePicker()) }
+                    onSelect = { id -> viewModel.editLayout { it.assign(id, byId.keys) } },
+                    onClose = { viewModel.editLayout { it.closePicker() } }
                 )
             } else {
                 Column(modifier = Modifier.fillMaxSize().imePadding()) {
@@ -151,28 +119,31 @@ fun PcLayoutEditorDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
                             ActionButton(
                                 textResId = if (saving) R.string.pc_layout_saving else R.string.pc_layout_save,
-                                onClick = ::save,
+                                onClick = viewModel::saveLayoutEditor,
                                 enabled = !saving,
                                 applyPadding = false,
                                 modifier = Modifier.weight(1f)
                             )
                             ActionButton(
                                 textResId = R.string.pc_layout_cancel,
-                                onClick = ::dismiss,
+                                onClick = viewModel::dismissLayoutEditor,
                                 type = ActionButtonType.SECONDARY,
                                 enabled = !saving,
                                 applyPadding = false,
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        if (failed) {
+                        if (session.failed) {
                             Text(
                                 text = stringResource(R.string.pc_layout_save_failed),
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
+                                color = MaterialTheme.colorScheme.error
                             )
                         }
-                        Announcement(state, byId)
+                        Text(
+                            text = status,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                        )
                     }
                     Column(
                         modifier = Modifier
@@ -192,11 +163,16 @@ fun PcLayoutEditorDialog(
                                 state = state,
                                 selected = selected,
                                 enabled = !saving,
-                                onUpdate = ::update,
+                                onUpdate = viewModel::editLayout,
                                 onResize = ::resize
                             )
                         }
-                        EditorGrid(state = state, controls = byId, enabled = !saving, onSelect = { update(state.select(it)) })
+                        EditorGrid(
+                            state = state,
+                            controls = byId,
+                            enabled = !saving,
+                            onSelect = { selection -> viewModel.editLayout { it.select(selection) } }
+                        )
                         PcControlButton(
                             label = stringResource(R.string.pc_layout_add_row),
                             onClick = { resize(PcLayoutAxis.Row, state.rows, true) },
@@ -211,7 +187,7 @@ fun PcLayoutEditorDialog(
                         )
                         PcControlButton(
                             label = stringResource(R.string.pc_layout_reset),
-                            onClick = { confirmation = PcLayoutConfirmation.Reset },
+                            onClick = { viewModel.requestLayoutConfirmation(PcLayoutConfirmation.Reset) },
                             enabled = !saving,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -222,50 +198,43 @@ fun PcLayoutEditorDialog(
         LaunchedEffect(state.selected) {
             if (state.selected != null && !state.moving) scroll.animateScrollTo(0)
         }
-        confirmation?.let { current ->
+        session.confirmation?.let { current ->
             Confirmation(
                 confirmation = current,
-                onConfirm = {
-                    confirmation = null
-                    when (current) {
-                        PcLayoutConfirmation.Discard -> onClose()
-                        PcLayoutConfirmation.Reset -> update(state.resetToDefault())
-                        is PcLayoutConfirmation.RemoveTrack -> update(state.resize(current.axis, current.index, false))
-                    }
-                },
-                onDismiss = { confirmation = null }
+                onConfirm = viewModel::confirmLayout,
+                onDismiss = { viewModel.requestLayoutConfirmation(null) }
             )
         }
     }
 }
 
-@Composable
-private fun Announcement(state: PcLayoutEditorState, controls: Map<String, PcResolvedAction>) {
-    val message = when (val announcement = state.announcement) {
-        null -> null
-        is PcLayoutAnnouncement.CellMoved ->
-            stringResource(R.string.pc_layout_announce_cell_moved, announcement.row, announcement.column)
-        is PcLayoutAnnouncement.TrackMoved -> stringResource(
-            if (announcement.kind == PcLayoutSelectionKind.Row) R.string.pc_layout_announce_row_moved else R.string.pc_layout_announce_column_moved,
-            announcement.from,
-            announcement.to
-        )
-        is PcLayoutAnnouncement.Assigned -> stringResource(
-            R.string.pc_layout_announce_assigned,
-            controls[announcement.actionId]?.name?.resolve().orEmpty(),
-            announcement.row,
-            announcement.column
-        )
-        is PcLayoutAnnouncement.Removed ->
-            stringResource(R.string.pc_layout_announce_removed, announcement.row, announcement.column)
-    }
-    if (message != null) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-        )
-    }
+private fun PcText.text(resources: android.content.res.Resources): String = when (this) {
+    is PcText.Res -> resources.getString(id, *args.map { arg -> if (arg is PcText) arg.text(resources) else arg }.toTypedArray())
+    is PcText.Literal -> text
+    is PcText.Joined -> parts.joinToString(separator) { it.text(resources) }
+}
+
+private fun announcementText(
+    resources: android.content.res.Resources,
+    announcement: PcLayoutAnnouncement?,
+    controls: Map<String, PcResolvedAction>
+): String = when (announcement) {
+    null -> ""
+    is PcLayoutAnnouncement.CellMoved ->
+        resources.getString(R.string.pc_layout_announce_cell_moved, announcement.row, announcement.column)
+    is PcLayoutAnnouncement.TrackMoved -> resources.getString(
+        if (announcement.kind == PcLayoutSelectionKind.Row) R.string.pc_layout_announce_row_moved else R.string.pc_layout_announce_column_moved,
+        announcement.from,
+        announcement.to
+    )
+    is PcLayoutAnnouncement.Assigned -> resources.getString(
+        R.string.pc_layout_announce_assigned,
+        controls[announcement.actionId]?.name?.text(resources).orEmpty(),
+        announcement.row,
+        announcement.column
+    )
+    is PcLayoutAnnouncement.Removed ->
+        resources.getString(R.string.pc_layout_announce_removed, announcement.row, announcement.column)
 }
 
 @Composable
@@ -273,7 +242,7 @@ private fun SelectionActions(
     state: PcLayoutEditorState,
     selected: PcLayoutSelection,
     enabled: Boolean,
-    onUpdate: (PcLayoutEditorState) -> Unit,
+    onUpdate: ((PcLayoutEditorState) -> PcLayoutEditorState) -> Unit,
     onResize: (PcLayoutAxis, Int, Boolean) -> Unit
 ) {
     val occupied = selected.kind == PcLayoutSelectionKind.Cell && state.draft.cells[selected.index] != null
@@ -292,6 +261,8 @@ private fun SelectionActions(
             modifier = Modifier.semantics { heading() }
         )
         if (state.moving) {
+            val instruction = remember { FocusRequester() }
+            LaunchedEffect(selected) { instruction.requestFocus() }
             Text(
                 text = stringResource(
                     when (selected.kind) {
@@ -300,7 +271,10 @@ private fun SelectionActions(
                         PcLayoutSelectionKind.Column -> R.string.pc_layout_move_column_instruction
                     }
                 ),
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                modifier = Modifier
+                    .focusRequester(instruction)
+                    .focusable()
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         } else {
             if (state.canStartMove()) {
@@ -311,7 +285,7 @@ private fun SelectionActions(
                         PcLayoutSelectionKind.Column -> R.string.pc_layout_move_column
                     },
                     enabled
-                ) { onUpdate(state.startMove()) }
+                ) { onUpdate { it.startMove() } }
             }
             val nudges = when (selected.kind) {
                 PcLayoutSelectionKind.Cell -> if (occupied) PcLayoutNudge.entries else emptyList()
@@ -320,11 +294,11 @@ private fun SelectionActions(
             }
             nudges.forEach { direction ->
                 EditorAction(nudgeLabel(direction), enabled && state.nudgeTarget(direction) != null) {
-                    onUpdate(state.nudge(direction))
+                    onUpdate { it.nudge(direction) }
                 }
             }
             if (occupied) {
-                EditorAction(R.string.pc_layout_remove_button, enabled) { onUpdate(state.removeSelectedCell()) }
+                EditorAction(R.string.pc_layout_remove_button, enabled) { onUpdate { it.removeSelectedCell() } }
             }
             if (selected.kind != PcLayoutSelectionKind.Cell) {
                 val axis = if (selected.kind == PcLayoutSelectionKind.Row) PcLayoutAxis.Row else PcLayoutAxis.Column
@@ -343,7 +317,7 @@ private fun SelectionActions(
                 ) { onResize(axis, selected.index, false) }
             }
         }
-        EditorAction(R.string.pc_layout_close_actions, enabled) { onUpdate(state.closeActions()) }
+        EditorAction(R.string.pc_layout_close_actions, enabled) { onUpdate { it.closeActions() } }
     }
 }
 

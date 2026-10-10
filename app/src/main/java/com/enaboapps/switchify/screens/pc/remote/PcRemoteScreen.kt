@@ -23,7 +23,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,6 +73,7 @@ fun PcRemoteScreen(navController: NavController) {
     val layouts by viewModel.layouts.layouts.collectAsState()
     val physicalSwitchStopAvailable by viewModel.physicalSwitchStopAvailable.collectAsState()
     val editingLayout by viewModel.editingLayout.collectAsState()
+    val layoutEditor by viewModel.layoutEditor.collectAsState()
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
@@ -121,38 +121,38 @@ fun PcRemoteScreen(navController: NavController) {
                     LaunchedEffect(state.repeat) { viewModel.refreshPhysicalSwitchStop() }
                     val blocked = when {
                         surface == PcRemoteSurface.Typing && submittingEnter -> stringResource(R.string.pc_layout_blocked_enter)
-                        state.editingBlocked -> stringResource(
+                        state.repeat != null || state.dragging || state.modifiers.isNotEmpty() -> stringResource(
                             R.string.pc_layout_blocked_input,
                             stringResource(PcRemotePresentation.repeatStopLabel(state.repeat))
                         )
                         else -> null
                     }
-                    val editing = PcLayoutEditing(
-                        enabled = editingLayout,
-                        blocked = blocked,
-                        current = { viewModel.layouts.layouts.value },
-                        load = viewModel::loadLayouts,
-                        save = viewModel::saveLayout
-                    )
+                    val editing = remember(editingLayout, blocked, viewModel) {
+                        PcLayoutEditing(
+                            enabled = editingLayout,
+                            blocked = blocked,
+                            open = viewModel::openLayoutEditor,
+                            refreshControls = viewModel::refreshLayoutEditorControls
+                        )
+                    }
                     CompositionLocalProvider(LocalPcLayoutEditing provides editing) {
-                        key(activeHolder.desktopId) {
-                            when (surface) {
-                                PcRemoteSurface.Mouse -> PcMouseSurface(
-                                    viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
-                                )
-                                PcRemoteSurface.Typing -> PcTypingSurface(
-                                    viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
-                                )
-                                PcRemoteSurface.Window -> PcWindowSurface(
-                                    viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
-                                )
-                            }
+                        when (surface) {
+                            PcRemoteSurface.Mouse -> PcMouseSurface(
+                                viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                            )
+                            PcRemoteSurface.Typing -> PcTypingSurface(
+                                viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                            )
+                            PcRemoteSurface.Window -> PcWindowSurface(
+                                viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                            )
                         }
                     }
                 }
             }
         }
     }
+    layoutEditor?.let { session -> PcLayoutEditorDialog(session, viewModel) }
 }
 
 @Composable

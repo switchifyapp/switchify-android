@@ -13,7 +13,10 @@ import com.enaboapps.switchify.pc.remote.PcTypingMode
 import com.enaboapps.switchify.pc.remote.actions.PcActionContext
 import com.enaboapps.switchify.pc.remote.actions.PcActionDefinition
 import com.enaboapps.switchify.pc.remote.actions.PcActionRuntime
-import com.enaboapps.switchify.pc.remote.layouts.PcButtonLayout
+import com.enaboapps.switchify.pc.remote.actions.PcResolvedAction
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditorState
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSaveRequest
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSections
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutStore
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSurface
 import com.enaboapps.switchify.pc.storage.PcSavedPc
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -49,6 +53,12 @@ class PcRemoteViewModel(
 
     private val _editingLayout = MutableStateFlow(false)
     val editingLayout: StateFlow<Boolean> = _editingLayout.asStateFlow()
+
+    private val _layoutEditor = MutableStateFlow<PcLayoutEditorSession?>(null)
+    val layoutEditor: StateFlow<PcLayoutEditorSession?> = _layoutEditor.asStateFlow()
+
+    private var openingLayoutEditor = false
+    private var lastDesktopId: String? = null
 
     private var cleanupRegistration: PcUnsubscribe? = null
 
@@ -94,10 +104,118 @@ class PcRemoteViewModel(
         _editingLayout.value = !_editingLayout.value
     }
 
-    suspend fun loadLayouts() = layouts.load()
+    fun layoutEditingBlocked(): Boolean {
+        val holder = _holder.value ?: return false
+        val state = holder.session.state.value
+        return state.repeat != null || state.dragging || state.modifiers.isNotEmpty() ||
+            (preferences.surface.value == PcRemoteSurface.Typing && holder.liveTyping.submitting.value)
+    }
 
-    suspend fun saveLayout(surface: PcLayoutSurface, section: String, layout: PcButtonLayout?) =
-        layouts.save(surface, section, layout)
+    fun openLayoutEditor(
+        surface: PcLayoutSurface,
+        section: String,
+        controls: List<PcResolvedAction>,
+        width: Float,
+        fontScale: Float
+    ) {
+        if (openingLayoutEditor || _layoutEditor.value != null) return
+        val definition = PcLayoutSections.get(surface, section) ?: return
+        openingLayoutEditor = true
+        viewModelScope.launch {
+            try {
+                layouts.load()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+            } finally {
+                openingLayoutEditor = false
+            }
+            if (!_editingLayout.value || layoutEditingBlocked() || _layoutEditor.value != null) return@launch
+            val defaults = PcLayoutSections.sectionDefault(definition, width, fontScale)
+            val stored = layouts.layouts.value[surface]?.get(section)
+            val customized = stored != null && PcLayoutSections.isValidSectionLayout(surface, section, stored)
+            _layoutEditor.value = PcLayoutEditorSession(
+                section = section,
+                titleRes = definition.titleRes,
+                controls = controls,
+                state = PcLayoutEditorState(
+                    surface = surface,
+                    initial = if (customized) stored else defaults,
+                    defaultLayout = defaults,
+                    initiallyCustomized = customized
+                )
+            )
+        }
+    }
+
+    fun refreshLayoutEditorControls(surface: PcLayoutSurface, section: String, controls: List<PcResolvedAction>) {
+        _layoutEditor.update { session ->
+            if (session != null && session.state.surface == surface && session.section == section && session.controls != controls) {
+                session.copy(controls = controls)
+            } else {
+                session
+            }
+        }
+    }
+
+    fun editLayout(transform: (PcLayoutEditorState) -> PcLayoutEditorState) {
+        _layoutEditor.update { session ->
+            if (session == null || session.saving) return@update session
+            val next = transform(session.state)
+            val changed = next.draft !== session.state.draft || next.reset != session.state.reset
+            session.copy(state = next, failed = session.failed && !changed)
+        }
+    }
+
+    fun requestLayoutConfirmation(confirmation: PcLayoutConfirmation?) {
+        _layoutEditor.update { session ->
+            if (session == null || (session.saving && confirmation != null)) session else session.copy(confirmation = confirmation)
+        }
+    }
+
+    fun confirmLayout() {
+        val session = _layoutEditor.value ?: return
+        val confirmation = session.confirmation ?: return
+        _layoutEditor.value = session.copy(confirmation = null)
+        when (confirmation) {
+            PcLayoutConfirmation.Discard -> closeLayoutEditor()
+            PcLayoutConfirmation.Reset -> editLayout { it.resetToDefault() }
+            is PcLayoutConfirmation.RemoveTrack -> editLayout { it.resize(confirmation.axis, confirmation.index, false) }
+        }
+    }
+
+    fun dismissLayoutEditor() {
+        val session = _layoutEditor.value ?: return
+        when {
+            session.saving -> Unit
+            session.state.pickerCell != null -> editLayout { it.closePicker() }
+            session.state.dirty -> requestLayoutConfirmation(PcLayoutConfirmation.Discard)
+            else -> closeLayoutEditor()
+        }
+    }
+
+    fun closeLayoutEditor() {
+        _layoutEditor.update { session -> if (session?.saving == true) session else null }
+    }
+
+    fun saveLayoutEditor() {
+        val session = _layoutEditor.value ?: return
+        if (session.saving) return
+        _layoutEditor.value = session.copy(saving = true, failed = false)
+        val request = session.state.saveRequest()
+        viewModelScope.launch {
+            try {
+                if (request is PcLayoutSaveRequest.Save) layouts.save(session.state.surface, session.section, request.layout)
+                _layoutEditor.update { current -> if (current?.saving == true) null else current }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                _layoutEditor.update { current ->
+                    if (current?.saving == true) current.copy(saving = false, failed = true, failureCount = current.failureCount + 1) else current
+                }
+            }
+        }
+    }
 
     fun stopRepeat() {
         val session = _holder.value?.session ?: return
@@ -130,7 +248,8 @@ class PcRemoteViewModel(
     }
 
     private fun replaceSession(desktopId: String?) {
-        _editingLayout.value = false
+        if (desktopId != null && lastDesktopId != null && desktopId != lastDesktopId) _editingLayout.value = false
+        if (desktopId != null) lastDesktopId = desktopId
         cleanupRegistration?.unsubscribe()
         cleanupRegistration = null
         _holder.value?.let(::retire)

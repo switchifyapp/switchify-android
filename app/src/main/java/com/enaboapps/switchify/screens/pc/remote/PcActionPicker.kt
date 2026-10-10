@@ -21,13 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -49,7 +50,7 @@ fun PcActionPicker(
     onClose: () -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var choosing by remember { mutableStateOf(false) }
+    var choosing by rememberSaveable { mutableStateOf(false) }
     val filtered = PcActionPickerModel.search(options, query)
     val groups = PcActionPickerModel.group(filtered)
     Column(
@@ -115,8 +116,8 @@ fun PcActionPicker(
 
 @Composable
 private fun OptionRow(option: PcActionOption, onClick: () -> Unit) {
-    val hint = option.explanation?.let { stringResource(R.string.pc_picker_unavailable_hint, it) }
-        ?: stringResource(R.string.pc_picker_assign_hint)
+    val assign = stringResource(R.string.pc_picker_assign)
+    val unavailable = option.explanation?.let { stringResource(R.string.pc_picker_unavailable_hint, it) }
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -128,8 +129,10 @@ private fun OptionRow(option: PcActionOption, onClick: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClickLabel = hint, role = Role.Button, onClick = onClick)
-                .semantics(mergeDescendants = true) {}
+                .clickable(onClickLabel = assign, role = Role.Button, onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    if (unavailable != null) stateDescription = unavailable
+                }
                 .padding(Dimens.spaceM),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -138,7 +141,8 @@ private fun OptionRow(option: PcActionOption, onClick: () -> Unit) {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clearAndSetSemantics {}
                 )
             }
         }

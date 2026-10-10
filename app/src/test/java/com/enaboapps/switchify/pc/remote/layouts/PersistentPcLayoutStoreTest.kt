@@ -1,7 +1,10 @@
 package com.enaboapps.switchify.pc.remote.layouts
 
 import com.enaboapps.switchify.pc.storage.InMemoryPcKeyValueStore
+import com.enaboapps.switchify.pc.storage.PcKeyValueStore
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.json.JSONArray
@@ -21,6 +24,7 @@ class PersistentPcLayoutStoreTest {
     @Test
     fun usesRemoteStorageKey() {
         assertEquals("switchify.remote.layouts.v2", key)
+        assertEquals("switchify_pc_layouts", PersistentPcLayoutStore.DIRECTORY)
     }
 
     @Test
@@ -183,6 +187,29 @@ class PersistentPcLayoutStoreTest {
         assertTrue(cells.isNull(1))
         store.save(PcLayoutSurface.Mouse, "clicks", null)
         assertEquals("""{"version":2,"layouts":{}}""", storage.values[key])
+    }
+
+    @Test
+    fun cancellingASaveDuringTheWriteKeepsMemoryAndStorageConsistent() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val written = CompletableDeferred<Unit>()
+        val slow = object : PcKeyValueStore by storage {
+            override suspend fun put(key: String, value: String) {
+                storage.put(key, value)
+                written.complete(Unit)
+                gate.await()
+            }
+        }
+        val store = PersistentPcLayoutStore(slow)
+        store.load()
+        val job = launch { store.save(PcLayoutSurface.Mouse, "clicks", click) }
+        written.await()
+        job.cancel()
+        gate.complete(Unit)
+        job.join()
+        assertTrue(job.isCancelled)
+        assertEquals(click, store.layouts.value[PcLayoutSurface.Mouse]?.get("clicks"))
+        assertEquals(store.layouts.value, PcLayoutCodec.decode(storage.values[key]))
     }
 
     private fun encode(layout: PcButtonLayout): JSONObject =

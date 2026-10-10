@@ -60,7 +60,7 @@
 
     <string name="pc_picker_title">Choose action</string>
     <string name="pc_picker_search">Search actions</string>
-    <string name="pc_picker_assign_hint">Assigns this action to the cell.</string>
+    <string name="pc_picker_assign">assign to this cell</string>
     <string name="pc_picker_unavailable_hint">%1$s You can still add this action.</string>
     <string name="pc_picker_no_match">No actions match your search.</string>
     <string name="pc_picker_all_placed">All available actions are already in this section.</string>
