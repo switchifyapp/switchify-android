@@ -23,4 +23,33 @@ class ScanningHoldsTest {
         assertNull(holds.update(ScanningHold.PcRepeat, false))
         assertTrue(holds.isHeld())
     }
+
+    @Test fun applyPausesOnFirstHoldAndResumesOnLastRelease() {
+        val holds = ScanningHolds()
+        val target = FakeScanningHoldTarget()
+        holds.apply(ScanningHold.Forwarding, true, target)
+        holds.apply(ScanningHold.PcRepeat, true, target)
+        holds.apply(ScanningHold.Forwarding, false, target)
+        holds.apply(ScanningHold.PcRepeat, false, target)
+        assertEquals(listOf("pause", "resume"), target.calls)
+    }
+
+    @Test fun applyLeavesTheUsersPauseInPlace() {
+        val holds = ScanningHolds()
+        val target = FakeScanningHoldTarget()
+        holds.apply(ScanningHold.PcRepeat, true, target)
+        target.pausedByUser = true
+        holds.apply(ScanningHold.PcRepeat, false, target)
+        assertEquals(listOf("pause"), target.calls)
+        assertFalse(holds.isHeld())
+    }
+
+    @Test fun resetDropsEveryHold() {
+        val holds = ScanningHolds()
+        holds.update(ScanningHold.Forwarding, true)
+        holds.update(ScanningHold.PcRepeat, true)
+        holds.reset()
+        assertFalse(holds.isHeld())
+        assertEquals(true, holds.update(ScanningHold.PcRepeat, true))
+    }
 }
