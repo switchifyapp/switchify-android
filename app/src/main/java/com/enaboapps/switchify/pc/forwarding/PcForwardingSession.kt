@@ -21,6 +21,8 @@ class PcForwardingSession(
     private val scope: CoroutineScope,
     private val sessionIds: () -> String = { UUID.randomUUID().toString() }
 ) {
+    private enum class Visibility { Visible, Rotating, Hidden }
+
     private class Active(
         val desktopId: String,
         val profile: PcPointerProfile,
@@ -39,7 +41,8 @@ class PcForwardingSession(
 
     private val restore = PcForwardingRestoreState()
     private var active: Active? = null
-    private var attached = false
+    private var visibility = Visibility.Hidden
+    private var leaves = 0
     private val connectionJob: Job = scope.launch { connectionState.collect(::onConnection) }
 
     fun toggle() {
@@ -50,9 +53,14 @@ class PcForwardingSession(
                 restore.clear()
                 controller.stop()
             } else {
-                val started = controller.start()
+                val leavesBefore = leaves
+                if (!controller.start()) return@launch
+                if (leftSince(leavesBefore, current)) {
+                    controller.stop(PcForwardingMessage.LeftScreen)
+                    return@launch
+                }
                 val selected = controller.selectedProfile()
-                if (started && attached && selected != null && selected.kind != PcSwitchProfileKind.Scanning) {
+                if (selected != null && selected.kind != PcSwitchProfileKind.Scanning) {
                     restore.set(PcForwardingRestoreIntent(current.desktopId, selected.id, selected.version))
                 }
             }
@@ -79,13 +87,17 @@ class PcForwardingSession(
     }
 
     fun attach() {
-        attached = true
+        visibility = Visibility.Visible
         active?.let(::restoreIfVisible)
     }
 
     fun detach(changingConfigurations: Boolean) {
-        attached = false
-        if (changingConfigurations) return
+        if (changingConfigurations) {
+            if (visibility == Visibility.Visible) visibility = Visibility.Rotating
+            return
+        }
+        visibility = Visibility.Hidden
+        leaves += 1
         restore.clear()
         val controller = active?.controller ?: return
         if (!controller.state.value.running) return
@@ -139,7 +151,7 @@ class PcForwardingSession(
     }
 
     private fun restoreIfVisible(current: Active) {
-        if (!attached || !current.loaded) return
+        if (visibility != Visibility.Visible || !current.loaded) return
         val intent = restore.get() ?: return
         if (intent.desktopId != current.desktopId) return
         val controller = current.controller
@@ -155,9 +167,14 @@ class PcForwardingSession(
             return
         }
         scope.launch {
-            if (attached && active === current && restore.get() == intent) controller.start()
+            if (visibility != Visibility.Visible || active !== current || restore.get() != intent) return@launch
+            val leavesBefore = leaves
+            if (controller.start() && leftSince(leavesBefore, current)) controller.stop(PcForwardingMessage.LeftScreen)
         }
     }
+
+    private fun leftSince(leavesBefore: Int, current: Active): Boolean =
+        leaves != leavesBefore || visibility == Visibility.Hidden || active !== current
 
     private fun dispose(): Job? {
         val current = active ?: return null

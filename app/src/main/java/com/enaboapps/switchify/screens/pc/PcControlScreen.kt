@@ -30,7 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,6 +47,7 @@ import com.enaboapps.switchify.pc.remote.PcRemoteGraph
 import com.enaboapps.switchify.pc.transport.PcBluetoothPermissions
 import com.enaboapps.switchify.screens.pc.remote.PcRemoteScreen
 import com.enaboapps.switchify.theme.Dimens
+import com.enaboapps.switchify.utils.findActivity
 
 @Composable
 fun PcControlScreen(navController: NavController) {
@@ -82,7 +83,11 @@ fun PcControlScreen(navController: NavController) {
         }
     }
 
-    LaunchedEffect(viewModel) { viewModel.observeForeground(ProcessLifecycleOwner.get().lifecycle) }
+    val activity = context.findActivity()
+    LaunchedEffect(activity, viewModel) {
+        val owner = activity as? LifecycleOwner ?: return@LaunchedEffect
+        viewModel.observeActivity(owner.lifecycle) { activity?.isChangingConfigurations == true }
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
 
     if (phase != PcControlSetupPhase.Complete) {

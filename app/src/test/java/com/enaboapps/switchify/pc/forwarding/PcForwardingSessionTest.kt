@@ -5,6 +5,7 @@ import com.enaboapps.switchify.pc.connection.PcProfileStatus
 import com.enaboapps.switchify.pc.protocol.PcPlatform
 import com.enaboapps.switchify.pc.transport.PcDiscoveredDesktop
 import com.enaboapps.switchify.pc.transport.PcUnsubscribe
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -194,17 +195,68 @@ class PcForwardingSessionTest {
 
     @Test
     fun aReconnectWhileTheSurfaceIsHiddenNeverStartsForwarding() = runTest {
-        val h = harness()
+        listOf(true, false).forEach { changingConfigurations ->
+            val h = harness()
+            h.session.toggle()
+            runCurrent()
+            h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+            runCurrent()
+            h.session.detach(changingConfigurations)
+            h.connectionState.value = connected()
+            runCurrent()
+            assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+            assertEquals(1, h.connection.of("switch.session.start").size)
+            assertEquals(1, h.bridge.active.count { it.second })
+        }
+    }
+
+    @Test
+    fun aStartWaitingOnAStopAckIsStoppedWhenTheSurfaceIsLeft() = runTest {
+        val stopAck = CompletableDeferred<Boolean>()
+        val connection = FakeConnection()
+        connection.onSend = { command, _ -> if (command.type == "switch.session.stop") stopAck.await() else true }
+        val h = harness(connection)
         h.session.toggle()
         runCurrent()
-        h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+        h.session.toggle()
         runCurrent()
-        h.session.detach(changingConfigurations = true)
-        h.connectionState.value = connected()
+        h.session.toggle()
+        runCurrent()
+        h.session.detach(changingConfigurations = false)
+        runCurrent()
+        stopAck.complete(true)
         runCurrent()
         assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
-        assertEquals(1, h.connection.of("switch.session.start").size)
-        assertTrue(h.bridge.active.none { it.second && it.first > 41L })
+        assertEquals(PcForwardingMessage.LeftScreen, h.session.state.value.message)
+        assertFalse(h.bridge.active.last().second)
+        h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+        runCurrent()
+        h.connectionState.value = connected()
+        h.session.attach()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+    }
+
+    @Test
+    fun rotatingWhileStartingKeepsTheRestoreIntent() = runTest {
+        val startAck = CompletableDeferred<Boolean>()
+        val connection = FakeConnection()
+        connection.onSend = { command, _ -> if (command.type == "switch.session.start") startAck.await() else true }
+        val h = harness(connection)
+        h.session.toggle()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Starting, h.session.state.value.phase)
+        h.session.detach(changingConfigurations = true)
+        startAck.complete(true)
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
+        h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+        runCurrent()
+        h.connectionState.value = connected()
+        h.session.attach()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
+        assertEquals(2, h.connection.of("switch.session.start").size)
     }
 
     @Test
@@ -233,11 +285,12 @@ class PcForwardingSessionTest {
     }
 
     @Test
-    fun startingWhileHiddenKeepsNoRestoreIntent() = runTest {
+    fun startingWhileHiddenStopsAtOnceAndKeepsNoRestoreIntent() = runTest {
         val h = harness(attached = false)
         h.session.toggle()
         runCurrent()
-        assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(PcForwardingMessage.LeftScreen, h.session.state.value.message)
         h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
         runCurrent()
         h.connectionState.value = connected()

@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.pc
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import com.enaboapps.switchify.pc.connection.PcConnectionFailure
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcList.toDesktop
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
@@ -36,6 +37,13 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PcControlViewModelTest {
     private val office = PcSavedPc("pc-1", "Office", PcPlatform.Windows, "ble-1", 1)
+    private val connected = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
+
+    private class TestActivity : LifecycleOwner {
+        val registry = LifecycleRegistry.createUnsafe(this)
+        var changing = false
+        override val lifecycle: Lifecycle get() = registry
+    }
 
     private class Fixture(test: TestScope, saved: List<PcSavedPc>, setupComplete: Boolean) {
         val storage = InMemoryPcPreferenceStorage()
@@ -231,29 +239,62 @@ class PcControlViewModelTest {
     }
 
     @Test
-    fun followsTheAppForegroundUntilCleared() = viewModelTest(saved = listOf(office)) { f ->
-        val owner = object : LifecycleOwner {
-            val registry = LifecycleRegistry.createUnsafe(this)
-            override val lifecycle: Lifecycle = registry
-        }
-        owner.registry.currentState = Lifecycle.State.STARTED
-        f.viewModel.observeForeground(owner.lifecycle)
-        f.viewModel.observeForeground(owner.lifecycle)
+    fun followsTheActivityAcrossRecreationUntilCleared() = viewModelTest(saved = listOf(office)) { f ->
+        val first = TestActivity()
+        first.registry.currentState = Lifecycle.State.STARTED
+        f.viewModel.observeActivity(first.lifecycle, first::changing)
+        f.viewModel.observeActivity(first.lifecycle, first::changing)
         advanceUntilIdle()
         assertEquals(1, f.connection.connectCalls)
 
-        f.connection.state.value = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
-        owner.registry.currentState = Lifecycle.State.CREATED
+        f.connection.state.value = connected
+        first.registry.currentState = Lifecycle.State.CREATED
         advanceUntilIdle()
         assertEquals(1, f.connection.disconnectCalls)
 
-        owner.registry.currentState = Lifecycle.State.STARTED
+        first.registry.currentState = Lifecycle.State.STARTED
         advanceUntilIdle()
         assertEquals(2, f.connection.connectCalls)
 
+        f.connection.state.value = connected
+        first.changing = true
+        first.registry.currentState = Lifecycle.State.DESTROYED
+        advanceUntilIdle()
+        assertEquals(1, f.connection.disconnectCalls)
+        assertEquals(0, first.registry.observerCount)
+
+        val second = TestActivity()
+        second.registry.currentState = Lifecycle.State.STARTED
+        f.viewModel.observeActivity(second.lifecycle, second::changing)
+        advanceUntilIdle()
+        assertEquals(2, f.connection.connectCalls)
+
+        second.registry.currentState = Lifecycle.State.CREATED
+        advanceUntilIdle()
+        assertEquals(2, f.connection.disconnectCalls)
+
         f.viewModel.clearForTest()
         advanceUntilIdle()
-        assertEquals(0, owner.registry.observerCount)
+        assertEquals(0, second.registry.observerCount)
+    }
+
+    @Test
+    fun backgroundWithoutALinkOrScanKeepsTheStateAndRecordsNoDisconnect() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        val failed = PcConnectionState.Failed(PcConnectionFailure.CouldNotConnect, listOf(office))
+        f.connection.state.value = failed
+        f.viewModel.onStop(changingConfigurations = false)
+        advanceUntilIdle()
+        f.connection.state.value = PcConnectionState.Idle(listOf(office))
+        f.viewModel.onStop(changingConfigurations = false)
+        advanceUntilIdle()
+        assertEquals(0, f.connection.disconnectCalls)
+
+        f.connection.state.value = failed
+        f.viewModel.onStop(changingConfigurations = false)
+        advanceUntilIdle()
+        assertEquals(failed, f.connection.state.value)
     }
 
     @Test
