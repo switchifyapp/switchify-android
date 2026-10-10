@@ -7,6 +7,7 @@ import android.os.RemoteCallbackList
 import com.enaboapps.switchify.remotebridge.ISwitchifyRemoteBridgeCallback
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
+import java.util.concurrent.CopyOnWriteArraySet
 
 object SwitchifyRemoteBridgeCoordinator {
     const val VERSION = 1
@@ -15,7 +16,7 @@ object SwitchifyRemoteBridgeCoordinator {
         override fun onCallbackDied(callback: ISwitchifyRemoteBridgeCallback?) {
             synchronized(lock) {
                 callbackCount = (callbackCount - 1).coerceAtLeast(0)
-                if (callbackCount == 0) clearActiveLocked()
+                if (callbackCount == 0) clearRemoteActiveLocked()
             }
         }
     }
@@ -27,8 +28,12 @@ object SwitchifyRemoteBridgeCoordinator {
     private var repeatGenerationHighWater = 0L
     private var forwardingGeneration = 0L
     private var forwardingGenerationHighWater = 0L
+    private var inAppForwardingGenerationHighWater = 0L
+    private var forwardingOwner: SwitchForwardingOwner? = null
+    private var forwardingActivation = 0L
     private var edgeSequence = 0L
     private val activePresses = mutableMapOf<Int, Long>()
+    private val inAppListeners = CopyOnWriteArraySet<InAppSwitchForwardingListener>()
     internal var setScanningPaused: (Boolean) -> Unit = ::postScanningPaused
 
     fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
@@ -58,7 +63,7 @@ object SwitchifyRemoteBridgeCoordinator {
     fun unregister(callback: ISwitchifyRemoteBridgeCallback) = callbackDispatcher.dispatch {
         synchronized(lock) {
             if (callbacks.unregister(callback)) callbackCount = (callbackCount - 1).coerceAtLeast(0)
-            if (callbackCount == 0) clearActiveLocked()
+            if (callbackCount == 0) clearRemoteActiveLocked()
         }
     }
 
@@ -75,18 +80,48 @@ object SwitchifyRemoteBridgeCoordinator {
         true
     }
 
-    fun setForwardingActive(generation: Long, active: Boolean): Boolean = synchronized(lock) {
+    fun setForwardingActive(generation: Long, active: Boolean): Boolean =
+        setForwardingActive(SwitchForwardingOwner.SwitchifyRemote, generation, active)
+
+    fun setInAppForwardingActive(generation: Long, active: Boolean): Boolean =
+        setForwardingActive(SwitchForwardingOwner.InApp, generation, active)
+
+    fun activeForwardingOwner(): SwitchForwardingOwner? = synchronized(lock) {
+        if (forwardingGeneration == 0L) null else forwardingOwner
+    }
+
+    fun addInAppListener(listener: InAppSwitchForwardingListener): () -> Unit {
+        inAppListeners += listener
+        return { inAppListeners -= listener }
+    }
+
+    fun inAppSnapshot(): Pair<Boolean, List<Pair<Int, String>>> = synchronized(lock) {
+        (externalSwitches != null) to externalSwitches?.invoke().orEmpty()
+    }
+
+    private fun setForwardingActive(owner: SwitchForwardingOwner, generation: Long, active: Boolean): Boolean = synchronized(lock) {
         if (externalSwitches == null || generation <= 0) return false
         if (active) {
-            if (generation <= forwardingGenerationHighWater) return false
-            forwardingGenerationHighWater = generation
+            if (forwardingGeneration != 0L && forwardingOwner != owner) return false
+            val highWater = when (owner) {
+                SwitchForwardingOwner.SwitchifyRemote -> forwardingGenerationHighWater
+                SwitchForwardingOwner.InApp -> inAppForwardingGenerationHighWater
+            }
+            if (generation <= highWater) return false
+            when (owner) {
+                SwitchForwardingOwner.SwitchifyRemote -> forwardingGenerationHighWater = generation
+                SwitchForwardingOwner.InApp -> inAppForwardingGenerationHighWater = generation
+            }
             forwardingGeneration = generation
+            forwardingOwner = owner
+            forwardingActivation += 1
             edgeSequence = 0
             activePresses.clear()
             setScanningPaused(true)
         } else {
-            if (generation != forwardingGeneration) return false
+            if (forwardingOwner != owner || generation != forwardingGeneration) return false
             forwardingGeneration = 0
+            forwardingOwner = null
             activePresses.clear()
             setScanningPaused(false)
         }
@@ -105,6 +140,7 @@ object SwitchifyRemoteBridgeCoordinator {
             configuredSwitchFingerprint = nextFingerprint
             if (changed && forwardingGeneration != 0L) {
                 forwardingGeneration = 0
+                forwardingOwner = null
                 edgeSequence = 0
                 activePresses.clear()
                 setScanningPaused(false)
@@ -132,9 +168,17 @@ object SwitchifyRemoteBridgeCoordinator {
                 activePresses.remove(keyCode)
             }
             edgeSequence += 1
-            Edge(generation, edgeSequence, keyCode, down, downTimeMs, eventTimeMs, cancelled)
+            Edge(forwardingOwner, generation, edgeSequence, keyCode, down, downTimeMs, eventTimeMs, cancelled)
         }
-        broadcast { it.onSwitchEdge(event.generation, event.sequence, event.keyCode, event.down, event.downTimeMs, event.eventTimeMs, event.cancelled) }
+        if (event.owner == SwitchForwardingOwner.InApp) {
+            inAppListeners.forEach { listener ->
+                runCatching {
+                    listener.onSwitchEdge(event.generation, event.sequence, event.keyCode, event.down, event.downTimeMs, event.eventTimeMs, event.cancelled)
+                }
+            }
+        } else {
+            broadcast { it.onSwitchEdge(event.generation, event.sequence, event.keyCode, event.down, event.downTimeMs, event.eventTimeMs, event.cancelled) }
+        }
         true
     }
 
@@ -148,12 +192,15 @@ object SwitchifyRemoteBridgeCoordinator {
         }
 
     fun clearActive() = synchronized(lock) { clearActiveLocked() }
-    internal fun activeForwardingGeneration() = synchronized(lock) { forwardingGeneration }
+    fun clearRemoteActive() = synchronized(lock) { clearRemoteActiveLocked() }
+    internal fun activeForwardingGeneration() = synchronized(lock) { if (forwardingGeneration == 0L) 0L else forwardingActivation }
     internal fun currentEdgeSequence() = synchronized(lock) { edgeSequence }
     internal fun resetForTests() = synchronized(lock) {
         clearActiveLocked()
         repeatGenerationHighWater = 0
         forwardingGenerationHighWater = 0
+        inAppForwardingGenerationHighWater = 0
+        inAppListeners.clear()
     }
     private fun isConfiguredExternalSwitch(keyCode: Int) = synchronized(lock) {
         externalSwitches?.invoke()?.any { it.first == keyCode } == true
@@ -162,9 +209,22 @@ object SwitchifyRemoteBridgeCoordinator {
         .sortedWith(compareBy<Pair<Int, String>> { it.first }.thenBy { it.second })
         .take(8)
     private fun clearActiveLocked() {
-        val wasForwarding = forwardingGeneration != 0L
-        repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear()
-        if (wasForwarding) setScanningPaused(false)
+        repeatGeneration = 0
+        clearForwardingLocked()
+    }
+    private fun clearRemoteActiveLocked() {
+        repeatGeneration = 0
+        if (forwardingOwner == SwitchForwardingOwner.SwitchifyRemote) clearForwardingLocked()
+    }
+    private fun clearForwardingLocked() {
+        val generation = forwardingGeneration
+        val owner = forwardingOwner
+        forwardingGeneration = 0; forwardingOwner = null; edgeSequence = 0; activePresses.clear()
+        if (generation == 0L) return
+        setScanningPaused(false)
+        if (owner == SwitchForwardingOwner.InApp) {
+            inAppListeners.forEach { listener -> runCatching { listener.onForwardingRevoked(generation) } }
+        }
     }
     private fun postScanningPaused(paused: Boolean) {
         Handler(Looper.getMainLooper()).post {
@@ -173,6 +233,8 @@ object SwitchifyRemoteBridgeCoordinator {
         }
     }
     private fun publishSnapshot() {
+        val (captureAvailable, switches) = inAppSnapshot()
+        inAppListeners.forEach { listener -> runCatching { listener.onSnapshot(captureAvailable, switches) } }
         if (synchronized(lock) { callbackCount == 0 }) return
         val value = snapshot()
         broadcast { it.onSnapshot(value) }
@@ -182,7 +244,7 @@ object SwitchifyRemoteBridgeCoordinator {
         val count = callbacks.beginBroadcast()
         try { for (index in 0 until count) runCatching { block(callbacks.getBroadcastItem(index)) } } finally { callbacks.finishBroadcast() }
     }
-    private data class Edge(val generation: Long, val sequence: Long, val keyCode: Int, val down: Boolean, val downTimeMs: Long, val eventTimeMs: Long, val cancelled: Boolean)
+    private data class Edge(val owner: SwitchForwardingOwner?, val generation: Long, val sequence: Long, val keyCode: Int, val down: Boolean, val downTimeMs: Long, val eventTimeMs: Long, val cancelled: Boolean)
 }
 
 internal class SerializedCallbackDispatcher {
