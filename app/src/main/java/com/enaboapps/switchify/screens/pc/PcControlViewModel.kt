@@ -113,6 +113,11 @@ class PcControlViewModel(
 
     fun chooseOpeningSurface(surface: PcRemoteSurface) = preferences.setSurface(surface)
 
+    fun openSurface(surface: PcRemoteSurface) {
+        preferences.setSurface(surface)
+        if (_startTab.value == PcControlTab.Remote) _tab.value = PcControlTab.Remote
+    }
+
     fun finishSetup(searchForPcs: Boolean) {
         if (setup.isComplete) return
         setup.complete()

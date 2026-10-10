@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.pc.control.PcControlRequests
 import com.enaboapps.switchify.pc.control.PcControlSetup
 import com.enaboapps.switchify.pc.control.PcControlSetupPhase
 import com.enaboapps.switchify.pc.control.PcControlStorage
@@ -89,6 +90,13 @@ fun PcControlScreen(navController: NavController) {
         viewModel.observeActivity(owner.lifecycle) { activity?.isChangingConfigurations == true }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
+
+    val requestedSurface by PcControlRequests.surface.collectAsStateWithLifecycle()
+    LaunchedEffect(requestedSurface) {
+        val surface = requestedSurface ?: return@LaunchedEffect
+        viewModel.openSurface(surface)
+        PcControlRequests.consume(surface)
+    }
 
     if (phase != PcControlSetupPhase.Complete) {
         val surface by viewModel.surface.collectAsStateWithLifecycle()
