@@ -518,6 +518,271 @@ class PcRemoteSessionTest {
     }
 
     @Test
+    fun undoesARepeatStartThePcNeverConfirmed() = runTest {
+        for (repeatable in listOf("pointer", "key")) {
+            val sender = FakeRemoteSender()
+            val switchStop = FakeSwitchStop()
+            val session = session(sender, switchStop = switchStop)
+            sender.unanswered += "mouse.repeat.start"
+            val started = if (repeatable == "pointer") {
+                session.mouse(PcCommands.move(10.0, 0.0), repeatable = true)
+            } else {
+                session.key("ArrowDown")
+            }
+            assertFalse(started)
+            assertEquals(listOf("mouse.repeat.start", "mouse.repeat.stop"), sender.types)
+            assertEquals(stop, sender.calls[1])
+            assertNull(session.snapshot().repeat)
+            assertEquals(0, switchStop.armCount)
+
+            session.cleanup()
+            assertEquals(listOf("mouse.repeat.start", "mouse.repeat.stop"), sender.types)
+        }
+    }
+
+    @Test
+    fun undoesADragStartThePcNeverConfirmed() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        sender.unanswered += "mouse.dragStart"
+        assertFalse(session.toggleDrag())
+        assertEquals(listOf("mouse.dragStart", "mouse.dragEnd"), sender.types)
+        assertFalse(session.snapshot().dragging)
+    }
+
+    @Test
+    fun undoesAModifierDownThePcNeverConfirmed() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        sender.unanswered += "keyboard.modifierDown"
+        assertFalse(session.toggleModifier("Ctrl"))
+        assertEquals(listOf("keyboard.modifierDown", "keyboard.modifierUp"), sender.types)
+        assertEquals("{\"key\":\"Ctrl\"}", sender.calls[1].payload)
+        assertTrue(session.snapshot().modifiers.isEmpty())
+    }
+
+    @Test
+    fun undoesAStreamOpenThePcNeverConfirmed() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        sender.unanswered += "keyboard.textStream.open"
+        assertFalse(session.streamChunk("not sent"))
+        assertEquals(listOf("keyboard.textStream.open", "keyboard.textStream.close"), sender.types)
+        assertEquals("{\"streamId\":\"stream-1\",\"expectedCount\":0}", sender.calls[1].payload)
+        assertEquals(PcResponseMode.Ack, sender.calls[1].mode)
+        assertFalse(session.snapshot().streamOpen)
+    }
+
+    @Test
+    fun sendsNoUndoWhenThePcRejectsACommand() = runTest {
+        val sender = FakeRemoteSender()
+        sender.result = { false }
+        val session = session(sender)
+        assertFalse(session.mouse(PcCommands.move(10.0, 0.0), repeatable = true))
+        assertFalse(session.key("ArrowDown"))
+        assertFalse(session.toggleDrag())
+        assertFalse(session.toggleModifier("Ctrl"))
+        assertFalse(session.streamChunk("not sent"))
+        session.cleanup()
+        assertEquals(
+            listOf(
+                "mouse.repeat.start", "mouse.repeat.start", "mouse.dragStart", "keyboard.modifierDown",
+                "keyboard.textStream.open"
+            ),
+            sender.types
+        )
+        assertEquals(PcRemoteSessionState(), session.snapshot())
+    }
+
+    @Test
+    fun cleanupStopsARepeatWhoseStopWasNeverConfirmed() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        sender.unanswered += listOf("mouse.repeat.start", "mouse.repeat.stop")
+        assertFalse(session.mouse(PcCommands.move(10.0, 0.0), repeatable = true))
+        sender.unanswered.clear()
+        session.cleanup()
+        assertEquals(listOf("mouse.repeat.start", "mouse.repeat.stop", "mouse.repeat.stop"), sender.types)
+        session.cleanup()
+        assertEquals(3, sender.calls.size)
+    }
+
+    @Test
+    fun cleanupRetriesARepeatStopThePcRejected() = runTest {
+        val sender = FakeRemoteSender()
+        sender.result = { it.type != "mouse.repeat.stop" }
+        val session = session(sender)
+        session.mouse(PcCommands.move(10.0, 0.0), repeatable = true)
+        session.stopRepeat()
+        sender.result = { true }
+        session.cleanup()
+        assertEquals(listOf(moveRepeat, stop, stop), sender.calls)
+    }
+
+    @Test
+    fun cleanupSendsOneStopWhenThatStopGoesUnanswered() = runTest {
+        val sender = FakeRemoteSender()
+        val switchStop = FakeSwitchStop()
+        val session = session(sender, switchStop = switchStop)
+        session.mouse(PcCommands.move(10.0, 0.0), repeatable = true)
+        sender.unanswered += "mouse.repeat.stop"
+        session.cleanup()
+        assertEquals(listOf(moveRepeat, stop), sender.calls)
+        assertFalse(switchStop.held)
+    }
+
+    @Test
+    fun cleanupDuringAPendingStopSendsOneStop() = runTest {
+        val sender = FakeRemoteSender()
+        val switchStop = FakeSwitchStop()
+        val session = session(sender, switchStop = switchStop)
+        session.mouse(PcCommands.move(10.0, 0.0), repeatable = true)
+        val stopAck = sender.gate("mouse.repeat.stop")
+        val stopping = async { session.stopRepeat() }
+        runCurrent()
+        val cleanup = async { session.cleanup() }
+        runCurrent()
+        assertTrue(switchStop.held)
+        stopAck.complete(true)
+        stopping.await()
+        cleanup.await()
+        assertEquals(listOf(moveRepeat, stop), sender.calls)
+        assertFalse(switchStop.held)
+    }
+
+    @Test
+    fun closeDuringASwitchStopReleasesTheHoldAfterOneStop() = runTest {
+        val sender = FakeRemoteSender()
+        val switchStop = FakeSwitchStop()
+        val session = session(sender, switchStop = switchStop)
+        session.key("ArrowDown")
+        val stopAck = sender.gate("mouse.repeat.stop")
+        assertTrue(switchStop.press())
+        runCurrent()
+        val closing = async { session.close() }
+        runCurrent()
+        assertTrue(switchStop.held)
+        stopAck.complete(true)
+        closing.await()
+        assertEquals(listOf("mouse.repeat.start", "mouse.repeat.stop"), sender.types)
+        assertFalse(switchStop.held)
+        assertEquals(1, switchStop.stopRequests)
+    }
+
+    @Test
+    fun keepsHeldInputWhenItsReleaseGoesUnansweredAndCleanupRetries() = runTest {
+        val sender = FakeRemoteSender()
+        val session = session(sender)
+        session.toggleDrag()
+        session.toggleModifier("Ctrl")
+        sender.unanswered += listOf("mouse.dragEnd", "keyboard.modifierUp")
+        assertFalse(session.toggleDrag())
+        assertFalse(session.toggleModifier("Ctrl"))
+        assertTrue(session.snapshot().dragging)
+        assertEquals(listOf("Ctrl"), session.snapshot().modifiers)
+        sender.unanswered.clear()
+        session.cleanup()
+        assertEquals(
+            listOf(
+                "mouse.dragStart", "keyboard.modifierDown", "mouse.dragEnd", "keyboard.modifierUp",
+                "mouse.dragEnd", "keyboard.modifierUp"
+            ),
+            sender.types
+        )
+        assertEquals(PcRemoteSessionState(), session.snapshot())
+    }
+
+    @Test
+    fun undoUsesTheAdvertisedResponseModeAndSkipsUnsupportedCommands() = runTest {
+        val sender = FakeRemoteSender()
+        val noAck = session(sender, remoteProfile(noAckCommands = listOf("mouse.dragEnd")))
+        sender.unanswered += "mouse.dragStart"
+        noAck.toggleDrag()
+        assertEquals(SentCommand("mouse.dragEnd", "{\"button\":\"left\"}", PcResponseMode.None), sender.calls[1])
+
+        val plain = FakeRemoteSender()
+        val noRelease = session(plain, remoteProfile(allRemoteCommands.filterNot { it == "keyboard.modifierUp" }))
+        plain.unanswered += "keyboard.modifierDown"
+        assertFalse(noRelease.toggleModifier("Ctrl"))
+        assertEquals(listOf("keyboard.modifierDown"), plain.types)
+    }
+
+    @Test
+    fun keepsScanningHeldUntilTheStopControlIsConfirmed() = runTest {
+        val sender = FakeRemoteSender()
+        val switchStop = FakeSwitchStop()
+        val session = session(sender, switchStop = switchStop)
+        session.mouse(PcCommands.move(10.0, 0.0), repeatable = true)
+        val stopAck = sender.gate("mouse.repeat.stop")
+        val stopping = async { session.stopRepeat() }
+        runCurrent()
+        assertNull(session.snapshot().repeat)
+        assertTrue(switchStop.held)
+        stopAck.complete(true)
+        stopping.await()
+        assertFalse(switchStop.held)
+        assertEquals(1, switchStop.releaseCount)
+    }
+
+    @Test
+    fun physicalSwitchStopHoldsScanningAndCannotStopTwice() = runTest {
+        val sender = FakeRemoteSender()
+        val switchStop = FakeSwitchStop()
+        val session = session(sender, switchStop = switchStop)
+        session.key("ArrowDown")
+        val stopAck = sender.gate("mouse.repeat.stop")
+        assertTrue(switchStop.press())
+        runCurrent()
+        assertNull(session.snapshot().repeat)
+        assertTrue(switchStop.held)
+        assertTrue(switchStop.press())
+        val duplicate = async { session.stopRepeat() }
+        runCurrent()
+        assertEquals(1, switchStop.stopRequests)
+        assertEquals(listOf("mouse.repeat.start", "mouse.repeat.stop"), sender.types)
+        stopAck.complete(true)
+        duplicate.await()
+        runCurrent()
+        assertFalse(switchStop.held)
+        assertFalse(switchStop.press())
+        assertEquals(listOf("mouse.repeat.start", "mouse.repeat.stop"), sender.types)
+    }
+
+    @Test
+    fun controlThatStopsARepeatHoldsScanningWithoutActing() = runTest {
+        val sender = FakeRemoteSender()
+        val switchStop = FakeSwitchStop()
+        val session = session(sender, switchStop = switchStop)
+        session.mouse(PcCommands.move(10.0, 0.0), repeatable = true)
+        val stopAck = sender.gate("mouse.repeat.stop")
+        val click = async { session.mouse(PcCommands.click()) }
+        runCurrent()
+        assertTrue(switchStop.held)
+        stopAck.complete(true)
+        assertTrue(click.await())
+        assertFalse(switchStop.held)
+        assertEquals(listOf(moveRepeat, stop), sender.calls)
+    }
+
+    @Test
+    fun releasesScanningHoldWhenTheStopFailsOrTimesOut() = runTest {
+        for (failure in listOf("rejected", "unanswered", "thrown")) {
+            val sender = FakeRemoteSender()
+            val switchStop = FakeSwitchStop()
+            val session = session(sender, switchStop = switchStop)
+            session.mouse(PcCommands.move(10.0, 0.0), repeatable = true)
+            when (failure) {
+                "rejected" -> sender.result = { it.type != "mouse.repeat.stop" }
+                "unanswered" -> sender.unanswered += "mouse.repeat.stop"
+                else -> sender.result = { if (it.type == "mouse.repeat.stop") error("fixture failure") else true }
+            }
+            session.stopRepeat()
+            assertNull(session.snapshot().repeat)
+            assertFalse(switchStop.held)
+        }
+    }
+
+    @Test
     fun clickEndsDraggingAndAdvertisedNoAckCommandsSkipAcknowledgement() = runTest {
         val sender = FakeRemoteSender()
         val session = session(sender, remoteProfile(noAckCommands = listOf("mouse.click", "keyboard.key")))

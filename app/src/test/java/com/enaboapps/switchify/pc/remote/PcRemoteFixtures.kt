@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.pc.remote
 
+import com.enaboapps.switchify.pc.connection.PcSendOutcome
 import com.enaboapps.switchify.pc.protocol.PcBounds
 import com.enaboapps.switchify.pc.protocol.PcCapabilities
 import com.enaboapps.switchify.pc.protocol.PcCommand
@@ -57,14 +58,19 @@ data class SentCommand(val type: String, val payload: String, val mode: PcRespon
 class FakeRemoteSender : PcRemoteSender {
     val calls = mutableListOf<SentCommand>()
     val gates = mutableMapOf<String, CompletableDeferred<Boolean>>()
+    val unanswered = mutableSetOf<String>()
     var result: (PcCommand) -> Boolean = { true }
 
     val types: List<String> get() = calls.map { it.type }
 
-    override suspend fun send(command: PcCommand, responseMode: PcResponseMode): Boolean {
+    override suspend fun send(command: PcCommand, responseMode: PcResponseMode): PcSendOutcome {
         calls += SentCommand(command.type, PcJson.stringify(command.payload), responseMode)
-        gates.remove(command.type)?.let { return it.await() }
-        return result(command)
+        val accepted = gates.remove(command.type)?.await() ?: result(command)
+        return when {
+            command.type in unanswered -> PcSendOutcome.Unconfirmed
+            accepted -> PcSendOutcome.Accepted
+            else -> PcSendOutcome.Rejected
+        }
     }
 
     fun gate(type: String): CompletableDeferred<Boolean> = CompletableDeferred<Boolean>().also { gates[type] = it }
@@ -74,10 +80,15 @@ class FakeSwitchStop(var available: Boolean = true) : PcRepeatSwitchStop {
     var armed: (() -> Unit)? = null
     var armCount = 0
     var releaseCount = 0
+    var stopRequests = 0
+    private var stopRequested = false
+
+    val held: Boolean get() = armed != null
 
     override fun arm(onStop: () -> Unit): PcSwitchStopHandle {
         armCount += 1
         armed = onStop
+        stopRequested = false
         return PcSwitchStopHandle {
             releaseCount += 1
             if (armed === onStop) armed = null
@@ -88,8 +99,11 @@ class FakeSwitchStop(var available: Boolean = true) : PcRepeatSwitchStop {
 
     fun press(): Boolean {
         val stop = armed ?: return false
-        armed = null
-        stop()
+        if (!stopRequested) {
+            stopRequested = true
+            stopRequests += 1
+            stop()
+        }
         return true
     }
 }

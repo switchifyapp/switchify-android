@@ -56,6 +56,14 @@ enum class PcRemoteNameSync {
     Failed
 }
 
+enum class PcSendOutcome {
+    Accepted,
+    Rejected,
+    Unconfirmed
+}
+
+private class PcRequestResult(val response: PcResponse?, val unconfirmed: Boolean = false)
+
 class PcPairingException(val failure: PcConnectionFailure) : Exception("Pairing was not completed.")
 
 private class PcInvalidSavedAccessException : Exception("Saved access is no longer valid.")
@@ -178,9 +186,18 @@ class PcConnectionManager(
 
     suspend fun disconnect(record: Boolean = true) = operate { disconnectNow(record) }
 
-    suspend fun send(command: PcCommand, responseMode: PcResponseMode = PcResponseMode.Ack): Boolean {
-        val response = request(command, responseMode)
-        return if (responseMode == PcResponseMode.None) response != null else response is PcResponse.Ack
+    suspend fun send(command: PcCommand, responseMode: PcResponseMode = PcResponseMode.Ack): Boolean =
+        sendWithOutcome(command, responseMode) == PcSendOutcome.Accepted
+
+    suspend fun sendWithOutcome(command: PcCommand, responseMode: PcResponseMode = PcResponseMode.Ack): PcSendOutcome {
+        val result = operate { requestResultNow(command, responseMode) }
+        val response = result.response
+        val accepted = if (responseMode == PcResponseMode.None) response != null else response is PcResponse.Ack
+        return when {
+            accepted -> PcSendOutcome.Accepted
+            result.unconfirmed -> PcSendOutcome.Unconfirmed
+            else -> PcSendOutcome.Rejected
+        }
     }
 
     suspend fun request(command: PcCommand, responseMode: PcResponseMode = PcResponseMode.Ack): PcResponse? =
@@ -433,12 +450,15 @@ class PcConnectionManager(
         if (isCurrent(current)) set(PcConnectionState.Idle(saved))
     }
 
-    private suspend fun requestNow(command: PcCommand, responseMode: PcResponseMode): PcResponse? {
+    private suspend fun requestNow(command: PcCommand, responseMode: PcResponseMode): PcResponse? =
+        requestResultNow(command, responseMode).response
+
+    private suspend fun requestResultNow(command: PcCommand, responseMode: PcResponseMode): PcRequestResult {
         healthProbe?.await()
         val activeChannel = channel
         val sourceOperation = operation
         val desktop = (_state.value as? PcConnectionState.Connected)?.desktop
-        if (activeChannel == null || token == null || deviceId == null || desktop == null) return null
+        if (activeChannel == null || token == null || deviceId == null || desktop == null) return PcRequestResult(null)
         cancelHealthTimer()
         protocolOperations += 1
         var healthyActivity = false
@@ -446,20 +466,22 @@ class PcConnectionManager(
         try {
             val response = activeChannel.request(command, responseMode)
             healthyActivity = true
-            if (responseMode == PcResponseMode.None) return response
+            if (responseMode == PcResponseMode.None) return PcRequestResult(response)
             when {
                 response is PcResponse.Ack -> {
                     applyPointerSpeed(command)
-                    return response
+                    return PcRequestResult(response)
                 }
-                response is PcResponse.SwitchProfileCatalog || response is PcResponse.PointerProfile -> return response
+                response is PcResponse.SwitchProfileCatalog || response is PcResponse.PointerProfile -> return PcRequestResult(response)
                 response is PcResponse.Error && response.code == INVALID_AUTH ->
                     fail(PcConnectionFailure.AccessRevoked, operation, auth = true)
                 response is PcResponse.Error && response.code == NAME_UPDATE_FAILED -> {
                     diagnostics.add(PcDiagnosticEvent.RemoteNameSyncFailed, PcDiagnosticLevel.Warning)
-                    return response
+                    return PcRequestResult(response)
                 }
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             if (error is PcProtocolWriteException || responseMode == PcResponseMode.None) {
                 launchNow { unexpectedDisconnect(desktop, sourceOperation) }
@@ -473,7 +495,7 @@ class PcConnectionManager(
             }
         }
         diagnostics.add(PcDiagnosticEvent.CommandFailed, PcDiagnosticLevel.Warning)
-        return null
+        return PcRequestResult(null, unconfirmed = shouldProbe)
     }
 
     private fun applyPointerSpeed(command: PcCommand) {

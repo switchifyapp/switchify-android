@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.pc.connection
 
+import com.enaboapps.switchify.pc.client.PcAuthenticatedCommandChannel
 import com.enaboapps.switchify.pc.protocol.PcCanonical
 import com.enaboapps.switchify.pc.protocol.PcClock
 import com.enaboapps.switchify.pc.protocol.PcCommands
@@ -23,6 +24,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -646,6 +648,34 @@ class PcConnectionManagerTest {
         assertTrue("connection_lost" in h.codes)
         assertEquals(PcConnectionFailure.ConnectionLost, (h.manager.state.value as PcConnectionState.Failed).failure)
         assertTrue("command_failed" in h.codes)
+    }
+
+    @Test
+    fun reportsAnUnansweredCommandSeparatelyFromARejectedOne() = managerTest { h ->
+        connect(h)
+        runCurrent()
+        assertEquals(PcSendOutcome.Accepted, h.manager.sendWithOutcome(PcCommands.dragStart()))
+
+        h.transport.dropTypes += "mouse.dragStart"
+        val unanswered = async { h.manager.sendWithOutcome(PcCommands.dragStart()) }
+        advanceTimeBy(PcAuthenticatedCommandChannel.DEFAULT_COMMAND_TIMEOUT_MS + 1)
+        runCurrent()
+        assertEquals(PcSendOutcome.Unconfirmed, unanswered.await())
+        assertTrue(h.manager.state.value is PcConnectionState.Connected)
+
+        h.transport.pingErrorCode = "command_failed"
+        assertEquals(PcSendOutcome.Rejected, h.manager.sendWithOutcome(PcCommands.ping("Phone")))
+        assertFalse(h.manager.send(PcCommands.ping("Phone")))
+    }
+
+    @Test
+    fun reportsUnsentCommandsAsRejected() = managerTest { h ->
+        assertEquals(PcSendOutcome.Rejected, h.manager.sendWithOutcome(PcCommands.dragStart()))
+        connect(h)
+        runCurrent()
+        h.transport.failWriteTypes += "mouse.dragStart"
+        h.transport.connectFailures = 3
+        assertEquals(PcSendOutcome.Rejected, h.manager.sendWithOutcome(PcCommands.dragStart()))
     }
 
     @Test

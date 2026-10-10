@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.pc.remote
 
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 fun interface PcSwitchStopHandle {
@@ -23,7 +24,9 @@ class PcSwitchRepeatStopHook(
     private val availability: () -> Boolean = { false },
     private val onArmedChanged: (Boolean) -> Unit = {}
 ) : PcRepeatSwitchStop {
-    private class Armed(val onStop: () -> Unit)
+    private class Armed(val onStop: () -> Unit) {
+        val stopRequested = AtomicBoolean(false)
+    }
 
     private val armed = AtomicReference<Armed?>(null)
 
@@ -38,9 +41,8 @@ class PcSwitchRepeatStopHook(
     fun isArmed(): Boolean = armed.get() != null
 
     fun requestStop(): Boolean {
-        val entry = armed.getAndSet(null) ?: return false
-        onArmedChanged(false)
-        entry.onStop()
+        val entry = armed.get() ?: return false
+        if (entry.stopRequested.compareAndSet(false, true)) entry.onStop()
         return true
     }
 }
