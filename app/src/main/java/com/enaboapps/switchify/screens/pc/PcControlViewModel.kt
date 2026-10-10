@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.screens.pc
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
@@ -37,6 +39,14 @@ class PcControlViewModel(
     val startTab: StateFlow<PcControlTab?> = _startTab.asStateFlow()
 
     private val autoConnect = PcAutoConnectPolicy()
+    private var foreground: Lifecycle? = null
+    private val foregroundObserver = LifecycleEventObserver { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_START -> onStart()
+            Lifecycle.Event.ON_STOP -> onStop(changingConfigurations = false)
+            else -> Unit
+        }
+    }
 
     init {
         permissions.attachHost()
@@ -52,6 +62,12 @@ class PcControlViewModel(
         if (_tab.value == start) return false
         _tab.value = start
         return true
+    }
+
+    fun observeForeground(lifecycle: Lifecycle) {
+        if (foreground != null) return
+        foreground = lifecycle
+        lifecycle.addObserver(foregroundObserver)
     }
 
     fun onStart() {
@@ -122,6 +138,8 @@ class PcControlViewModel(
     }
 
     override fun onCleared() {
+        foreground?.removeObserver(foregroundObserver)
+        foreground = null
         permissions.detachHost()
         cleanupScope.launch {
             try {

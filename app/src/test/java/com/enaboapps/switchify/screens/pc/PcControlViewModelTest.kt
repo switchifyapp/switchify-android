@@ -1,5 +1,8 @@
 package com.enaboapps.switchify.screens.pc
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcList.toDesktop
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
@@ -225,6 +228,32 @@ class PcControlViewModelTest {
         assertEquals(1, f.connection.connectCalls)
         assertEquals(emptyList<PcSavedPc>(), f.connection.connectedSaved)
         assertEquals(0, f.connection.scanCalls)
+    }
+
+    @Test
+    fun followsTheAppForegroundUntilCleared() = viewModelTest(saved = listOf(office)) { f ->
+        val owner = object : LifecycleOwner {
+            val registry = LifecycleRegistry.createUnsafe(this)
+            override val lifecycle: Lifecycle = registry
+        }
+        owner.registry.currentState = Lifecycle.State.STARTED
+        f.viewModel.observeForeground(owner.lifecycle)
+        f.viewModel.observeForeground(owner.lifecycle)
+        advanceUntilIdle()
+        assertEquals(1, f.connection.connectCalls)
+
+        f.connection.state.value = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
+        owner.registry.currentState = Lifecycle.State.CREATED
+        advanceUntilIdle()
+        assertEquals(1, f.connection.disconnectCalls)
+
+        owner.registry.currentState = Lifecycle.State.STARTED
+        advanceUntilIdle()
+        assertEquals(2, f.connection.connectCalls)
+
+        f.viewModel.clearForTest()
+        advanceUntilIdle()
+        assertEquals(0, owner.registry.observerCount)
     }
 
     @Test

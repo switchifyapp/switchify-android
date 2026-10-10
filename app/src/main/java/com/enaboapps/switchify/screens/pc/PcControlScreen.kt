@@ -16,7 +16,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,8 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -49,7 +47,6 @@ import com.enaboapps.switchify.pc.remote.PcRemoteGraph
 import com.enaboapps.switchify.pc.transport.PcBluetoothPermissions
 import com.enaboapps.switchify.screens.pc.remote.PcRemoteScreen
 import com.enaboapps.switchify.theme.Dimens
-import com.enaboapps.switchify.utils.findActivity
 
 @Composable
 fun PcControlScreen(navController: NavController) {
@@ -85,19 +82,7 @@ fun PcControlScreen(navController: NavController) {
         }
     }
 
-    val activity = context.findActivity()
-    DisposableEffect(activity, viewModel) {
-        val owner = activity as? LifecycleOwner
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> viewModel.onStart()
-                Lifecycle.Event.ON_STOP -> viewModel.onStop(changingConfigurations = activity?.isChangingConfigurations == true)
-                else -> Unit
-            }
-        }
-        owner?.lifecycle?.addObserver(observer)
-        onDispose { owner?.lifecycle?.removeObserver(observer) }
-    }
+    LaunchedEffect(viewModel) { viewModel.observeForeground(ProcessLifecycleOwner.get().lifecycle) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
 
     if (phase != PcControlSetupPhase.Complete) {
