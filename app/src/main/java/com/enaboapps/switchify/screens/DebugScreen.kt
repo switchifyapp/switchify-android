@@ -23,6 +23,7 @@ import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.core.AdbTestingBridgeReceiver
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.switches.SwitchAction
@@ -45,6 +46,18 @@ fun DebugScreen(navController: NavController) {
         titleResId = R.string.screen_title_debug,
         navController = navController
     ) {
+        Section(titleResId = R.string.debug_section_pc_control) {
+            ActionButton(
+                textResId = R.string.debug_open_pcs,
+                type = ActionButtonType.SECONDARY,
+                onClick = { navController.navigate(NavigationRoute.PcConnection.name) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                applyPadding = false
+            )
+        }
+
         Section(titleResId = R.string.debug_section_crash_reporting) {
             Text(
                 text = "Force a crash to verify that Sentry captures it and reports it on next launch.",
