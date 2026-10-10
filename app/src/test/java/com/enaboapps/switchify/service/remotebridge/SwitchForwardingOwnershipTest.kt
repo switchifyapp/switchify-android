@@ -122,6 +122,7 @@ class SwitchForwardingOwnershipTest {
         configured = listOf(30 to "Renamed")
         SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
         assertNull(SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
+        assertEquals(listOf<PcSwitchBridgeEvent>(PcSwitchBridgeEvent.Revoked(generation)), events.filterIsInstance<PcSwitchBridgeEvent.Revoked>())
         SwitchifyRemoteBridgeCoordinator.detach()
         val snapshots = events.filterIsInstance<PcSwitchBridgeEvent.Snapshot>().map { it.snapshot }
         assertEquals(

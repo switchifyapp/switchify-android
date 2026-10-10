@@ -57,7 +57,7 @@ class SharedPreferencesPcForwardingPreferenceStore(context: Context) : PcForward
     override fun rememberedProfileId(desktopId: String): String? = preferences.getString(profileKey(desktopId), null)
 
     override fun rememberProfileId(desktopId: String, profileId: String) {
-        preferences.edit(commit = true) { putString(profileKey(desktopId), profileId) }
+        preferences.edit { putString(profileKey(desktopId), profileId) }
     }
 
     private fun profileKey(desktopId: String) = "$PROFILE_KEY_PREFIX$desktopId"

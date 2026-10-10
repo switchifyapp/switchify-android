@@ -138,13 +138,7 @@ object SwitchifyRemoteBridgeCoordinator {
             val nextFingerprint = configuredSwitchFingerprintLocked()
             val changed = nextFingerprint != configuredSwitchFingerprint
             configuredSwitchFingerprint = nextFingerprint
-            if (changed && forwardingGeneration != 0L) {
-                forwardingGeneration = 0
-                forwardingOwner = null
-                edgeSequence = 0
-                activePresses.clear()
-                setScanningPaused(false)
-            }
+            if (changed) clearForwardingLocked()
         }
         publishSnapshot()
     }

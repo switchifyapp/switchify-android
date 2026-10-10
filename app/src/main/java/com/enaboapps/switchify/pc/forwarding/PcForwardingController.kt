@@ -55,7 +55,10 @@ enum class PcForwardingMessage {
     ProfileChanged,
     SelectionSaveFailed,
     Revoked,
-    LeftScreen
+    LeftScreen;
+
+    val informational: Boolean
+        get() = this == HeldToStop || this == LeftScreen
 }
 
 data class PcForwardingMapping(
@@ -122,7 +125,7 @@ class PcForwardingController(
     suspend fun loadProfiles(remembered: String? = null) {
         val capabilities = pointerProfile.capabilities
         if (GENERIC_COMMANDS.all(capabilities::supports)) {
-            val response = connection.request(PcCommands.switchProfileList(capabilities.switchScanning))
+            val response = requestSafely(PcCommands.switchProfileList(capabilities.switchScanning))
             if (response is PcResponse.SwitchProfileCatalog) {
                 val profiles = response.catalog.profiles
                 val selected = profiles.firstOrNull { it.id == remembered } ?: profiles.firstOrNull()
@@ -157,7 +160,16 @@ class PcForwardingController(
             inFlight.await()
         }
         if (_state.value.running) return false
-        val job = scope.async(start = CoroutineStart.UNDISPATCHED) { startNow() }
+        val job = scope.async(start = CoroutineStart.UNDISPATCHED) {
+            try {
+                startNow()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                failStart()
+                false
+            }
+        }
         starting = job
         try {
             return job.await()
@@ -209,6 +221,10 @@ class PcForwardingController(
             return false
         }
         if (selected == null) return false
+        if (bridge.forwardingOwnedBySwitchifyRemote()) {
+            set { copy(phase = PcForwardingPhase.Failed, message = PcForwardingMessage.SwitchifyRemoteForwarding) }
+            return false
+        }
         set { copy(phase = PcForwardingPhase.Starting, message = null) }
         generation = bridge.nextGeneration()
         sessionId = sessionIds()
@@ -229,8 +245,8 @@ class PcForwardingController(
             )
         }
         if (!legacy) {
-            val ok = selected.version in 1..Int.MAX_VALUE.toLong() && connection.send(
-                PcCommands.switchSessionStart(sessionId, selected.id, selected.version.toInt(), mappings.size)
+            val ok = PcCommands.isValidProfileVersion(selected.version) && sendSafely(
+                PcCommands.switchSessionStart(sessionId, selected.id, selected.version, mappings.size)
             )
             if (!ok) {
                 set { copy(phase = PcForwardingPhase.Failed, message = PcForwardingMessage.StartFailed) }
@@ -440,6 +456,28 @@ class PcForwardingController(
 
     private fun fire(block: suspend () -> Unit) {
         scope.launch(start = CoroutineStart.UNDISPATCHED) { block() }
+    }
+
+    private suspend fun failStart() {
+        attempt += 1
+        clearTimers()
+        if (generation != 0L) bridge.setForwardingActive(generation, false)
+        if (sessionId.isNotEmpty()) stopPc()
+        set {
+            copy(
+                phase = PcForwardingPhase.Failed,
+                mappings = mappings.map { it.copy(pressed = false, downTimeMs = null) },
+                message = PcForwardingMessage.StartFailed
+            )
+        }
+    }
+
+    private suspend fun requestSafely(command: PcCommand): PcResponse? = try {
+        connection.request(command)
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Exception) {
+        null
     }
 
     private suspend fun sendSafely(command: PcCommand, responseMode: PcResponseMode = PcResponseMode.Ack): Boolean = try {

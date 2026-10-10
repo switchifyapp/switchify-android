@@ -156,7 +156,7 @@ class PcForwardingSessionTest {
         val h = harness()
         h.session.toggle()
         runCurrent()
-        h.session.stopForBackground()
+        h.session.stopForBackground(changingConfigurations = false)
         runCurrent()
         assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
         assertEquals(PcForwardingMessage.LeftScreen, h.session.state.value.message)
@@ -165,6 +165,35 @@ class PcForwardingSessionTest {
         h.connectionState.value = connected()
         runCurrent()
         assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+    }
+
+    @Test
+    fun aConfigurationChangeKeepsForwardingAndItsRestoreIntent() = runTest {
+        val h = harness()
+        h.session.toggle()
+        runCurrent()
+        h.session.stopForBackground(changingConfigurations = true)
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
+        assertTrue(h.connection.of("switch.session.stop").isEmpty())
+        h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+        runCurrent()
+        h.connectionState.value = connected()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
+        assertEquals(2, h.connection.of("switch.session.start").size)
+    }
+
+    @Test
+    fun anEqualProfileFromTheSamePcKeepsTheRunningController() = runTest {
+        val h = harness()
+        h.session.toggle()
+        runCurrent()
+        h.connectionState.value = connected()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
+        assertTrue(h.connection.of("switch.session.stop").isEmpty())
     }
 
     @Test

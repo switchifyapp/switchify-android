@@ -137,7 +137,9 @@ object PcCommands {
         if (includeScanning) linkedMapOf("includeScanning" to true) else emptyMap()
     )
 
-    fun switchSessionStart(sessionId: String, profileId: String, profileVersion: Int, switchCount: Int) = PcCommand(
+    fun isValidProfileVersion(profileVersion: Long): Boolean = profileVersion in 1L..MAX_PROFILE_VERSION
+
+    fun switchSessionStart(sessionId: String, profileId: String, profileVersion: Long, switchCount: Int) = PcCommand(
         PcCommandTypes.SWITCH_SESSION_START,
         linkedMapOf(
             "sessionId" to sessionId,
@@ -179,6 +181,7 @@ object PcCommands {
     private fun switchState(down: Boolean) = if (down) "down" else "up"
 
     private const val LEFT_BUTTON = "left"
+    const val MAX_PROFILE_VERSION = 0xFFFF_FFFFL
 }
 
 object PcMessages {

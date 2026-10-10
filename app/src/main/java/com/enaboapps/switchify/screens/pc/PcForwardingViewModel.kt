@@ -11,19 +11,21 @@ import com.enaboapps.switchify.pc.forwarding.PcSwitchBridge
 import com.enaboapps.switchify.pc.protocol.PcCommand
 import com.enaboapps.switchify.pc.protocol.PcResponse
 import com.enaboapps.switchify.pc.protocol.PcResponseMode
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class PcForwardingViewModel(
     private val manager: PcConnectionManager,
     bridge: PcSwitchBridge,
     preferences: PcForwardingPreferenceStore
 ) : ViewModel() {
-    private val forwardingScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val forwardingScope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, _ -> })
 
     private val session = PcForwardingSession(
         connectionState = manager.state,
@@ -50,13 +52,17 @@ class PcForwardingViewModel(
 
     fun setHoldToStopMs(value: Long) = session.setHoldToStopMs(value)
 
-    fun stopForBackground() = session.stopForBackground()
+    fun stopForBackground(changingConfigurations: Boolean) = session.stopForBackground(changingConfigurations)
 
     override fun onCleared() {
         val closing = session.close()
         forwardingScope.launch {
-            closing.join()
+            withTimeoutOrNull(CLEANUP_TIMEOUT_MS) { closing.join() }
             forwardingScope.cancel()
         }
+    }
+
+    private companion object {
+        const val CLEANUP_TIMEOUT_MS = 10_000L
     }
 }

@@ -1,5 +1,8 @@
 package com.enaboapps.switchify.screens.pc
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -79,12 +83,22 @@ fun PcForwardingScreen(navController: NavController) {
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, viewModel) {
+    DisposableEffect(lifecycleOwner, viewModel, context) {
+        val activity = context.findActivity()
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) viewModel.stopForBackground()
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.stopForBackground(changingConfigurations = activity?.isChangingConfigurations == true)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val view = LocalView.current
+    val forwardingActive = forwarding.phase == PcForwardingPhase.Active
+    DisposableEffect(view, forwardingActive) {
+        view.keepScreenOn = forwardingActive
+        onDispose { view.keepScreenOn = false }
     }
 
     BaseView(titleResId = R.string.screen_title_pc_forwarding, navController = navController) {
@@ -181,6 +195,13 @@ private fun ForwardingBody(
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
+            state.message?.let { message ->
+                Text(
+                    text = stringResource(messageText(message)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (message.informational) MaterialTheme.colorScheme.onSurface else scheme.error
+                )
+            }
         }
     }
 
@@ -221,15 +242,6 @@ private fun ForwardingBody(
         applyPadding = false,
         modifier = Modifier.fillMaxWidth()
     )
-
-    state.message?.let { message ->
-        Text(
-            text = stringResource(messageText(message)),
-            style = MaterialTheme.typography.bodyMedium,
-            color = scheme.error,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-        )
-    }
 
     if (state.phase == PcForwardingPhase.Active && state.overflow.isNotEmpty()) {
         Text(
@@ -352,4 +364,10 @@ private fun messageText(message: PcForwardingMessage): Int = when (message) {
     PcForwardingMessage.SelectionSaveFailed -> R.string.pc_forwarding_message_selection_save_failed
     PcForwardingMessage.Revoked -> R.string.pc_forwarding_message_revoked
     PcForwardingMessage.LeftScreen -> R.string.pc_forwarding_message_left_screen
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

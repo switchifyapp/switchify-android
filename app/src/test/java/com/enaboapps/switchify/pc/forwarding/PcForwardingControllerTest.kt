@@ -243,7 +243,7 @@ class PcForwardingControllerTest {
         runCurrent()
         val start = h.connection.of("switch.session.start").single().payload
         assertEquals("keyboard", start["profileId"])
-        assertEquals(2, start["profileVersion"])
+        assertEquals(2L, start["profileVersion"])
         assertEquals(8, start["switchCount"])
         val firstEdge = h.connection.of("switch.edge").first()
         assertEquals(1, firstEdge.payload["switchId"])
@@ -432,7 +432,84 @@ class PcForwardingControllerTest {
         assertFalse(h.controller.start())
         assertEquals(PcForwardingPhase.Failed, h.controller.state.value.phase)
         assertEquals(PcForwardingMessage.SwitchifyRemoteForwarding, h.controller.state.value.message)
+        assertTrue(h.connection.sent.isEmpty())
+        assertTrue(h.bridge.active.isEmpty())
+    }
+
+    @Test
+    fun reportsWhenSwitchifyRemoteTakesTheSwitchesWhileTheSessionStarts() = runTest {
+        val bridge = FakeBridge()
+        val connection = FakeConnection()
+        connection.onSend = { command, _ ->
+            if (command.type == "switch.session.start") {
+                bridge.acceptActivation = false
+                bridge.remoteOwnsSwitches = true
+            }
+            true
+        }
+        val h = harness(bridge = bridge, connection = connection)
+        h.controller.loadProfiles()
+        assertFalse(h.controller.start())
+        assertEquals(PcForwardingMessage.SwitchifyRemoteForwarding, h.controller.state.value.message)
         assertEquals(1, h.connection.of("switch.session.stop").size)
+    }
+
+    @Test
+    fun refusesAProfileVersionTheDesktopCannotAccept() = runTest {
+        val h = harness(connection = FakeConnection(catalog(keyboardProfile.copy(version = 4_294_967_296L))))
+        h.controller.loadProfiles()
+        assertFalse(h.controller.start())
+        assertEquals(PcForwardingMessage.StartFailed, h.controller.state.value.message)
+        assertTrue(h.connection.sent.isEmpty())
+    }
+
+    @Test
+    fun sendsTheLargestUnsignedThirtyTwoBitProfileVersion() = runTest {
+        val h = harness(connection = FakeConnection(catalog(keyboardProfile.copy(version = 4_294_967_295L))))
+        h.controller.loadProfiles()
+        assertTrue(h.controller.start())
+        assertEquals(4_294_967_295L, h.connection.of("switch.session.start").single().payload["profileVersion"])
+        h.controller.cleanup()
+    }
+
+    @Test
+    fun aThrowingConnectionNeitherCrashesNorLeavesForwardingStarting() = runTest {
+        val connection = FakeConnection()
+        val h = harness(connection = connection)
+        h.controller.loadProfiles()
+        connection.onSend = { _, _ -> throw IllegalStateException("transport") }
+        assertFalse(h.controller.start())
+        assertEquals(PcForwardingPhase.Failed, h.controller.state.value.phase)
+        assertEquals(PcForwardingMessage.StartFailed, h.controller.state.value.message)
+        assertTrue(h.bridge.active.none { it.second })
+    }
+
+    @Test
+    fun aThrowingStartStepFailsInsteadOfStayingInStarting() = runTest {
+        val bridge = object : PcSwitchBridge by FakeBridge() {
+            override fun setForwardingActive(generation: Long, active: Boolean): Boolean =
+                if (active) throw IllegalStateException("binder") else true
+        }
+        val connection = FakeConnection()
+        val controller = PcForwardingController(connection, bridge, pointerProfile(GENERIC_COMMANDS), backgroundScope)
+        controller.loadProfiles()
+        assertFalse(controller.start())
+        assertEquals(PcForwardingPhase.Failed, controller.state.value.phase)
+        assertEquals(PcForwardingMessage.StartFailed, controller.state.value.message)
+        assertEquals(1, connection.of("switch.session.stop").size)
+    }
+
+    @Test
+    fun aThrowingProfileRequestFallsBackInsteadOfCrashing() = runTest {
+        val connection = object : PcForwardingConnection {
+            override suspend fun request(command: com.enaboapps.switchify.pc.protocol.PcCommand, responseMode: PcResponseMode) =
+                throw IllegalStateException("transport")
+
+            override suspend fun send(command: com.enaboapps.switchify.pc.protocol.PcCommand, responseMode: PcResponseMode) = true
+        }
+        val controller = PcForwardingController(connection, FakeBridge(), pointerProfile(GENERIC_COMMANDS), backgroundScope)
+        controller.loadProfiles()
+        assertEquals(PcForwardingMessage.Unsupported, controller.state.value.message)
     }
 
     @Test

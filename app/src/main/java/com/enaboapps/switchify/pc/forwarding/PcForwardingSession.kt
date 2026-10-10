@@ -71,7 +71,8 @@ class PcForwardingSession(
         _holdToStopMs.value = preferences.holdToStopMs()
     }
 
-    fun stopForBackground() {
+    fun stopForBackground(changingConfigurations: Boolean) {
+        if (changingConfigurations) return
         val controller = active?.controller ?: return
         if (!controller.state.value.running) return
         restore.clear()
@@ -92,7 +93,7 @@ class PcForwardingSession(
             return
         }
         val current = active
-        if (current != null && current.desktopId == state.desktop.desktopId && current.profile === profile) return
+        if (current != null && current.desktopId == state.desktop.desktopId && current.profile == profile) return
         dispose()
         create(state.desktop.desktopId, profile)
     }
