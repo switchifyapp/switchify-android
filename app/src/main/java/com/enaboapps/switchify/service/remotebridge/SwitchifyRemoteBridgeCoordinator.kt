@@ -37,7 +37,10 @@ object SwitchifyRemoteBridgeCoordinator {
     private val activePresses = mutableMapOf<Int, Long>()
     private val inAppListeners = CopyOnWriteArraySet<InAppSwitchForwardingListener>()
     private val scanningHolds = ScanningHolds()
+    private var scanningHoldEpoch = 0L
     internal var setScanningPaused: (Boolean) -> Unit = ::postScanningPaused
+    internal var postToMain: (() -> Unit) -> Unit = ::postToMainLooper
+    internal var scanningHoldTarget: () -> ScanningHoldTarget? = ::serviceScanningHoldTarget
 
     fun attach(provider: SwitchEventProvider) = attach(provider::hasCameraSwitches) { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
     internal fun attach(cameraSwitches: () -> Boolean = { false }, provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
@@ -54,6 +57,8 @@ object SwitchifyRemoteBridgeCoordinator {
             cameraSwitchesConfigured = { false }
             configuredSwitchFingerprint = emptyList()
             clearActiveLocked()
+            scanningHolds.reset()
+            scanningHoldEpoch += 1
         }
         publishSnapshot()
     }
@@ -209,6 +214,11 @@ object SwitchifyRemoteBridgeCoordinator {
         forwardingGenerationHighWater = 0
         inAppForwardingGenerationHighWater = 0
         inAppListeners.clear()
+        scanningHolds.reset()
+        scanningHoldEpoch += 1
+        setScanningPaused = ::postScanningPaused
+        postToMain = ::postToMainLooper
+        scanningHoldTarget = ::serviceScanningHoldTarget
     }
     private fun isConfiguredExternalSwitch(keyCode: Int) = synchronized(lock) {
         externalSwitches?.invoke()?.any { it.first == keyCode } == true
@@ -237,10 +247,23 @@ object SwitchifyRemoteBridgeCoordinator {
     private fun postScanningPaused(paused: Boolean) = setScanningHeld(ScanningHold.Forwarding, paused)
 
     fun setScanningHeld(hold: ScanningHold, held: Boolean) {
-        Handler(Looper.getMainLooper()).post {
-            if (scanningHolds.update(hold, held) == null) return@post
-            val scanningManager = ServiceCore.getScanningManager() ?: return@post
-            if (scanningHolds.isHeld()) scanningManager.pauseScanning() else scanningManager.resumeScanning()
+        val epoch = synchronized(lock) { scanningHoldEpoch }
+        postToMain {
+            val target = scanningHoldTarget()
+            synchronized(lock) {
+                if (epoch == scanningHoldEpoch) scanningHolds.apply(hold, held, target)
+            }
+        }
+    }
+    private fun postToMainLooper(block: () -> Unit) {
+        Handler(Looper.getMainLooper()).post(block)
+    }
+    private fun serviceScanningHoldTarget(): ScanningHoldTarget? {
+        val scanningManager = ServiceCore.getScanningManager() ?: return null
+        return object : ScanningHoldTarget {
+            override fun pauseScanning() = scanningManager.pauseScanning()
+            override fun resumeScanning() = scanningManager.resumeScanning()
+            override fun isPausedByUser() = ServiceCore.getPauseManager().isPaused
         }
     }
     private fun publishSnapshot() {
