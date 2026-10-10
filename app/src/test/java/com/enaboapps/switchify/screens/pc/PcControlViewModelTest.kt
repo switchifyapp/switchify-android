@@ -361,6 +361,31 @@ class PcControlViewModelTest {
     }
 
     @Test
+    fun openingASurfaceShowsItOnTheRemoteForASavedPc() = viewModelTest(saved = listOf(office)) { f ->
+        advanceUntilIdle()
+        f.viewModel.selectTab(PcControlTab.Settings)
+        f.viewModel.openSurface(PcRemoteSurface.Forwarding)
+        assertEquals(PcRemoteSurface.Forwarding, f.preferences.surface.value)
+        assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
+    }
+
+    @Test
+    fun openingASurfaceWithNothingSavedKeepsPcsAndRemembersTheSurface() = viewModelTest { f ->
+        advanceUntilIdle()
+        f.viewModel.openSurface(PcRemoteSurface.Forwarding)
+        assertEquals(PcRemoteSurface.Forwarding, f.preferences.surface.value)
+        assertEquals(PcControlTab.Pcs, f.viewModel.tab.value)
+    }
+
+    @Test
+    fun openingASurfaceBeforeTheTabResolvesStillOpensTheRemote() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.openSurface(PcRemoteSurface.Forwarding)
+        advanceUntilIdle()
+        assertEquals(PcRemoteSurface.Forwarding, f.preferences.surface.value)
+        assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
+    }
+
+    @Test
     fun setupBlocksAutoConnectUntilFinishedAndAllowSearches() = viewModelTest(saved = listOf(office), setupComplete = false) { f ->
         f.viewModel.onStart()
         advanceUntilIdle()

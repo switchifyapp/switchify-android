@@ -3,6 +3,8 @@ package com.enaboapps.switchify.service.scanning
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.enaboapps.switchify.pc.control.PcControlLink
+import com.enaboapps.switchify.pc.remote.PcRemoteSurface
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -286,10 +288,14 @@ class ScanningManager(
         try {
             when (action.id) {
                 SwitchAction.ACTION_LAUNCH_APP -> {
-                    if (!com.enaboapps.switchify.service.utils.AppLauncher(accessibilityService).launch(action.packageName)) {
+                    val launched = com.enaboapps.switchify.service.utils.AppLauncher(accessibilityService).launch(action.packageName) ||
+                        (action.packageName == PcControlLink.LEGACY_REMOTE_PACKAGE && PcControlLink.open(accessibilityService, null))
+                    if (!launched) {
                         android.widget.Toast.makeText(accessibilityService, com.enaboapps.switchify.R.string.app_launch_unavailable, android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
+                SwitchAction.ACTION_OPEN_PC_MOUSE -> PcControlLink.open(accessibilityService, PcRemoteSurface.Mouse)
+                SwitchAction.ACTION_OPEN_PC_FORWARDING -> PcControlLink.open(accessibilityService, PcRemoteSurface.Forwarding)
                 SwitchAction.ACTION_SELECT -> select()
                 SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanningAndReset()
                 SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
