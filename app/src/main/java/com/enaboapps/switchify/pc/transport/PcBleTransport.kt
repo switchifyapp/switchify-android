@@ -100,7 +100,7 @@ class PcBleTransport(
     override suspend fun disconnect() = withContext(dispatcher) { disconnectConfined() }
 
     override fun maxWriteValueBytes(): Int =
-        requireDevice().mtu?.let { maxOf(0, it - ATT_HEADER_BYTES) } ?: FALLBACK_WRITE_VALUE_BYTES
+        ((requireDevice().mtu ?: DEFAULT_ATT_MTU) - ATT_HEADER_BYTES).coerceIn(0, MAX_WRITE_VALUE_BYTES)
 
     override suspend fun writeFrame(frame: ByteArray) = withContext(dispatcher) {
         val connection = requireDevice()
@@ -608,7 +608,8 @@ class PcBleTransport(
     companion object {
         const val REQUESTED_MTU = 517
         const val ATT_HEADER_BYTES = 3
-        const val FALLBACK_WRITE_VALUE_BYTES = 182
+        const val DEFAULT_ATT_MTU = 23
+        const val MAX_WRITE_VALUE_BYTES = 512
         const val DEFAULT_NATIVE_TIMEOUT_MS = 10_000L
         const val HEALTH_CHECK_TIMEOUT_MS = 4_000L
         const val MAX_CANCELLATION_TIMEOUT_MS = 1_000L

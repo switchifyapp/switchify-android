@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.pc.protocol
 
+import java.math.BigDecimal
 import kotlin.math.abs
 
 typealias PcJsonObject = Map<String, Any?>
@@ -51,12 +52,30 @@ object PcJson {
 
         private fun appendDouble(value: Double) {
             require(value.isFinite()) { "JSON numbers must be finite." }
-            if (value % 1.0 == 0.0 && abs(value) < MAX_EXACT_WHOLE_DOUBLE) {
+            if (value % 1.0 == 0.0 && abs(value) < LONG_RANGE_LIMIT) {
                 builder.append(value.toLong())
             } else {
-                builder.append(value)
+                builder.append(shortestDecimal(value))
             }
         }
+
+        private fun shortestDecimal(value: Double): String {
+            val decimal = BigDecimal(abs(value).toString()).stripTrailingZeros()
+            val digits = decimal.unscaledValue().toString()
+            val exponent = -decimal.scale()
+            val pointPosition = digits.length + exponent
+            val body = when {
+                exponent >= 0 && pointPosition <= MAX_PLAIN_DIGITS -> digits + "0".repeat(exponent) + ".0"
+                pointPosition in 1..MAX_PLAIN_DIGITS ->
+                    digits.substring(0, pointPosition) + "." + digits.substring(pointPosition)
+                pointPosition in MIN_PLAIN_POINT_POSITION..0 -> "0." + "0".repeat(-pointPosition) + digits
+                digits.length == 1 -> digits + exponentSuffix(pointPosition - 1)
+                else -> digits.first() + "." + digits.substring(1) + exponentSuffix(pointPosition - 1)
+            }
+            return if (value < 0) "-$body" else body
+        }
+
+        private fun exponentSuffix(exponent: Int): String = if (exponent < 0) "e$exponent" else "e+$exponent"
 
         private fun appendQuoted(value: String) {
             builder.append('"')
@@ -90,5 +109,7 @@ object PcJson {
         }
     }
 
-    private const val MAX_EXACT_WHOLE_DOUBLE = 9_007_199_254_740_992.0
+    private const val LONG_RANGE_LIMIT = 9.223372036854775807E18
+    private const val MAX_PLAIN_DIGITS = 16
+    private const val MIN_PLAIN_POINT_POSITION = -4
 }

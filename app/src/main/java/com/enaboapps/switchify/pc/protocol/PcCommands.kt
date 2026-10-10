@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.pc.protocol
 
-data class PcCommand(val type: String, val payload: PcJsonObject = emptyMap())
+data class PcCommand(val type: String, val payload: PcJsonObject = emptyMap()) {
+    override fun toString(): String = "PcCommand(type=$type)"
+}
 
 enum class PcDisplayDirection(val protocolValue: String) {
     Up("up"),

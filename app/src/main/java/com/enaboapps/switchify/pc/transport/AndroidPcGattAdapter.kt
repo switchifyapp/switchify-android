@@ -24,9 +24,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.atomic.AtomicBoolean
+
+private const val PERMISSION_MESSAGE = "Bluetooth permission is missing."
 
 @SuppressLint("MissingPermission")
 class AndroidPcGattAdapter(
@@ -66,12 +68,16 @@ class AndroidPcGattAdapter(
                 onError(PcBluetoothException("Bluetooth scanning failed."))
             }
         }
+        try {
+            scanner.startScan(
+                listOf(ScanFilter.Builder().setServiceUuid(ParcelUuid(serviceUuid)).build()),
+                ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(),
+                callback
+            )
+        } catch (error: SecurityException) {
+            throw PcBluetoothException(PERMISSION_MESSAGE, error)
+        }
         scanCallback = callback
-        scanner.startScan(
-            listOf(ScanFilter.Builder().setServiceUuid(ParcelUuid(serviceUuid)).build()),
-            ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(),
-            callback
-        )
     }
 
     @Synchronized
@@ -93,8 +99,15 @@ class AndroidPcGattAdapter(
             throw PcBluetoothException("Bluetooth device is unavailable.", error)
         }
         val connection = AndroidPcGattConnection(peripheralId, operationTimeoutMs)
-        val gatt = device.connectGatt(context, false, connection.callback, BluetoothDevice.TRANSPORT_LE)
-            ?: throw PcBluetoothException("Bluetooth connection failed.")
+        val gatt = try {
+            device.connectGatt(context, false, connection.callback, BluetoothDevice.TRANSPORT_LE)
+        } catch (error: SecurityException) {
+            connection.disconnect()
+            throw PcBluetoothException(PERMISSION_MESSAGE, error)
+        } ?: run {
+            connection.disconnect()
+            throw PcBluetoothException("Bluetooth connection failed.")
+        }
         connection.attach(gatt)
         try {
             connection.connected.await()
@@ -132,33 +145,41 @@ private class AndroidPcGattConnection(
     override val peripheralId: String,
     operationTimeoutMs: Long
 ) : PcGattConnection {
-    private val queue = PcGattOperationQueue(operationTimeoutMs)
+    private val queue = PcGattOperationQueue(operationTimeoutMs, onTimedOut = ::closeUnexpectedly)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val disconnectListeners = CopyOnWriteArraySet<() -> Unit>()
     private val notificationListeners = CopyOnWriteArraySet<Pair<UUID, (ByteArray) -> Unit>>()
-    private lateinit var gatt: BluetoothGatt
+    private val closed = AtomicBoolean(false)
+    private val gattReleased = AtomicBoolean(false)
     val connected = CompletableDeferred<Unit>()
+
+    @Volatile
+    private var attachedGatt: BluetoothGatt? = null
 
     @Volatile
     private var isOpen = false
 
     @Volatile
-    private var closed = false
-
-    @Volatile
     override var mtu: Int? = null
         private set
 
+    private val gatt: BluetoothGatt
+        get() = attachedGatt ?: throw PcBluetoothException("Bluetooth connection closed.")
+
     fun attach(gatt: BluetoothGatt) {
-        this.gatt = gatt
+        attachedGatt = gatt
+        if (closed.get()) releaseGatt()
     }
 
-    override fun isConnected(): Boolean = isOpen && !closed
+    override fun isConnected(): Boolean = isOpen && !closed.get()
 
     override suspend fun requestHighPriority() {
-        if (!gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)) {
-            throw PcBluetoothException("Bluetooth connection priority could not be requested.")
+        val requested = try {
+            gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+        } catch (error: SecurityException) {
+            throw PcBluetoothException(PERMISSION_MESSAGE, error)
         }
+        if (!requested) throw PcBluetoothException("Bluetooth connection priority could not be requested.")
     }
 
     override suspend fun requestMtu(mtu: Int): Int =
@@ -206,30 +227,16 @@ private class AndroidPcGattConnection(
         val target = characteristic(characteristic)
         val listener = characteristic to onValue
         notificationListeners += listener
-        val setup = scope.launch {
-            try {
-                if (!gatt.setCharacteristicNotification(target, true)) {
-                    throw PcBluetoothException("Bluetooth notifications could not be enabled.")
-                }
-                writeDescriptor(characteristic, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                onError(error as? PcBluetoothException ?: PcBluetoothException("Bluetooth notifications could not be enabled."))
-            }
-        }
+        val subscriber = PcNotificationSubscriber(
+            scope = scope,
+            setNotification = { enabled -> gatt.setCharacteristicNotification(target, enabled) },
+            writeConfiguration = { value -> writeDescriptor(characteristic, value) }
+        )
+        val setup = subscriber.enable(onError)
         return PcUnsubscribe {
             notificationListeners -= listener
             setup.cancel()
-            if (isConnected()) {
-                scope.launch {
-                    try {
-                        gatt.setCharacteristicNotification(target, false)
-                        writeDescriptor(characteristic, BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE)
-                    } catch (_: Exception) {
-                    }
-                }
-            }
+            if (isConnected()) subscriber.disable()
         }
     }
 
@@ -242,22 +249,31 @@ private class AndroidPcGattConnection(
         close()
     }
 
-    private fun close() {
-        if (closed) return
-        closed = true
+    private fun close(): Boolean {
+        if (!closed.compareAndSet(false, true)) return false
         isOpen = false
         queue.close()
         scope.cancel()
         if (!connected.isCompleted) connected.completeExceptionally(PcBluetoothException("Bluetooth connection closed."))
-        if (::gatt.isInitialized) {
-            try {
-                gatt.disconnect()
-            } catch (_: Exception) {
-            }
-            try {
-                gatt.close()
-            } catch (_: Exception) {
-            }
+        releaseGatt()
+        return true
+    }
+
+    private fun closeUnexpectedly() {
+        val wasOpen = isOpen
+        if (close() && wasOpen) disconnectListeners.forEach { it() }
+    }
+
+    private fun releaseGatt() {
+        val gatt = attachedGatt ?: return
+        if (!gattReleased.compareAndSet(false, true)) return
+        try {
+            gatt.disconnect()
+        } catch (_: Exception) {
+        }
+        try {
+            gatt.close()
+        } catch (_: Exception) {
         }
     }
 
@@ -295,13 +311,10 @@ private class AndroidPcGattConnection(
                 return
             }
             if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
-                val wasOpen = isOpen
-                val wasClosed = closed
                 if (!connected.isCompleted) {
                     connected.completeExceptionally(PcBluetoothException("Bluetooth connection failed."))
                 }
-                close()
-                if (wasOpen && !wasClosed) disconnectListeners.forEach { it() }
+                closeUnexpectedly()
             }
         }
 

@@ -74,6 +74,43 @@ class PcCanonicalTest {
     }
 
     @Test
+    fun formatsDecimalsTheWayTheDesktopReserializesThem() {
+        mapOf(
+            0.0001 to "0.0001",
+            0.00001 to "0.00001",
+            1.25e-5 to "0.0000125",
+            1e-6 to "1e-6",
+            1e-7 to "1e-7",
+            -2.5e-8 to "-2.5e-8",
+            12345678.5 to "12345678.5",
+            123456789012345.6 to "123456789012345.6",
+            1e16 to "10000000000000000",
+            1e19 to "1e+19",
+            1.5e300 to "1.5e+300",
+            9.223372036854776e18 to "9.223372036854776e+18"
+        ).forEach { (value, expected) -> assertEquals(expected, PcJson.stringify(value)) }
+    }
+
+    @Test
+    fun signsDecimalPayloadsWithTheDesktopCanonicalForm() {
+        val small = PcCommands.move(0.0001, 1e-7).payload
+        assertEquals("{\"dx\":0.0001,\"dy\":1e-7}", PcCanonical.stableStringify(small))
+        assertEquals("EDx-DYuP8SHbBNK0zAtOeI-hZFTXXdIS_ppQVJJwd7g", PcCanonical.authProof("decimal-1", "device-1", 1000L, "mouse.move", small, TOKEN))
+        assertEquals(
+            "o4gvltqzG5rUcWcUvD8FpqIoC96Qec7DPO4ZEJAMPHw",
+            PcCanonical.authProof("decimal-2", "device-1", 1000L, "pointer.speed.set", PcCommands.pointerSpeed(12345678.5).payload, TOKEN)
+        )
+        val extreme = PcCommands.move(1.5e300, -1e-6).payload
+        assertEquals("{\"dx\":1.5e+300,\"dy\":-1e-6}", PcCanonical.stableStringify(extreme))
+        assertEquals("CY4J6g3VBl4xs8mkO5cs6gqRQRKhYe31Ia0DHazT-Z8", PcCanonical.authProof("decimal-3", "device-1", 1000L, "mouse.move", extreme, TOKEN))
+    }
+
+    @Test
+    fun commandsNeverPrintTheirPayload() {
+        assertEquals("PcCommand(type=keyboard.typeText)", PcCommands.typeText("secret text").toString())
+    }
+
+    @Test
     fun authenticatedCommandsCarryTheProofButNeverTheToken() {
         val raw = PcMessages.authenticatedCommand("profile-1", "device-1", TOKEN, 1000L, PcCommands.pointerProfile())
         val json = JSONObject(raw)

@@ -30,7 +30,7 @@ class PcBleTransportTest {
         val transport = transport()
         transport.connect("AA")
         assertEquals(listOf("connect:AA", "priority:AA", "mtu:AA:517", "services:AA", "status:AA"), adapter.log)
-        assertEquals(514, transport.maxWriteValueBytes())
+        assertEquals(512, transport.maxWriteValueBytes())
         assertEquals(
             listOf(
                 "ble_connect_started", "ble_connect_succeeded", "ble_priority_started", "ble_priority_succeeded",
@@ -41,9 +41,18 @@ class PcBleTransportTest {
     }
 
     @Test
-    fun fallsBackToTheConservativeWriteSizeWhenTheMtuIsUnknown() = runTest {
+    fun usesTheDefaultAttMtuWhenTheMtuIsUnknown() = runTest {
         adapter.statuses["AA"] = FakeGattAdapter.status("pc-1")
         adapter.negotiatedMtu = null
+        val transport = transport()
+        transport.connect("AA")
+        assertEquals(20, transport.maxWriteValueBytes())
+    }
+
+    @Test
+    fun writesUpToTheNegotiatedMtuLessTheAttHeader() = runTest {
+        adapter.statuses["AA"] = FakeGattAdapter.status("pc-1")
+        adapter.negotiatedMtu = 185
         val transport = transport()
         transport.connect("AA")
         assertEquals(182, transport.maxWriteValueBytes())
@@ -236,7 +245,7 @@ class PcBleTransportTest {
         assertTrue(adapter.latest("OTHER").disconnected)
         assertTrue("mtu:MINE:517" in adapter.log)
         assertFalse(adapter.scanning)
-        assertEquals(514, transport.maxWriteValueBytes())
+        assertEquals(512, transport.maxWriteValueBytes())
         assertTrue(stages.containsAll(listOf("ble_selected_match_not_matched", "ble_selected_match_succeeded", "ble_resolution_succeeded")))
         transport.disconnect()
         assertTrue(mine.disconnected)
@@ -307,7 +316,7 @@ class PcBleTransportTest {
         adapter.statuses["AA"] = FakeGattAdapter.status("pc-1")
         val transport = transport(PcConnectionStageObserver { _, _ -> throw IllegalStateException("observer") })
         transport.connect("AA")
-        assertEquals(514, transport.maxWriteValueBytes())
+        assertEquals(512, transport.maxWriteValueBytes())
     }
 
     @Test

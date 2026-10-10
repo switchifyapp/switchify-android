@@ -152,6 +152,11 @@ class PcResponsesTest {
         assertEquals(PcResponse.Invalid, PcResponses.parseResponse(scanning.replace("\"switchId\":1", "\"switchId\":9")))
         assertEquals(PcResponse.Invalid, PcResponses.parseResponse(scanning.replace("\"stateful\"", "\"toggle\"")))
         assertEquals(PcResponse.Invalid, PcResponses.parseResponse(scanning.replace("\"catalogRevision\":1", "\"catalogRevision\":-1")))
+        val large = PcResponses.parseResponse(
+            scanning.replace("\"catalogRevision\":1", "\"catalogRevision\":4294967296").replace("\"version\":2", "\"version\":4294967297")
+        ) as PcResponse.SwitchProfileCatalog
+        assertEquals(4_294_967_296L, large.catalog.catalogRevision)
+        assertEquals(4_294_967_297L, large.catalog.profiles.single().version)
     }
 
     private companion object {

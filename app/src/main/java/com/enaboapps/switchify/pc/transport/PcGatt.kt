@@ -1,10 +1,18 @@
 package com.enaboapps.switchify.pc.transport
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 
 data class PcGattAdvertisement(
@@ -54,7 +62,10 @@ enum class PcGattOperationType {
 
 data class PcGattOperationKey(val type: PcGattOperationType, val uuid: UUID? = null)
 
-class PcGattOperationQueue(private val timeoutMs: Long) {
+class PcGattOperationQueue(
+    private val timeoutMs: Long,
+    private val onTimedOut: () -> Unit = {}
+) {
     private class Pending(val key: PcGattOperationKey, val result: CompletableDeferred<Any?>)
 
     private val mutex = Mutex()
@@ -69,11 +80,29 @@ class PcGattOperationQueue(private val timeoutMs: Long) {
             current = pending
         }
         try {
-            if (!start()) throw PcBluetoothException("Bluetooth operation could not start.")
+            val started = try {
+                start()
+            } catch (error: SecurityException) {
+                throw PcBluetoothException(PERMISSION_MESSAGE, error)
+            }
+            if (!started) throw PcBluetoothException("Bluetooth operation could not start.")
+            val outcome = withContext(NonCancellable) {
+                withTimeoutOrNull(timeoutMs) {
+                    try {
+                        Result.success(pending.result.await())
+                    } catch (error: Throwable) {
+                        Result.failure(error)
+                    }
+                }
+            }
+            if (outcome == null) {
+                close()
+                onTimedOut()
+            }
+            currentCoroutineContext().ensureActive()
+            if (outcome == null) throw PcBluetoothException("Bluetooth operation timed out.")
             @Suppress("UNCHECKED_CAST")
-            withTimeout(timeoutMs) { pending.result.await() } as T
-        } catch (_: TimeoutCancellationException) {
-            throw PcBluetoothException("Bluetooth operation timed out.")
+            outcome.getOrThrow() as T
         } finally {
             synchronized(lock) {
                 if (current === pending) current = null
@@ -100,5 +129,39 @@ class PcGattOperationQueue(private val timeoutMs: Long) {
 
     private companion object {
         const val CLOSED_MESSAGE = "Bluetooth connection closed."
+        const val PERMISSION_MESSAGE = "Bluetooth permission is missing."
+    }
+}
+
+class PcNotificationSubscriber(
+    private val scope: CoroutineScope,
+    private val setNotification: (Boolean) -> Boolean,
+    private val writeConfiguration: suspend (ByteArray) -> Unit
+) {
+    fun enable(onError: (Throwable) -> Unit): Job = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+        try {
+            if (!setNotification(true)) throw PcBluetoothException(ENABLE_FAILED_MESSAGE)
+            writeConfiguration(ENABLE_NOTIFICATION_VALUE)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            onError(error as? PcBluetoothException ?: PcBluetoothException(ENABLE_FAILED_MESSAGE, error))
+        }
+    }
+
+    fun disable(): Job = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+        try {
+            setNotification(false)
+            writeConfiguration(DISABLE_NOTIFICATION_VALUE)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+        }
+    }
+
+    companion object {
+        val ENABLE_NOTIFICATION_VALUE = byteArrayOf(0x01, 0x00)
+        val DISABLE_NOTIFICATION_VALUE = byteArrayOf(0x00, 0x00)
+        private const val ENABLE_FAILED_MESSAGE = "Bluetooth notifications could not be enabled."
     }
 }

@@ -101,13 +101,13 @@ data class PcSwitchBinding(val switchId: Int, val label: String, val behavior: P
 
 data class PcSwitchProfile(
     val id: String,
-    val version: Int,
+    val version: Long,
     val name: String,
     val kind: PcSwitchProfileKind,
     val bindings: List<PcSwitchBinding>
 )
 
-data class PcSwitchProfileCatalog(val catalogRevision: Int, val profiles: List<PcSwitchProfile>)
+data class PcSwitchProfileCatalog(val catalogRevision: Long, val profiles: List<PcSwitchProfile>)
 
 sealed class PcResponse {
     data class Ack(val id: String) : PcResponse()
@@ -197,20 +197,20 @@ object PcResponses {
     }
 
     private fun parseSwitchProfileCatalog(payload: JSONObject): PcSwitchProfileCatalog? {
-        val revision = integer(payload.opt("catalogRevision"))?.takeIf { it >= 0 } ?: return null
+        val revision = integer(payload.opt("catalogRevision"))?.takeIf { it >= 0L } ?: return null
         val entries = payload.opt("profiles") as? JSONArray ?: return null
         if (entries.length() > MAX_SWITCH_PROFILES) return null
         val profiles = (0 until entries.length()).map { index ->
             val profile = entries.opt(index) as? JSONObject ?: return null
             val id = string(profile.opt("id")) ?: return null
-            val version = integer(profile.opt("version"))?.takeIf { it != 0 } ?: return null
+            val version = integer(profile.opt("version"))?.takeIf { it != 0L } ?: return null
             val name = string(profile.opt("name")) ?: return null
             val kind = PcSwitchProfileKind.entries.firstOrNull { it.protocolValue == profile.opt("kind") } ?: return null
             val bindingEntries = profile.opt("bindings") as? JSONArray ?: return null
             if (bindingEntries.length() > MAX_SWITCH_BINDINGS) return null
             val bindings = (0 until bindingEntries.length()).map { bindingIndex ->
                 val binding = bindingEntries.opt(bindingIndex) as? JSONObject ?: return null
-                val switchId = integer(binding.opt("switchId"))?.takeIf { it in 1..MAX_SWITCH_BINDINGS } ?: return null
+                val switchId = integer(binding.opt("switchId"))?.takeIf { it in 1L..MAX_SWITCH_BINDINGS }?.toInt() ?: return null
                 val label = string(binding.opt("label")) ?: return null
                 val behavior = PcSwitchBindingBehavior.entries.firstOrNull { it.protocolValue == binding.opt("behavior") }
                     ?: return null
@@ -292,8 +292,13 @@ object PcResponses {
 
     private fun number(value: Any?): Double? = (value as? Number)?.toDouble()?.takeIf { it.isFinite() }
 
-    private fun integer(value: Any?): Int? =
-        number(value)?.takeIf { it % 1.0 == 0.0 && it >= Int.MIN_VALUE && it <= Int.MAX_VALUE }?.toInt()
+    private fun integer(value: Any?): Long? = when (value) {
+        is Int -> value.toLong()
+        is Long -> value
+        is Short -> value.toLong()
+        is Byte -> value.toLong()
+        else -> number(value)?.takeIf { it % 1.0 == 0.0 && it >= Long.MIN_VALUE && it <= Long.MAX_VALUE }?.toLong()
+    }
 
     private fun string(value: Any?): String? = (value as? String)?.takeIf { it.isNotEmpty() }
 
