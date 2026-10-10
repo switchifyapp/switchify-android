@@ -25,6 +25,7 @@ import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.pc.PcConnectionScreen
 import com.enaboapps.switchify.screens.pc.PcDiagnosticsScreen
+import com.enaboapps.switchify.screens.pc.PcForwardingScreen
 import com.enaboapps.switchify.screens.pc.remote.PcRemoteScreen
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
@@ -255,6 +256,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.PcRemote.name) {
             PcRemoteScreen(navController)
+        }
+        composable(NavigationRoute.PcForwarding.name) {
+            PcForwardingScreen(navController)
         }
         composable("${NavigationRoute.SwitchActionSelection.name}/{currentActionId}") {
             it.arguments?.getString("currentActionId")?.toIntOrNull()?.let { actionId ->
