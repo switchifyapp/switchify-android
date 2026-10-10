@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.enaboapps.switchify.pc.storage.LegacyPcDataCleanup
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
@@ -37,10 +38,22 @@ class SwitchifyApplication : Application() {
         // Initialize stats collector
         StatsCollector.getInstance().initialize(this)
 
+        removeLegacyPcData()
+
         // Set up process lifecycle observer for proper stats cleanup
         setupProcessLifecycleObserver()
 
         Log.i(TAG, "SwitchifyApplication initialized")
+    }
+
+    private fun removeLegacyPcData() {
+        applicationScope.launch(Dispatchers.IO) {
+            try {
+                LegacyPcDataCleanup.run(this@SwitchifyApplication)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to remove legacy PC data", e)
+            }
+        }
     }
 
     /**
