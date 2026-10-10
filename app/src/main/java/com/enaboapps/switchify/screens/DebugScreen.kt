@@ -65,6 +65,15 @@ fun DebugScreen(navController: NavController) {
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 applyPadding = false
             )
+            ActionButton(
+                textResId = R.string.debug_open_pc_forwarding,
+                type = ActionButtonType.SECONDARY,
+                onClick = { navController.navigate(NavigationRoute.PcForwarding.name) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                applyPadding = false
+            )
         }
 
         Section(titleResId = R.string.debug_section_crash_reporting) {

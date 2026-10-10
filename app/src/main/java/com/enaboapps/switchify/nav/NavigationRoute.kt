@@ -45,4 +45,5 @@ sealed class NavigationRoute(val name: String) {
     data object PcConnection : NavigationRoute("PcConnection")
     data object PcDiagnostics : NavigationRoute("PcDiagnostics")
     data object PcRemote : NavigationRoute("PcRemote")
+    data object PcForwarding : NavigationRoute("PcForwarding")
 }
