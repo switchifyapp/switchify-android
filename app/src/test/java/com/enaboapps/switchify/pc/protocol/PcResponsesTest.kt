@@ -159,6 +159,21 @@ class PcResponsesTest {
         assertEquals(4_294_967_297L, large.catalog.profiles.single().version)
     }
 
+    @Test
+    fun acceptsAFullWindowsCatalogAndRejectsOversizedCatalogs() {
+        fun catalog(count: Int): String {
+            val profiles = (1..count).joinToString(",") { index ->
+                "{\"id\":\"profile-$index\",\"version\":1,\"name\":\"Profile $index\",\"kind\":\"mapped\"," +
+                    "\"bindings\":[{\"switchId\":1,\"label\":\"Space\",\"behavior\":\"stateful\"}]}"
+            }
+            return "{\"type\":\"switch.profile.list\",\"id\":\"profiles\",\"ok\":true,\"error\":null," +
+                "\"payload\":{\"catalogRevision\":1,\"profiles\":[$profiles]}}"
+        }
+        assertEquals(35, (PcResponses.parseResponse(catalog(35)) as PcResponse.SwitchProfileCatalog).catalog.profiles.size)
+        assertEquals(64, (PcResponses.parseResponse(catalog(64)) as PcResponse.SwitchProfileCatalog).catalog.profiles.size)
+        assertEquals(PcResponse.Invalid, PcResponses.parseResponse(catalog(65)))
+    }
+
     private companion object {
         val DESKTOP_POINTER_PROFILE = """
             {"version":1,"id":"profile-1","type":"pointer.profile","ok":true,"payload":{

@@ -308,6 +308,6 @@ object PcResponses {
         return if (items.all { it is String }) items.map { it as String } else emptyList()
     }
 
-    private const val MAX_SWITCH_PROFILES = 34
+    private const val MAX_SWITCH_PROFILES = 64
     private const val MAX_SWITCH_BINDINGS = 8
 }
