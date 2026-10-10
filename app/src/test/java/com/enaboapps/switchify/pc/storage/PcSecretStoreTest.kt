@@ -2,6 +2,7 @@ package com.enaboapps.switchify.pc.storage
 
 import com.enaboapps.switchify.pc.protocol.PcIdGenerator
 import com.enaboapps.switchify.pc.protocol.PcPlatform
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -25,12 +26,17 @@ class PcSecretStoreTest {
     private class FakeKeySource : PcSecretKeySource {
         var key: SecretKey? = null
         var failure: Exception? = null
+        var transientFailuresRemaining = 0
         var rejectedKeyAttempts = 0
         var created = 0
         var deleted = 0
 
         override fun existingKey(): SecretKey? {
             failure?.let { throw it }
+            if (transientFailuresRemaining > 0) {
+                transientFailuresRemaining -= 1
+                throw KeyStoreException("busy")
+            }
             if (rejectedKeyAttempts > 0 && key != null) {
                 rejectedKeyAttempts -= 1
                 return SecretKeySpec(ByteArray(7), "AES")
@@ -98,15 +104,66 @@ class PcSecretStoreTest {
     }
 
     @Test
-    fun clearsSecretsOnlyWhenTheKeyAliasIsGenuinelyMissing() = runTest {
+    fun aMissingAliasOnReadIsUnavailableAndOnlyAWriteClearsStaleSecrets() = runTest {
         secrets.put("token.a", "fixture-secret")
         secrets.put("device", "device-1")
+        val stored = backing.values.toMap()
+        val alias = keys.key
         keys.key = null
-        assertNull(secrets.get("token.a"))
-        assertTrue(backing.values.isEmpty())
+        expectUnavailable { secrets.get("token.a") }
+        expectUnavailable { secrets.get("device") }
+        assertEquals(stored, backing.values)
+
+        keys.key = alias
+        assertEquals("fixture-secret", secrets.get("token.a"))
+
+        keys.key = null
         secrets.put("token.a", "new-secret")
+        assertEquals(setOf("token.a"), backing.values.keys)
         assertEquals("new-secret", secrets.get("token.a"))
         assertEquals(0, keys.deleted)
+    }
+
+    @Test
+    fun aMissingAliasOnReadKeepsSavedPcsAndTheDeviceId() = runTest {
+        val stored = pairedStore()
+        val index = publicStore.values.toMap()
+        val alias = keys.key
+        keys.key = null
+        expectUnavailable { store.deviceId() }
+        expectUnavailable { store.token("pc-1") }
+        assertEquals(emptyList<PcSavedPc>(), store.list())
+        assertEquals(index, publicStore.values)
+        assertEquals(stored, backing.values)
+        keys.key = alias
+        assertEquals("device-1", store.deviceId())
+        assertEquals(listOf(office), store.list())
+    }
+
+    @Test
+    fun pairingRetriesThreeTimesASecondApartBeforeResetting() = runTest {
+        val patientSecrets = EncryptedPcKeyValueStore(backing, PcSecretCipher(keys, classifier))
+        val patientStore = PcPairingStore(publicStore, patientSecrets, PcIdGenerator { "device-${++nextDevice}" })
+        assertEquals("device-1", patientStore.deviceId())
+        patientStore.save(office, "fixture-secret")
+        keys.transientFailuresRemaining = 3
+        val start = currentTime
+        assertEquals("device-1", patientStore.deviceIdForPairing())
+        assertEquals(2 * EncryptedPcKeyValueStore.PAIRING_RETRY_DELAY_MS, currentTime - start)
+        assertEquals(1_000L, EncryptedPcKeyValueStore.PAIRING_RETRY_DELAY_MS)
+        assertEquals(3, EncryptedPcKeyValueStore.PAIRING_VERIFY_ATTEMPTS)
+        assertEquals(0, keys.deleted)
+        assertEquals("fixture-secret", patientStore.token("pc-1"))
+    }
+
+    @Test
+    fun pairingResetsAnAliasThatStaysMissing() = runTest {
+        pairedStore()
+        keys.key = null
+        val pairingDeviceId = store.deviceIdForPairing()
+        assertNotEquals("device-1", pairingDeviceId)
+        assertNull(store.token("pc-1"))
+        assertEquals(emptyList<PcSavedPc>(), store.list())
     }
 
     @Test

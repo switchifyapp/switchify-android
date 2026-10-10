@@ -109,7 +109,7 @@ class EncryptedPcKeyValueStore(
         val stored = backing.get(key) ?: return null
         return guarded {
             val value = cipher.decrypt(key, stored)
-            if (value == null && cipher.keyStatus() == PcSecretKeyStatus.Missing) backing.clear()
+            if (value == null && cipher.keyStatus() == PcSecretKeyStatus.Missing) throw PcSecureStorageUnavailableException()
             value
         }
     }
@@ -129,13 +129,15 @@ class EncryptedPcKeyValueStore(
     override suspend fun resetForPairingIfUnusable(): Boolean {
         repeat(PAIRING_VERIFY_ATTEMPTS) { attempt ->
             try {
-                cipher.verifyKey()
-                return false
+                if (cipher.keyStatus() == PcSecretKeyStatus.Present) {
+                    cipher.verifyKey()
+                    return false
+                }
             } catch (_: PcSecretKeyInvalidatedException) {
                 return reset()
             } catch (_: PcSecureStorageUnavailableException) {
-                if (attempt < PAIRING_VERIFY_ATTEMPTS - 1) delay(retryDelayMs)
             }
+            if (attempt < PAIRING_VERIFY_ATTEMPTS - 1) delay(retryDelayMs)
         }
         return reset()
     }
@@ -153,7 +155,7 @@ class EncryptedPcKeyValueStore(
     }
 
     companion object {
-        const val PAIRING_RETRY_DELAY_MS = 250L
-        const val PAIRING_VERIFY_ATTEMPTS = 2
+        const val PAIRING_RETRY_DELAY_MS = 1_000L
+        const val PAIRING_VERIFY_ATTEMPTS = 3
     }
 }
