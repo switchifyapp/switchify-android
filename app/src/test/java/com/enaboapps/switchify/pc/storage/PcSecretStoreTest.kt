@@ -11,15 +11,18 @@ import org.junit.Assert.fail
 import org.junit.Test
 import java.security.KeyStoreException
 import java.security.ProviderException
+import java.security.UnrecoverableKeyException
 import java.util.Base64
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
 class PcSecretStoreTest {
     private class FakeKeySource : PcSecretKeySource {
         var key: SecretKey? = null
         var failure: Exception? = null
         var created = 0
+        var deleted = 0
 
         override fun existingKey(): SecretKey? {
             failure?.let { throw it }
@@ -31,11 +34,42 @@ class PcSecretStoreTest {
             created += 1
             return KeyGenerator.getInstance("AES").apply { init(256) }.generateKey().also { key = it }
         }
+
+        override fun deleteKey() {
+            failure?.takeUnless { it is UnrecoverableKeyException }?.let { throw it }
+            deleted += 1
+            failure = null
+            key = null
+        }
     }
 
     private val keys = FakeKeySource()
     private val backing = InMemoryPcKeyValueStore()
     private val secrets = EncryptedPcKeyValueStore(backing, PcSecretCipher(keys))
+
+    @Test
+    fun treatsAnUnrecoverableKeyAsPermanentAndRegeneratesItOnTheNextPairing() = runTest {
+        secrets.put("token.a", "fixture-secret")
+        keys.failure = UnrecoverableKeyException("corrupted after update")
+        assertNull(secrets.get("token.a"))
+        assertEquals(0, keys.deleted)
+        secrets.put("token.b", "new-secret")
+        assertEquals(1, keys.deleted)
+        assertEquals(setOf("token.b"), backing.values.keys)
+        assertEquals("new-secret", secrets.get("token.b"))
+        assertEquals(2, keys.created)
+    }
+
+    @Test
+    fun treatsAKeyTheCipherRejectsAsPermanentAndRegeneratesItOnTheNextPairing() = runTest {
+        secrets.put("token.a", "fixture-secret")
+        keys.key = SecretKeySpec(ByteArray(7), "AES")
+        assertNull(secrets.get("token.a"))
+        secrets.put("token.b", "new-secret")
+        assertEquals(1, keys.deleted)
+        assertEquals(setOf("token.b"), backing.values.keys)
+        assertEquals("new-secret", secrets.get("token.b"))
+    }
 
     @Test
     fun encryptsValuesAndBindsCiphertextToTheKeyName() = runTest {

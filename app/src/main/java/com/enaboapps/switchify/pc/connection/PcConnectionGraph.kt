@@ -10,6 +10,8 @@ import com.enaboapps.switchify.pc.storage.keystorePcSecretStore
 import com.enaboapps.switchify.pc.transport.AndroidPcGattAdapter
 import com.enaboapps.switchify.pc.transport.PcBleTransport
 import com.enaboapps.switchify.pc.transport.PcBluetoothPermissions
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 class PcConnectionGraph private constructor(context: Context) {
     private val appContext = context.applicationContext
@@ -27,7 +29,10 @@ class PcConnectionGraph private constructor(context: Context) {
         diagnostics = diagnostics,
         requestPermission = permissions::request,
         remoteName = { PcRemoteName.deviceModelName(Build.MODEL) },
-        locationServicesOff = ::locationServicesOff
+        locationServicesOff = ::locationServicesOff,
+        onUnexpectedError = { error ->
+            Logger.log(LogEvent.PcConnectionUnexpectedError, throwable = PcSanitizedError.from(error))
+        }
     )
 
     private fun locationServicesOff(): Boolean {
@@ -49,4 +54,13 @@ class PcConnectionGraph private constructor(context: Context) {
 
 object PcBluetoothScanRequirements {
     fun requiresLocationServices(sdkInt: Int): Boolean = sdkInt < Build.VERSION_CODES.S
+}
+
+class PcSanitizedError private constructor(type: String) : Exception(type) {
+    companion object {
+        fun from(error: Throwable): PcSanitizedError = PcSanitizedError(error.javaClass.name).also { sanitized ->
+            sanitized.stackTrace = error.stackTrace
+            error.cause?.let { sanitized.initCause(from(it)) }
+        }
+    }
 }

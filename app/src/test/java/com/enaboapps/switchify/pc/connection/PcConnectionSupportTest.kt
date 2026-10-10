@@ -42,6 +42,17 @@ class PcConnectionSupportTest {
     }
 
     @Test
+    fun reportsUnexpectedErrorsWithoutTheirMessages() {
+        val original = IllegalStateException("token fixture-secret", IllegalArgumentException("Office ble-1"))
+        val sanitized = PcSanitizedError.from(original)
+        assertEquals("java.lang.IllegalStateException", sanitized.message)
+        assertEquals("java.lang.IllegalArgumentException", sanitized.cause?.message)
+        assertTrue(original.stackTrace.contentEquals(sanitized.stackTrace))
+        assertFalse(sanitized.stackTraceToString().contains("fixture-secret"))
+        assertFalse(sanitized.stackTraceToString().contains("ble-1"))
+    }
+
+    @Test
     fun describesEveryTransportStage() {
         PcConnectionStage.entries.forEach { stage ->
             assertTrue(PcDiagnosticLog.stageDescription(stage).isNotBlank())

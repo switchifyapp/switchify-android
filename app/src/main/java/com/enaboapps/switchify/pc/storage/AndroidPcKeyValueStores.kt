@@ -78,6 +78,12 @@ class AndroidKeystorePcSecretKeySource : PcSecretKeySource {
         return keyStore.getKey(KEY_ALIAS, null) as? SecretKey
     }
 
+    override fun deleteKey() {
+        synchronized(keyLock) {
+            KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }.deleteEntry(KEY_ALIAS)
+        }
+    }
+
     override fun createKey(): SecretKey = synchronized(keyLock) {
         existingKey() ?: KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE).run {
             init(

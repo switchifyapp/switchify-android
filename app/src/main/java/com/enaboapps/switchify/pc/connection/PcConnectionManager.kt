@@ -23,6 +23,7 @@ import com.enaboapps.switchify.pc.transport.PcBluetoothException
 import com.enaboapps.switchify.pc.transport.PcDiscoveredDesktop
 import com.enaboapps.switchify.pc.transport.PcTransport
 import com.enaboapps.switchify.pc.transport.PcUnsubscribe
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -70,10 +71,12 @@ class PcConnectionManager(
     private val reconnectDelay: suspend (Long) -> Unit = { delay(it) },
     private val remoteName: suspend () -> String = { PcRemoteName.FALLBACK },
     private val locationServicesOff: () -> Boolean = { false },
-    private val scope: CoroutineScope = CoroutineScope(
-        SupervisorJob() + Dispatchers.Default.limitedParallelism(1) + CoroutineExceptionHandler { _, _ -> }
-    )
+    private val onUnexpectedError: (Throwable) -> Unit = {},
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
 ) {
+    private val unexpectedErrors = CoroutineExceptionHandler { _, error -> handleUnexpectedError(error) }
+    private val reportOnly = CoroutineExceptionHandler { _, error -> reportUnexpectedError(error) }
+
     private val _state = MutableStateFlow<PcConnectionState>(PcConnectionState.Idle(emptyList()))
     val state: StateFlow<PcConnectionState> = _state.asStateFlow()
 
@@ -116,7 +119,7 @@ class PcConnectionManager(
 
     suspend fun scan() = operate { scanNow() }
 
-    fun stopScan(): Job = scope.launch {
+    fun stopScan(): Job = scope.launch(unexpectedErrors) {
         if (_state.value !is PcConnectionState.Scanning) return@launch
         val current = ++operation
         stopScanning()
@@ -273,18 +276,18 @@ class PcConnectionManager(
         val saved = orderedSaved()
         if (!isCurrent(current)) return
         if (!requestPermission()) {
-            if (isCurrent(current)) set(PcConnectionState.PermissionDenied(saved))
+            if (isCurrent(current)) set(PcConnectionState.PermissionDenied(saved, retry = pc))
             return
         }
         if (!isCurrent(current)) return
         val availability = transport.availability()
         if (!isCurrent(current)) return
         if (availability != PcBluetoothAvailability.Ready) {
-            set(availabilityState(availability, saved))
+            set(availabilityState(availability, saved, retry = pc))
             return
         }
         if (locationServicesOff()) {
-            set(PcConnectionState.LocationOff(saved))
+            set(PcConnectionState.LocationOff(saved, retry = pc))
             return
         }
 
@@ -566,7 +569,7 @@ class PcConnectionManager(
     }
 
     private suspend fun recoverPointerProfile(accessToken: String, desktop: PcDiscoveredDesktop, current: Int) {
-        val deadline = scope.launch {
+        val deadline = scope.launch(unexpectedErrors) {
             delay(PROFILE_RECOVERY_DEADLINE_MS)
             markProfileUnavailable(current)
         }
@@ -640,7 +643,7 @@ class PcConnectionManager(
     private suspend fun waitForProfileRecovery(milliseconds: Long, current: Int): Boolean {
         val signal = CompletableDeferred<Boolean>()
         profileRecoveryWaits += signal
-        val timer = scope.launch {
+        val timer = scope.launch(unexpectedErrors) {
             delay(milliseconds)
             profileRecoveryWaits -= signal
             signal.complete(isCurrent(current))
@@ -746,7 +749,7 @@ class PcConnectionManager(
         if (state !is PcConnectionState.Connected || state.profileStatus == PcProfileStatus.Recovering) return
         val current = operation
         val desktop = state.desktop
-        healthTimer = scope.launch {
+        healthTimer = scope.launch(unexpectedErrors) {
             delay(delayMs)
             healthTimer = null
             if (!isCurrent(current) || _state.value !is PcConnectionState.Connected) return@launch
@@ -813,9 +816,13 @@ class PcConnectionManager(
         )
     }
 
-    private fun availabilityState(availability: PcBluetoothAvailability, saved: List<PcSavedPc>): PcConnectionState =
+    private fun availabilityState(
+        availability: PcBluetoothAvailability,
+        saved: List<PcSavedPc>,
+        retry: PcSavedPc? = null
+    ): PcConnectionState =
         when (availability) {
-            PcBluetoothAvailability.Unauthorized -> PcConnectionState.PermissionDenied(saved)
+            PcBluetoothAvailability.Unauthorized -> PcConnectionState.PermissionDenied(saved, retry)
             PcBluetoothAvailability.Unsupported -> PcConnectionState.Unsupported(saved)
             else -> PcConnectionState.BluetoothOff(saved)
         }
@@ -835,6 +842,41 @@ class PcConnectionManager(
             error.message == PAIRING_EXPIRED || error.code == PAIRING_EXPIRED -> PcConnectionFailure.PairingExpired
             else -> PcConnectionFailure.CouldNotConnect
         }
+    }
+
+    private fun handleUnexpectedError(error: Throwable) {
+        reportUnexpectedError(error)
+        scope.launch(reportOnly) { recoverFromUnexpectedError() }
+    }
+
+    private fun reportUnexpectedError(error: Throwable) {
+        try {
+            onUnexpectedError(error)
+        } catch (_: Exception) {
+        }
+    }
+
+    private suspend fun recoverFromUnexpectedError() {
+        val failure = when (_state.value) {
+            is PcConnectionState.Reconnecting -> PcConnectionFailure.ConnectionLost
+            is PcConnectionState.Connecting, is PcConnectionState.Pairing -> PcConnectionFailure.CouldNotConnect
+            else -> return
+        }
+        val current = ++operation
+        val saved = try {
+            orderedSaved()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            emptyList()
+        }
+        try {
+            teardownConnection()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+        }
+        if (isCurrent(current)) set(PcConnectionState.Failed(failure, saved))
     }
 
     private fun isCurrent(value: Int) = value == operation
@@ -860,11 +902,11 @@ class PcConnectionManager(
     private suspend fun <T> operate(block: suspend () -> T): T = scope.async { block() }.await()
 
     private fun launchNow(block: suspend () -> Unit) {
-        scope.launch(start = CoroutineStart.UNDISPATCHED) { block() }
+        scope.launch(unexpectedErrors, start = CoroutineStart.UNDISPATCHED) { block() }
     }
 
     private fun launchConfined(block: suspend () -> Unit) {
-        scope.launch { block() }
+        scope.launch(unexpectedErrors) { block() }
     }
 
     companion object {

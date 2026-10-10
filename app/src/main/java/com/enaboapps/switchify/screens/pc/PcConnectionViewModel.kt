@@ -86,13 +86,14 @@ class PcConnectionViewModel(
     }
 
     fun onResume() {
-        val current = manager.state.value
-        val resolved = when (current) {
-            is PcConnectionState.PermissionDenied -> permissions.isGranted()
-            is PcConnectionState.LocationOff -> !manager.isLocationOff()
-            else -> false
+        if (permissions.requested.value) permissions.complete(permissions.isGranted())
+        val (resolved, retry) = when (val current = manager.state.value) {
+            is PcConnectionState.PermissionDenied -> permissions.isGranted() to current.retry
+            is PcConnectionState.LocationOff -> !manager.isLocationOff() to current.retry
+            else -> false to null
         }
-        if (resolved) scan()
+        if (!resolved) return
+        if (retry != null) launchSafely { manager.connectSaved(retry) } else scan()
     }
 
     fun onPermissionResult(granted: Boolean) = permissions.complete(granted)

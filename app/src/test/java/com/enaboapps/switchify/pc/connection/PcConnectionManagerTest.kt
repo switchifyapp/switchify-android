@@ -12,6 +12,7 @@ import com.enaboapps.switchify.pc.protocol.PcResponse
 import com.enaboapps.switchify.pc.protocol.PcResponseMode
 import com.enaboapps.switchify.pc.storage.InMemoryPcKeyValueStore
 import com.enaboapps.switchify.pc.storage.PcPairingStore
+import com.enaboapps.switchify.pc.storage.PcPairingStorage
 import com.enaboapps.switchify.pc.storage.PcSavedPc
 import com.enaboapps.switchify.pc.transport.PcBluetoothAvailability
 import com.enaboapps.switchify.pc.transport.PcBluetoothException
@@ -36,12 +37,12 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-private fun savedOffice(lastConnectedAt: Long = 1) =
+internal fun savedOffice(lastConnectedAt: Long = 1) =
     PcSavedPc("desktop-1", "Office", PcPlatform.Windows, "ble-1", lastConnectedAt)
 
-private val office = PcDiscoveredDesktop("desktop-1", "Office", PcPlatform.Windows, null, "ble-1", -45)
+internal val office = PcDiscoveredDesktop("desktop-1", "Office", PcPlatform.Windows, null, "ble-1", -45)
 
-private class LoopbackTransport(private val scope: CoroutineScope) : PcTransport {
+internal class LoopbackTransport(private val scope: CoroutineScope) : PcTransport {
     var availability = PcBluetoothAvailability.Ready
     var resolved = office
     var connectFailures = 0
@@ -178,6 +179,15 @@ private class LoopbackTransport(private val scope: CoroutineScope) : PcTransport
     }
 }
 
+internal class FaultyPcPairingStorage(private val delegate: PcPairingStorage) : PcPairingStorage by delegate {
+    var failList = false
+
+    override suspend fun list(): List<PcSavedPc> {
+        if (failList) throw IllegalStateException("fixture list failed")
+        return delegate.list()
+    }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class PcConnectionManagerTest {
     private class Harness(test: TestScope) {
@@ -186,6 +196,8 @@ class PcConnectionManagerTest {
         val publicStore = InMemoryPcKeyValueStore()
         val secretStore = InMemoryPcKeyValueStore()
         val storage = PcPairingStore(publicStore, secretStore, PcIdGenerator { "device-1" })
+        val faultyStorage = FaultyPcPairingStorage(storage)
+        val unexpectedErrors = mutableListOf<Throwable>()
         val diagnostics = PcDiagnosticLog(PcClock { 0 })
         var permission = true
         var locationOff = false
@@ -195,7 +207,7 @@ class PcConnectionManagerTest {
         val reconnectDelays = mutableListOf<Long>()
         val manager = PcConnectionManager(
             transport = transport,
-            storage = storage,
+            storage = faultyStorage,
             diagnostics = diagnostics,
             requestPermission = { permission },
             clock = PcClock { now },
@@ -204,6 +216,7 @@ class PcConnectionManagerTest {
             reconnectDelay = { reconnectDelays += it },
             remoteName = { "Owen's Pixel" },
             locationServicesOff = { locationOff },
+            onUnexpectedError = { unexpectedErrors += it },
             scope = scope
         )
 
@@ -346,6 +359,33 @@ class PcConnectionManagerTest {
         assertEquals(listOf(500L), h.reconnectDelays)
         assertTrue("authentication_failed" in h.codes)
         assertNull(h.storage.token("desktop-1"))
+    }
+
+    @Test
+    fun reportsAnUnexpectedReconnectErrorAndEndsInAFailedState() = managerTest { h ->
+        connect(h)
+        h.faultyStorage.failList = true
+        h.transport.connectFailures = 3
+        h.transport.onDisconnect?.invoke()
+        runCurrent()
+        val failed = h.manager.state.value as PcConnectionState.Failed
+        assertEquals(PcConnectionFailure.ConnectionLost, failed.failure)
+        assertEquals(emptyList<PcSavedPc>(), failed.saved)
+        assertEquals(listOf(IllegalStateException::class.java), h.unexpectedErrors.map { it.javaClass })
+    }
+
+    @Test
+    fun remembersTheSavedPcWhenPermissionOrLocationBlocksConnecting() = managerTest { h ->
+        h.savePc()
+        h.permission = false
+        h.manager.connectSaved(savedOffice())
+        assertEquals("desktop-1", (h.manager.state.value as PcConnectionState.PermissionDenied).retry?.desktopId)
+        h.permission = true
+        h.locationOff = true
+        h.manager.connectSaved(savedOffice())
+        assertEquals("desktop-1", (h.manager.state.value as PcConnectionState.LocationOff).retry?.desktopId)
+        h.manager.scan()
+        assertNull((h.manager.state.value as PcConnectionState.LocationOff).retry)
     }
 
     @Test

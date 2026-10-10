@@ -26,10 +26,10 @@ enum class PcConnectionFailure {
 
 sealed class PcConnectionState {
     data class Idle(val saved: List<PcSavedPc>) : PcConnectionState()
-    data class PermissionDenied(val saved: List<PcSavedPc>) : PcConnectionState()
+    data class PermissionDenied(val saved: List<PcSavedPc>, val retry: PcSavedPc? = null) : PcConnectionState()
     data class BluetoothOff(val saved: List<PcSavedPc>) : PcConnectionState()
     data class Unsupported(val saved: List<PcSavedPc>) : PcConnectionState()
-    data class LocationOff(val saved: List<PcSavedPc>) : PcConnectionState()
+    data class LocationOff(val saved: List<PcSavedPc>, val retry: PcSavedPc? = null) : PcConnectionState()
     data class Scanning(val saved: List<PcSavedPc>, val discovered: List<PcDiscoveredDesktop>) : PcConnectionState()
     data class Connecting(val desktop: PcDiscoveredDesktop) : PcConnectionState()
     data class Reconnecting(val desktop: PcDiscoveredDesktop, val attempt: Int) : PcConnectionState()

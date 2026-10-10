@@ -47,6 +47,7 @@ sealed class LogEvent(
 
     object ServiceCommandHandled : LogEvent("service_command_handled", dataset = "service", tags = listOf("command"))
     object ServiceCommandFailed : LogEvent("service_command_failed", level = "error", dataset = "service", tags = listOf("command", "failure"))
+    object PcConnectionUnexpectedError : LogEvent("pc_connection_unexpected_error", level = "error", dataset = "pc", tags = listOf("connection", "failure"))
 
     object GestureDispatchStarted : LogEvent("gesture_dispatch_started", dataset = "input", tags = listOf("gesture", "dispatch"))
     object GestureDispatchCompleted : LogEvent("gesture_dispatch_completed", dataset = "input", tags = listOf("gesture", "dispatch"))
