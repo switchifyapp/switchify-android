@@ -11,6 +11,8 @@ typealias PcSurfaceLayouts = Map<PcLayoutSurface, Map<String, PcButtonLayout>>
 interface PcLayoutStore {
     val layouts: StateFlow<PcSurfaceLayouts>
 
+    suspend fun load() {}
+
     suspend fun save(surface: PcLayoutSurface, section: String, layout: PcButtonLayout?)
 }
 

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,9 +19,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -70,6 +73,7 @@ fun PcRemoteScreen(navController: NavController) {
     val surface by viewModel.preferences.surface.collectAsState()
     val layouts by viewModel.layouts.layouts.collectAsState()
     val physicalSwitchStopAvailable by viewModel.physicalSwitchStopAvailable.collectAsState()
+    val editingLayout by viewModel.editingLayout.collectAsState()
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
@@ -105,19 +109,45 @@ fun PcRemoteScreen(navController: NavController) {
                 current.profile == null -> ProfileUnavailable(current.profileStatus)
                 activeHolder != null && activeHolder.desktopId == current.desktop.desktopId -> {
                     ConnectedHeader(current)
-                    SurfaceSelector(surface, viewModel::selectSurface)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) { SurfaceSelector(surface, viewModel::selectSurface) }
+                        PcLayoutEditToggle(editingLayout, viewModel::toggleLayoutEditing)
+                    }
                     val state by activeHolder.session.state.collectAsState()
+                    val submittingEnter by activeHolder.liveTyping.submitting.collectAsState()
                     LaunchedEffect(state.repeat) { viewModel.refreshPhysicalSwitchStop() }
-                    when (surface) {
-                        PcRemoteSurface.Mouse -> PcMouseSurface(
-                            viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                    val blocked = when {
+                        surface == PcRemoteSurface.Typing && submittingEnter -> stringResource(R.string.pc_layout_blocked_enter)
+                        state.editingBlocked -> stringResource(
+                            R.string.pc_layout_blocked_input,
+                            stringResource(PcRemotePresentation.repeatStopLabel(state.repeat))
                         )
-                        PcRemoteSurface.Typing -> PcTypingSurface(
-                            viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
-                        )
-                        PcRemoteSurface.Window -> PcWindowSurface(
-                            viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
-                        )
+                        else -> null
+                    }
+                    val editing = PcLayoutEditing(
+                        enabled = editingLayout,
+                        blocked = blocked,
+                        current = { viewModel.layouts.layouts.value },
+                        load = viewModel::loadLayouts,
+                        save = viewModel::saveLayout
+                    )
+                    CompositionLocalProvider(LocalPcLayoutEditing provides editing) {
+                        key(activeHolder.desktopId) {
+                            when (surface) {
+                                PcRemoteSurface.Mouse -> PcMouseSurface(
+                                    viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                                )
+                                PcRemoteSurface.Typing -> PcTypingSurface(
+                                    viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                                )
+                                PcRemoteSurface.Window -> PcWindowSurface(
+                                    viewModel, activeHolder, state, current.desktop.platform, layouts, physicalSwitchStopAvailable
+                                )
+                            }
+                        }
                     }
                 }
             }

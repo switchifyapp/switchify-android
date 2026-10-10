@@ -17,9 +17,10 @@ import javax.crypto.SecretKey
 
 class DeviceProtectedPcKeyValueStore(
     context: Context,
-    private val fileName: String = FILE_NAME
+    private val fileName: String = FILE_NAME,
+    directoryName: String = DIRECTORY
 ) : PcKeyValueStore {
-    private val directory = File(context.applicationContext.createDeviceProtectedStorageContext().filesDir, DIRECTORY)
+    private val directory = File(context.applicationContext.createDeviceProtectedStorageContext().filesDir, directoryName)
     private val lock = Any()
 
     private fun file() = File(directory, fileName)

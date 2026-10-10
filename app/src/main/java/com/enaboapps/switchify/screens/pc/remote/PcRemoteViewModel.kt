@@ -13,7 +13,9 @@ import com.enaboapps.switchify.pc.remote.PcTypingMode
 import com.enaboapps.switchify.pc.remote.actions.PcActionContext
 import com.enaboapps.switchify.pc.remote.actions.PcActionDefinition
 import com.enaboapps.switchify.pc.remote.actions.PcActionRuntime
+import com.enaboapps.switchify.pc.remote.layouts.PcButtonLayout
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutStore
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSurface
 import com.enaboapps.switchify.pc.storage.PcSavedPc
 import com.enaboapps.switchify.pc.transport.PcUnsubscribe
 import kotlinx.coroutines.CancellationException
@@ -44,6 +46,9 @@ class PcRemoteViewModel(
 
     private val _physicalSwitchStopAvailable = MutableStateFlow(switchStop.isAvailable())
     val physicalSwitchStopAvailable: StateFlow<Boolean> = _physicalSwitchStopAvailable.asStateFlow()
+
+    private val _editingLayout = MutableStateFlow(false)
+    val editingLayout: StateFlow<Boolean> = _editingLayout.asStateFlow()
 
     private var cleanupRegistration: PcUnsubscribe? = null
 
@@ -85,6 +90,15 @@ class PcRemoteViewModel(
 
     fun setDraft(text: String) = preferences.setDraft(text)
 
+    fun toggleLayoutEditing() {
+        _editingLayout.value = !_editingLayout.value
+    }
+
+    suspend fun loadLayouts() = layouts.load()
+
+    suspend fun saveLayout(surface: PcLayoutSurface, section: String, layout: PcButtonLayout?) =
+        layouts.save(surface, section, layout)
+
     fun stopRepeat() {
         val session = _holder.value?.session ?: return
         launchAction { session.stopRepeat() }
@@ -116,6 +130,7 @@ class PcRemoteViewModel(
     }
 
     private fun replaceSession(desktopId: String?) {
+        _editingLayout.value = false
         cleanupRegistration?.unsubscribe()
         cleanupRegistration = null
         _holder.value?.let(::retire)

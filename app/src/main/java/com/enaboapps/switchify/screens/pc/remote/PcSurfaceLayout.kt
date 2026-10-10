@@ -52,6 +52,7 @@ fun PcSurfaceLayout(
             modifier = Modifier.semantics { heading() }
         )
         headerAccessory?.invoke()
+        PcSectionEditing(surface, section, definition, controls)
         if (layout != null) {
             CustomGrid(layout, byId, onAction)
         } else {
