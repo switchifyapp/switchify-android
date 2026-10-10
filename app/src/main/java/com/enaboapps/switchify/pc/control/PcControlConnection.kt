@@ -21,6 +21,8 @@ interface PcControlConnection {
 
     suspend fun scan()
 
+    fun stopScan()
+
     suspend fun defaultDesktopId(): String?
 
     suspend fun setDefaultDesktopId(desktopId: String?)
@@ -44,6 +46,10 @@ fun PcConnectionManager.asControlConnection(): PcControlConnection {
         override suspend fun disconnect() = manager.disconnect()
 
         override suspend fun scan() = manager.scan()
+
+        override fun stopScan() {
+            manager.stopScan()
+        }
 
         override suspend fun defaultDesktopId() = manager.defaultDesktopId()
 

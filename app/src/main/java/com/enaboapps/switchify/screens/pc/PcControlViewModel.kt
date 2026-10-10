@@ -55,22 +55,24 @@ class PcControlViewModel(
     }
 
     fun onStart() {
-        val shouldConnect = autoConnect.onStart(setup.isComplete)
-        if (shouldConnect && !PcResumeRecovery.blocksAutoConnect(connection.state.value)) {
-            launchSafely { connection.connectPreferred() }
+        if (!autoConnect.onStart(setup.isComplete)) return
+        val state = connection.state.value
+        when (val recovery = PcResumeRecovery.after(state, permissions.isGranted(), connection.isLocationOff())) {
+            is PcResumeRecovery.RetrySaved -> launchSafely { connection.connectSaved(recovery.pc) }
+            PcResumeRecovery.Rescan -> launchSafely {
+                if (_tab.value == PcControlTab.Pcs) connection.scan() else connection.connectPreferred()
+            }
+            null -> if (!PcResumeRecovery.blocksAutoConnect(state)) launchSafely { connection.connectPreferred() }
         }
     }
 
-    fun onStop(changingConfigurations: Boolean) = autoConnect.onStop(changingConfigurations)
+    fun onStop(changingConfigurations: Boolean) {
+        autoConnect.onStop(changingConfigurations)
+        if (!changingConfigurations) connection.stopScan()
+    }
 
     fun onResume() {
         if (permissions.requested.value) permissions.complete(permissions.isGranted())
-        val recovery = PcResumeRecovery.after(connection.state.value, permissions.isGranted(), connection.isLocationOff())
-        when (recovery) {
-            is PcResumeRecovery.RetrySaved -> launchSafely { connection.connectSaved(recovery.pc) }
-            PcResumeRecovery.Rescan -> launchSafely { connection.scan() }
-            null -> Unit
-        }
     }
 
     fun onPermissionResult(granted: Boolean) = permissions.complete(granted)

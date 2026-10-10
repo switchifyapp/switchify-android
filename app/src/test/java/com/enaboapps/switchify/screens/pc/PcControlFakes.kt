@@ -16,6 +16,7 @@ class FakePcControlConnection(var saved: List<PcSavedPc> = emptyList()) : PcCont
     val connectedSaved = mutableListOf<PcSavedPc>()
     var locationOff = false
     var scanCalls = 0
+    var stopScanCalls = 0
     var syncCalls = 0
     var defaultId: String? = null
     var sync = PcRemoteNameSync.Deferred
@@ -38,6 +39,10 @@ class FakePcControlConnection(var saved: List<PcSavedPc> = emptyList()) : PcCont
 
     override suspend fun scan() {
         scanCalls += 1
+    }
+
+    override fun stopScan() {
+        stopScanCalls += 1
     }
 
     override suspend fun defaultDesktopId(): String? = defaultId

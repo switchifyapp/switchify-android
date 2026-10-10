@@ -138,13 +138,16 @@ class PcControlViewModelTest {
         assertEquals(emptyList<PcSavedPc>(), f.connection.connectedSaved)
 
         f.connection.locationOff = false
-        f.viewModel.onResume()
+        f.viewModel.onStop(changingConfigurations = false)
+        f.viewModel.onStart()
         advanceUntilIdle()
         assertEquals(listOf(office), f.connection.connectedSaved)
     }
 
     @Test
-    fun returningAfterABlockedSearchWithASavedPcStartsOneScanAndNoConnect() = viewModelTest(saved = listOf(office)) { f ->
+    fun returningToPcsAfterABlockedSearchWithASavedPcStartsOneScanAndNoConnect() = viewModelTest(saved = listOf(office)) { f ->
+        advanceUntilIdle()
+        f.viewModel.selectTab(PcControlTab.Pcs)
         f.viewModel.onStart()
         advanceUntilIdle()
         f.granted = false
@@ -159,6 +162,51 @@ class PcControlViewModelTest {
         assertEquals(1, f.connection.connectCalls)
         assertEquals(1, f.connection.scanCalls)
         assertEquals(emptyList<PcSavedPc>(), f.connection.connectedSaved)
+    }
+
+    @Test
+    fun returningToTheRemoteAfterABlockedSearchConnectsThePreferredPcInsteadOfScanning() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
+        f.granted = false
+        f.connection.state.value = PcConnectionState.PermissionDenied(listOf(office))
+        f.viewModel.onStop(changingConfigurations = false)
+
+        f.granted = true
+        f.viewModel.onStart()
+        f.viewModel.onResume()
+        advanceUntilIdle()
+
+        assertEquals(2, f.connection.connectCalls)
+        assertEquals(0, f.connection.scanCalls)
+    }
+
+    @Test
+    fun thePermissionDialogResumingDoesNotStartASecondConnect() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.granted = false
+        f.connection.state.value = PcConnectionState.PermissionDenied(listOf(office), retry = office)
+
+        f.granted = true
+        f.viewModel.onPermissionResult(true)
+        f.viewModel.onResume()
+        f.viewModel.onStart()
+        advanceUntilIdle()
+
+        assertEquals(1, f.connection.connectCalls)
+        assertEquals(emptyList<PcSavedPc>(), f.connection.connectedSaved)
+        assertEquals(0, f.connection.scanCalls)
+    }
+
+    @Test
+    fun goingToTheBackgroundStopsAnyScanButRotationDoesNot() = viewModelTest { f ->
+        f.viewModel.onStart()
+        f.viewModel.onStop(changingConfigurations = true)
+        assertEquals(0, f.connection.stopScanCalls)
+        f.viewModel.onStop(changingConfigurations = false)
+        assertEquals(1, f.connection.stopScanCalls)
     }
 
     @Test
