@@ -37,6 +37,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.CopyOnWriteArraySet
@@ -564,9 +566,8 @@ class PcConnectionManager(
 
     private suspend fun publishPairingIntent(desktopId: String, deviceId: String, nonce: String): Boolean = try {
         withTimeoutOrNull(PAIRING_INTENT_TIMEOUT_MS) { pairingIntents.publish(desktopId, deviceId, nonce) } == true
-    } catch (error: CancellationException) {
-        throw error
     } catch (_: Exception) {
+        currentCoroutineContext().ensureActive()
         false
     }
 

@@ -536,12 +536,36 @@ class PcConnectionManagerTest {
     }
 
     @Test
-    fun aCancelledPairingIntentIsNotTreatedAsAnUnpublishedIntent() = managerTest { h ->
+    fun aStrayCancellationFromPublishingFallsBackToManualPairing() = managerTest { h ->
+        h.transport.responseGates["pairing.request"] = CompletableDeferred()
         h.pairingIntent = PcPairingIntentPublisher { _, _, _ -> throw CancellationException("fixture cancelled") }
         backgroundScope.launch { h.manager.connect(office) }
         runCurrent()
+        assertEquals(listOf("pairing.request"), h.transport.types)
+        assertFalse((h.manager.state.value as PcConnectionState.Pairing).accountApprovalExpected)
+        assertTrue("pairing_intent_not_published" in h.codes)
+    }
+
+    @Test
+    fun genuineCancellationWhilePublishingPropagatesWithoutSending() = managerTest { h ->
+        var publishCancelled = false
+        h.pairingIntent = PcPairingIntentPublisher { _, _, _ ->
+            try {
+                awaitCancellation()
+            } finally {
+                publishCancelled = true
+            }
+        }
+        val connect = backgroundScope.async { h.manager.connect(office) }
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Pairing)
+        h.scope.cancel()
+        runCurrent()
+        assertTrue(publishCancelled)
+        assertTrue(connect.isCancelled)
         assertFalse("pairing.request" in h.transport.types)
         assertFalse("pairing_intent_not_published" in h.codes)
+        assertFalse("pairing_intent_published" in h.codes)
     }
 
     @Test

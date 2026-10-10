@@ -1266,7 +1266,7 @@
     <string name="pc_pairing_title">Approve on your PC</string>
     <string name="pc_pairing_body">Confirm that this code matches Switchify PC, then approve the request there.</string>
     <string name="pc_pairing_code_description">Verification code %1$s</string>
-    <string name="pc_pairing_account_body">If Switchify PC is signed in to the same account, it should approve this automatically. Otherwise, confirm that this code matches Switchify PC, then approve the request there.</string>
+    <string name="pc_pairing_account_body">If Switchify PC is signed in to the same account, it should approve this automatically.</string>
     <string name="pc_failure_could_not_connect">Could not connect to this PC.</string>
     <string name="pc_failure_not_found_nearby">Could not find this PC nearby.</string>
     <string name="pc_failure_saved_access_load_failed">Could not load saved access. Try again.</string>

@@ -467,12 +467,16 @@ private fun PairingDialog(
                         liveRegion = LiveRegionMode.Polite
                     }
                 )
+                if (accountApprovalExpected) {
+                    Text(
+                        text = stringResource(R.string.pc_pairing_account_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                    )
+                }
                 Text(
-                    text = stringResource(
-                        if (accountApprovalExpected) R.string.pc_pairing_account_body else R.string.pc_pairing_body
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                    text = stringResource(R.string.pc_pairing_body),
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         },

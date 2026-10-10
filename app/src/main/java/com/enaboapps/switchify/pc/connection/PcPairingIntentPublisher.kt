@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.pc.connection
 
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 fun interface PcPairingIntentPublisher {
     suspend fun publish(desktopId: String, deviceId: String, nonce: String): Boolean
@@ -11,7 +12,7 @@ fun interface PcPairingIntentPublisher {
 }
 
 class AccountPcPairingIntentPublisher(
-    private val isSignedIn: () -> Boolean,
+    private val isSignedIn: suspend () -> Boolean,
     private val createIntent: suspend (desktopId: String, deviceId: String, nonce: String) -> Unit
 ) : PcPairingIntentPublisher {
     override suspend fun publish(desktopId: String, deviceId: String, nonce: String): Boolean = try {
@@ -21,9 +22,8 @@ class AccountPcPairingIntentPublisher(
         } else {
             false
         }
-    } catch (error: CancellationException) {
-        throw error
     } catch (_: Exception) {
+        currentCoroutineContext().ensureActive()
         false
     }
 }

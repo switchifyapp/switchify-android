@@ -37,7 +37,7 @@ class PcConnectionGraph private constructor(context: Context) {
         remoteName = { remoteNames.resolvedName() },
         locationServicesOff = ::locationServicesOff,
         pairingIntents = AccountPcPairingIntentPublisher(
-            isSignedIn = { AuthRepository.instance.isUserSignedIn() },
+            isSignedIn = { AuthRepository.instance.awaitUserSignedIn() },
             createIntent = { desktopId, deviceId, nonce ->
                 SupabaseManager.getInstance().createPairingIntent(desktopId, deviceId, nonce)
             }
