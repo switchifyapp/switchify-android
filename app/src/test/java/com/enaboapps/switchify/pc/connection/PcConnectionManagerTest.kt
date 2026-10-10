@@ -29,6 +29,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -218,6 +219,7 @@ class PcConnectionManagerTest {
         private var requestCounter = 0
         private var nonceCounter = 0
         val reconnectDelays = mutableListOf<Long>()
+        var pairingIntent: PcPairingIntentPublisher = PcPairingIntentPublisher.None
         val manager = PcConnectionManager(
             transport = transport,
             storage = faultyStorage,
@@ -229,6 +231,7 @@ class PcConnectionManagerTest {
             reconnectDelay = { reconnectDelays += it },
             remoteName = { "Owen's Pixel" },
             locationServicesOff = { locationOff },
+            pairingIntents = { desktopId, deviceId, nonce -> pairingIntent.publish(desktopId, deviceId, nonce) },
             onUnexpectedError = { unexpectedErrors += it },
             scope = scope
         )
@@ -443,6 +446,102 @@ class PcConnectionManagerTest {
         runCurrent()
         assertTrue(h.manager.state.value is PcConnectionState.Idle)
         assertNull(h.storage.token("desktop-1"))
+    }
+
+    @Test
+    fun publishesThePairingIntentWithTheRequestIdentifiersBeforeSending() = managerTest { h ->
+        val approval = CompletableDeferred<Unit>()
+        h.transport.responseGates["pairing.request"] = approval
+        val published = mutableListOf<List<String>>()
+        var messagesWhenPublished = -1
+        h.pairingIntent = PcPairingIntentPublisher { desktopId, deviceId, nonce ->
+            messagesWhenPublished = h.transport.messages.size
+            published += listOf(desktopId, deviceId, nonce)
+            true
+        }
+        backgroundScope.launch { h.manager.connect(office) }
+        runCurrent()
+        assertEquals(0, messagesWhenPublished)
+        val payload = h.transport.messages.single().getJSONObject("payload")
+        assertEquals(
+            listOf(listOf(payload.getString("desktopId"), payload.getString("deviceId"), payload.getString("requestNonce"))),
+            published
+        )
+        assertEquals(listOf("desktop-1", "device-1", "nonce-1"), published.single())
+        val pairing = h.manager.state.value as PcConnectionState.Pairing
+        assertTrue(pairing.accountApprovalExpected)
+        assertEquals("215918", pairing.verificationCode)
+        assertTrue("pairing_intent_published" in h.codes)
+        assertFalse(h.diagnostics.export().contains("nonce-1"))
+        assertFalse(h.diagnostics.export().contains("device-1"))
+        approval.complete(Unit)
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun anUnpublishedPairingIntentStillSendsTheRequest() = managerTest { h ->
+        h.transport.responseGates["pairing.request"] = CompletableDeferred()
+        h.pairingIntent = PcPairingIntentPublisher { _, _, _ -> false }
+        backgroundScope.launch { h.manager.connect(office) }
+        runCurrent()
+        assertEquals(listOf("pairing.request"), h.transport.types)
+        assertFalse((h.manager.state.value as PcConnectionState.Pairing).accountApprovalExpected)
+        assertTrue("pairing_intent_not_published" in h.codes)
+    }
+
+    @Test
+    fun aFailingPairingIntentStillSendsTheRequest() = managerTest { h ->
+        h.transport.responseGates["pairing.request"] = CompletableDeferred()
+        h.pairingIntent = PcPairingIntentPublisher { _, _, _ -> throw IllegalStateException("fixture publish failed") }
+        backgroundScope.launch { h.manager.connect(office) }
+        runCurrent()
+        assertEquals(listOf("pairing.request"), h.transport.types)
+        assertFalse((h.manager.state.value as PcConnectionState.Pairing).accountApprovalExpected)
+        assertTrue("pairing_intent_not_published" in h.codes)
+        assertTrue(h.unexpectedErrors.isEmpty())
+    }
+
+    @Test
+    fun aSlowPairingIntentTimesOutAndStillSendsTheRequest() = managerTest { h ->
+        h.transport.responseGates["pairing.request"] = CompletableDeferred()
+        h.pairingIntent = PcPairingIntentPublisher { _, _, _ -> awaitCancellation() }
+        backgroundScope.launch { h.manager.connect(office) }
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Pairing)
+        assertTrue(h.transport.messages.isEmpty())
+        advanceTimeBy(PcConnectionManager.PAIRING_INTENT_TIMEOUT_MS - 1)
+        runCurrent()
+        assertTrue(h.transport.messages.isEmpty())
+        advanceTimeBy(2)
+        runCurrent()
+        assertEquals(listOf("pairing.request"), h.transport.types)
+        assertFalse((h.manager.state.value as PcConnectionState.Pairing).accountApprovalExpected)
+        assertTrue("pairing_intent_not_published" in h.codes)
+    }
+
+    @Test
+    fun aPairingAttemptCancelledWhilePublishingDoesNotSend() = managerTest { h ->
+        val publish = CompletableDeferred<Boolean>()
+        h.pairingIntent = PcPairingIntentPublisher { _, _, _ -> publish.await() }
+        backgroundScope.launch { h.manager.connect(office) }
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Pairing)
+        h.manager.disconnect()
+        publish.complete(true)
+        runCurrent()
+        assertTrue(h.manager.state.value is PcConnectionState.Idle)
+        assertFalse("pairing.request" in h.transport.types)
+        assertFalse("pairing_intent_published" in h.codes)
+    }
+
+    @Test
+    fun aCancelledPairingIntentIsNotTreatedAsAnUnpublishedIntent() = managerTest { h ->
+        h.pairingIntent = PcPairingIntentPublisher { _, _, _ -> throw CancellationException("fixture cancelled") }
+        backgroundScope.launch { h.manager.connect(office) }
+        runCurrent()
+        assertFalse("pairing.request" in h.transport.types)
+        assertFalse("pairing_intent_not_published" in h.codes)
     }
 
     @Test

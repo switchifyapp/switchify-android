@@ -33,7 +33,11 @@ sealed class PcConnectionState {
     data class Scanning(val saved: List<PcSavedPc>, val discovered: List<PcDiscoveredDesktop>) : PcConnectionState()
     data class Connecting(val desktop: PcDiscoveredDesktop) : PcConnectionState()
     data class Reconnecting(val desktop: PcDiscoveredDesktop, val attempt: Int) : PcConnectionState()
-    data class Pairing(val desktop: PcDiscoveredDesktop, val verificationCode: String) : PcConnectionState()
+    data class Pairing(
+        val desktop: PcDiscoveredDesktop,
+        val verificationCode: String,
+        val accountApprovalExpected: Boolean = false
+    ) : PcConnectionState()
     data class Connected(
         val desktop: PcDiscoveredDesktop,
         val profile: PcPointerProfile?,

@@ -38,6 +38,8 @@ enum class PcDiagnosticEvent(val code: String, val message: String) {
     ProfileRecovered("profile_recovered", "Remote controls were restored."),
     ProfileRecoveryExhausted("profile_recovery_exhausted", "Remote controls could not be restored."),
     PairingRequested("pairing_requested", "Pairing approval requested."),
+    PairingIntentPublished("pairing_intent_published", "Account approval was requested."),
+    PairingIntentNotPublished("pairing_intent_not_published", "Account approval was unavailable. Use the verification code."),
     PairingRejected("pairing_rejected", "Pairing was not approved."),
     AuthenticationFailed("authentication_failed", "Saved access is no longer valid."),
     Disconnected("disconnected", "Disconnected from the PC."),

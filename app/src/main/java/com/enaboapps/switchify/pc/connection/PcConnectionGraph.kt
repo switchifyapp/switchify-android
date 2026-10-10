@@ -4,6 +4,8 @@ import android.content.Context
 import android.location.LocationManager
 import android.os.Build
 import androidx.core.location.LocationManagerCompat
+import com.enaboapps.switchify.auth.repository.AuthRepository
+import com.enaboapps.switchify.backend.supabase.SupabaseManager
 import com.enaboapps.switchify.pc.control.PcControlStorage
 import com.enaboapps.switchify.pc.control.SharedPreferencesPcStorage
 import com.enaboapps.switchify.pc.storage.DeviceProtectedPcKeyValueStore
@@ -34,6 +36,12 @@ class PcConnectionGraph private constructor(context: Context) {
         requestPermission = permissions::request,
         remoteName = { remoteNames.resolvedName() },
         locationServicesOff = ::locationServicesOff,
+        pairingIntents = AccountPcPairingIntentPublisher(
+            isSignedIn = { AuthRepository.instance.isUserSignedIn() },
+            createIntent = { desktopId, deviceId, nonce ->
+                SupabaseManager.getInstance().createPairingIntent(desktopId, deviceId, nonce)
+            }
+        ),
         onUnexpectedError = { error ->
             Logger.log(LogEvent.PcConnectionUnexpectedError, throwable = PcSanitizedError.from(error))
         }

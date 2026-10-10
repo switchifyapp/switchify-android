@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.CopyOnWriteArraySet
 
 enum class PcSessionEndReason {
@@ -81,6 +82,7 @@ class PcConnectionManager(
     private val reconnectDelay: suspend (Long) -> Unit = { delay(it) },
     private val remoteName: suspend () -> String = { PcRemoteName.FALLBACK },
     private val locationServicesOff: () -> Boolean = { false },
+    private val pairingIntents: PcPairingIntentPublisher = PcPairingIntentPublisher.None,
     private val onUnexpectedError: (Throwable) -> Unit = {},
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
 ) {
@@ -524,13 +526,20 @@ class PcConnectionManager(
         deviceId = activeDeviceId
         val requestId = requestIds.nextId()
         val nonce = nonces.nextId()
-        set(
-            PcConnectionState.Pairing(
-                desktop,
-                PcVerificationCode.derive(desktop.desktopId, activeDeviceId, nonce)
-            )
+        val pairing = PcConnectionState.Pairing(
+            desktop,
+            PcVerificationCode.derive(desktop.desktopId, activeDeviceId, nonce)
         )
+        set(pairing)
         diagnostics.add(PcDiagnosticEvent.PairingRequested)
+        val published = publishPairingIntent(desktop.desktopId, activeDeviceId, nonce)
+        if (!isCurrent(current)) return
+        if (published) {
+            diagnostics.add(PcDiagnosticEvent.PairingIntentPublished)
+            set(pairing.copy(accountApprovalExpected = true))
+        } else {
+            diagnostics.add(PcDiagnosticEvent.PairingIntentNotPublished)
+        }
         val deviceName = remoteName()
         if (!isCurrent(current)) return
         val message = PcMessages.pairingRequest(requestId, activeDeviceId, deviceName, desktop.desktopId, nonce)
@@ -551,6 +560,14 @@ class PcConnectionManager(
         storage.save(savedPc(desktop), response.token)
         if (!isCurrent(current)) return
         authenticate(desktop, response.token, current)
+    }
+
+    private suspend fun publishPairingIntent(desktopId: String, deviceId: String, nonce: String): Boolean = try {
+        withTimeoutOrNull(PAIRING_INTENT_TIMEOUT_MS) { pairingIntents.publish(desktopId, deviceId, nonce) } == true
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Exception) {
+        false
     }
 
     private suspend fun authenticate(desktop: PcDiscoveredDesktop, accessToken: String, current: Int) {
@@ -958,6 +975,7 @@ class PcConnectionManager(
         const val PC_PAIRING_EXPIRY_MS = 120_000L
         const val PAIRING_GRACE_MS = 5_000L
         const val PAIRING_TIMEOUT_MS = PC_PAIRING_EXPIRY_MS + PAIRING_GRACE_MS
+        const val PAIRING_INTENT_TIMEOUT_MS = 3_000L
         const val COMMAND_TIMEOUT_MS = 5_000L
         const val PROFILE_TIMEOUT_MS = 5_000L
         const val HEALTH_INTERVAL_MS = 5_000L

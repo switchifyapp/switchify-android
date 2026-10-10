@@ -208,6 +208,7 @@ fun PcConnectionScreen(navController: NavController, tabBar: @Composable () -> U
         PairingDialog(
             displayName = pairing.desktop.displayName,
             verificationCode = pairing.verificationCode,
+            accountApprovalExpected = pairing.accountApprovalExpected,
             onCancel = viewModel::disconnect
         )
     }
@@ -441,7 +442,12 @@ private fun Badge(text: String) {
 }
 
 @Composable
-private fun PairingDialog(displayName: String, verificationCode: String, onCancel: () -> Unit) {
+private fun PairingDialog(
+    displayName: String,
+    verificationCode: String,
+    accountApprovalExpected: Boolean,
+    onCancel: () -> Unit
+) {
     val spokenCode = stringResource(R.string.pc_pairing_code_description, verificationCode.toList().joinToString(" "))
     AlertDialog(
         onDismissRequest = onCancel,
@@ -462,8 +468,11 @@ private fun PairingDialog(displayName: String, verificationCode: String, onCance
                     }
                 )
                 Text(
-                    text = stringResource(R.string.pc_pairing_body),
-                    style = MaterialTheme.typography.bodyMedium
+                    text = stringResource(
+                        if (accountApprovalExpected) R.string.pc_pairing_account_body else R.string.pc_pairing_body
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
             }
         },

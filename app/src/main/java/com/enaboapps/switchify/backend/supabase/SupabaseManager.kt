@@ -4,8 +4,11 @@ import android.util.Log
 import com.enaboapps.switchify.backend.supabase.models.PreferenceTypeConverter
 import com.enaboapps.switchify.backend.supabase.models.TypedUserPreferences
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * SupabaseManager provides a simplified interface for interacting with Supabase PostgreSQL.
@@ -119,6 +122,19 @@ class SupabaseManager {
         } catch (e: Exception) {
             Log.e(TAG, "Error updating user preferences", e)
             Result.failure(e)
+        }
+    }
+
+    suspend fun createPairingIntent(desktopId: String, deviceId: String, nonce: String) {
+        withContext(Dispatchers.IO) {
+            supabase.postgrest.rpc(
+                "create_pairing_intent",
+                buildJsonObject {
+                    put("p_desktop_id", desktopId)
+                    put("p_device_id", deviceId)
+                    put("p_nonce", nonce)
+                }
+            )
         }
     }
 
