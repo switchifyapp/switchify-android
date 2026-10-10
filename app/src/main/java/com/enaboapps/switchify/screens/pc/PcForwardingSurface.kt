@@ -57,6 +57,7 @@ import com.enaboapps.switchify.pc.forwarding.SharedPreferencesPcForwardingPrefer
 import com.enaboapps.switchify.pc.protocol.PcSwitchProfile
 import com.enaboapps.switchify.pc.protocol.PcSwitchProfileKind
 import com.enaboapps.switchify.theme.Dimens
+import com.enaboapps.switchify.utils.findActivity
 
 @Composable
 fun PcForwardingSurface(onOpenPcs: () -> Unit) {

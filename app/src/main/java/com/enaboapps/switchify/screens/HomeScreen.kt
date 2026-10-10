@@ -207,7 +207,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             titleResId = R.string.home_pc_control_title,
                             summaryResId = R.string.home_pc_control_summary,
                             leadingIcon = Icons.Rounded.Computer,
-                            onClick = { navController.navigate(NavigationRoute.PcControl.name) }
+                            onClick = { navController.navigate(NavigationRoute.PcControl.name) { launchSingleTop = true } }
                         )
 
                         PanelListRow(

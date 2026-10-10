@@ -4,6 +4,7 @@ import android.content.Context
 import android.location.LocationManager
 import android.os.Build
 import androidx.core.location.LocationManagerCompat
+import com.enaboapps.switchify.pc.control.PcControlStorage
 import com.enaboapps.switchify.pc.control.SharedPreferencesPcStorage
 import com.enaboapps.switchify.pc.storage.DeviceProtectedPcKeyValueStore
 import com.enaboapps.switchify.pc.storage.PcPairingStore
@@ -19,7 +20,7 @@ class PcConnectionGraph private constructor(context: Context) {
 
     val diagnostics = PcDiagnosticLog()
 
-    val remoteNames = PcRemoteNameStore(SharedPreferencesPcStorage(appContext, PcRemoteNameStore.FILE_NAME), Build.MODEL)
+    val remoteNames = PcRemoteNameStore(SharedPreferencesPcStorage(appContext, PcControlStorage.FILE_NAME), Build.MODEL)
 
     val permissions = PcPermissionRequester { PcBluetoothPermissions.hasAll(appContext) }
 

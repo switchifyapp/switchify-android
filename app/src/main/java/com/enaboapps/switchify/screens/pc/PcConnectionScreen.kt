@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +75,7 @@ fun PcConnectionScreen(navController: NavController, tabBar: @Composable () -> U
     val operationFailed by viewModel.operationFailed.collectAsStateWithLifecycle()
     var unpairTarget by rememberSaveable { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(viewModel) { viewModel.refresh() }
     DisposableEffect(viewModel) { onDispose { viewModel.stopScan() } }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.stopScan() }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }

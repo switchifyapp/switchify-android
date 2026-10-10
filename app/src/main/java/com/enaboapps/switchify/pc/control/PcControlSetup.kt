@@ -49,7 +49,6 @@ class PcControlSetup(private val storage: PcPreferenceStorage) {
     }
 
     companion object {
-        const val FILE_NAME = "switchify_pc_control"
         const val KEY = "firstRunSetup.v1"
         private const val COMPLETE_VALUE = "complete"
     }

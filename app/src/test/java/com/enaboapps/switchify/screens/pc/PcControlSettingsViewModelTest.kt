@@ -138,4 +138,21 @@ class PcControlSettingsViewModelTest {
         assertEquals(0, f.connection.syncCalls)
         assertFalse(f.viewModel.remoteNameSaving.value)
     }
+
+    @Test
+    fun refreshPicksUpChangesMadeOnOtherTabs() = viewModelTest { f ->
+        advanceUntilIdle()
+        f.forwarding.stored = 3_000L
+        f.connection.defaultId = "pc-2"
+        f.connection.saved = listOf(studio)
+        f.controlStorage.values[PcRemoteNameStore.KEY] = "Desk phone"
+
+        f.viewModel.refresh()
+        advanceUntilIdle()
+
+        assertEquals(3_000L, f.viewModel.holdToStopMs.value)
+        assertEquals("pc-2", f.viewModel.defaultDesktopId.value)
+        assertEquals(listOf(studio), f.viewModel.saved.value)
+        assertEquals("Desk phone", f.viewModel.remoteName.value)
+    }
 }

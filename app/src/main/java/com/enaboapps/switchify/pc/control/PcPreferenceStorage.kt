@@ -21,3 +21,7 @@ class SharedPreferencesPcStorage(private val preferences: SharedPreferences) : P
         preferences.edit { if (value == null) remove(key) else putString(key, value) }
     }
 }
+
+object PcControlStorage {
+    const val FILE_NAME = "switchify_pc_control"
+}

@@ -1,6 +1,9 @@
 package com.enaboapps.switchify.screens.pc
 
+import com.enaboapps.switchify.pc.connection.PcConnectionState
+import com.enaboapps.switchify.pc.connection.PcList.toDesktop
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
+import com.enaboapps.switchify.pc.connection.PcProfileStatus
 import com.enaboapps.switchify.pc.control.InMemoryPcPreferenceStorage
 import com.enaboapps.switchify.pc.control.PcControlSetup
 import com.enaboapps.switchify.pc.control.PcControlSetupPhase
@@ -21,7 +24,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -34,7 +39,8 @@ class PcControlViewModelTest {
         val connection = FakePcControlConnection(saved)
         val preferences = InMemoryPcRemotePreferences()
         val cleanupScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(test.testScheduler))
-        val viewModel = PcControlViewModel(connection, setup, PcPermissionRequester { true }, preferences, cleanupScope)
+        var granted = true
+        val viewModel = PcControlViewModel(connection, setup, PcPermissionRequester { granted }, preferences, cleanupScope)
     }
 
     private fun viewModelTest(
@@ -72,7 +78,7 @@ class PcControlViewModelTest {
         advanceUntilIdle()
         f.viewModel.onStop(changingConfigurations = false)
         advanceUntilIdle()
-        assertEquals(0, f.connection.cancelCalls)
+        assertEquals(0, f.connection.disconnectCalls)
         assertEquals(1, f.connection.connectCalls)
 
         f.viewModel.onStart()
@@ -86,12 +92,71 @@ class PcControlViewModelTest {
     }
 
     @Test
-    fun leavingPcControlOnlyCancelsAPendingPreferredConnection() = viewModelTest(saved = listOf(office)) { f ->
+    fun leavingPcControlDisconnectsButBackgroundAndRotationDoNot() = viewModelTest(saved = listOf(office)) { f ->
+        f.connection.state.value = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
         f.viewModel.onStart()
+        f.viewModel.onStop(changingConfigurations = false)
+        f.viewModel.onStart()
+        f.viewModel.onStop(changingConfigurations = true)
         advanceUntilIdle()
+        assertEquals(0, f.connection.disconnectCalls)
+
         f.viewModel.clearForTest()
         advanceUntilIdle()
-        assertEquals(1, f.connection.cancelCalls)
+        assertEquals(1, f.connection.disconnectCalls)
+    }
+
+    @Test
+    fun returningFromSettingsRetriesTheChosenPcOnceInsteadOfAutoConnecting() = viewModelTest(saved = listOf(office)) { f ->
+        val studio = office.copy(desktopId = "pc-2", displayName = "Studio")
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.connection.state.value = PcConnectionState.PermissionDenied(listOf(office, studio), retry = studio)
+        f.granted = false
+        f.viewModel.onStop(changingConfigurations = false)
+
+        f.granted = true
+        f.viewModel.onStart()
+        f.viewModel.onResume()
+        advanceUntilIdle()
+
+        assertEquals(1, f.connection.connectCalls)
+        assertEquals(listOf(studio), f.connection.connectedSaved)
+    }
+
+    @Test
+    fun returningWithLocationStillOffDoesNothing() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.connection.state.value = PcConnectionState.LocationOff(listOf(office), retry = office)
+        f.connection.locationOff = true
+        f.viewModel.onStop(changingConfigurations = false)
+        f.viewModel.onStart()
+        f.viewModel.onResume()
+        advanceUntilIdle()
+        assertEquals(1, f.connection.connectCalls)
+        assertEquals(emptyList<PcSavedPc>(), f.connection.connectedSaved)
+
+        f.connection.locationOff = false
+        f.viewModel.onResume()
+        advanceUntilIdle()
+        assertEquals(listOf(office), f.connection.connectedSaved)
+    }
+
+    @Test
+    fun backReturnsToTheStartTabBeforeLeaving() = viewModelTest(saved = listOf(office)) { f ->
+        advanceUntilIdle()
+        assertEquals(PcControlTab.Remote, f.viewModel.startTab.value)
+        assertFalse(f.viewModel.onBack())
+
+        f.viewModel.selectTab(PcControlTab.Settings)
+        assertTrue(f.viewModel.onBack())
+        assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
+        assertFalse(f.viewModel.onBack())
+
+        f.viewModel.selectTab(PcControlTab.Pcs)
+        assertTrue(f.viewModel.onBack())
+        assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
     }
 
     @Test

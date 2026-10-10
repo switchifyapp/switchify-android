@@ -57,10 +57,16 @@ class PcControlSettingsViewModel(
     init {
         viewModelScope.launch {
             connection.state
-                .map { it.javaClass }
+                .map { it.javaClass to it.savedPcs }
                 .distinctUntilChanged()
                 .collect { refreshSaved() }
         }
+    }
+
+    fun refresh() {
+        _holdToStopMs.value = forwarding.holdToStopMs()
+        _remoteName.value = remoteNames.savedName()
+        viewModelScope.launch { refreshSaved() }
     }
 
     fun setSurface(surface: PcRemoteSurface) = preferences.setSurface(surface)

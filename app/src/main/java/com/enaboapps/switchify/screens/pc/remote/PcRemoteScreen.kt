@@ -1,9 +1,6 @@
 package com.enaboapps.switchify.screens.pc.remote
 
-import android.app.Activity
 import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
@@ -48,8 +45,6 @@ import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
-import com.enaboapps.switchify.components.PillTab
-import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcProfileStatus
 import com.enaboapps.switchify.pc.remote.PcRemoteGraph
@@ -60,6 +55,7 @@ import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlock
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlocking
 import com.enaboapps.switchify.screens.pc.PcForwardingSurface
 import com.enaboapps.switchify.theme.Dimens
+import com.enaboapps.switchify.utils.findActivity
 
 @Composable
 fun PcRemoteScreen(navController: NavController, tabBar: @Composable () -> Unit, onManagePcs: () -> Unit) {
@@ -117,19 +113,16 @@ fun PcRemoteScreen(navController: NavController, tabBar: @Composable () -> Unit,
             val activeHolder = holder
             when {
                 current !is PcConnectionState.Connected -> {
-                    SurfaceSelector(surface, viewModel::selectSurface)
+                    PcSurfaceSelector(surface, viewModel::selectSurface)
                     DisconnectedContent(current, onRetry = viewModel::retry, onChoose = managePcs)
                 }
                 current.profile == null -> ProfileUnavailable(current.profileStatus)
                 activeHolder != null && activeHolder.desktopId == current.desktop.desktopId -> {
-                    ConnectedHeader(current)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) { SurfaceSelector(surface, viewModel::selectSurface) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.weight(1f)) { ConnectedHeader(current) }
                         if (surface.usesLayouts) PcLayoutEditToggle(editingLayout, viewModel::toggleLayoutEditing)
                     }
+                    PcSurfaceSelector(surface, viewModel::selectSurface)
                     val state by activeHolder.session.state.collectAsState()
                     val submittingEnter by activeHolder.liveTyping.submitting.collectAsState()
                     LaunchedEffect(state.repeat) { viewModel.refreshPhysicalSwitchStop() }
@@ -168,23 +161,6 @@ fun PcRemoteScreen(navController: NavController, tabBar: @Composable () -> Unit,
         }
     }
     layoutEditor?.let { session -> PcLayoutEditorDialog(session, viewModel) }
-}
-
-@Composable
-private fun SurfaceSelector(selected: PcRemoteSurface, onSelect: (PcRemoteSurface) -> Unit) {
-    val surfaces = PcRemoteSurface.entries
-    PillTabRow(
-        tabs = surfaces.map { PillTab(label = stringResource(surfaceLabel(it))) },
-        selectedIndex = surfaces.indexOf(selected),
-        onTabSelected = { index -> onSelect(surfaces[index]) }
-    )
-}
-
-private fun surfaceLabel(surface: PcRemoteSurface) = when (surface) {
-    PcRemoteSurface.Mouse -> R.string.pc_surface_mouse
-    PcRemoteSurface.Typing -> R.string.pc_surface_typing
-    PcRemoteSurface.Window -> R.string.pc_surface_window
-    PcRemoteSurface.Forwarding -> R.string.pc_surface_forwarding
 }
 
 @Composable
@@ -316,10 +292,4 @@ private fun EmptyState(
             actions()
         }
     }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

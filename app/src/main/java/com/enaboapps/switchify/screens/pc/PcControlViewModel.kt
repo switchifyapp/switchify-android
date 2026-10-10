@@ -9,6 +9,7 @@ import com.enaboapps.switchify.pc.control.PcControlOpening
 import com.enaboapps.switchify.pc.control.PcControlSetup
 import com.enaboapps.switchify.pc.control.PcControlSetupPhase
 import com.enaboapps.switchify.pc.control.PcControlTab
+import com.enaboapps.switchify.pc.control.PcResumeRecovery
 import com.enaboapps.switchify.pc.remote.PcRemotePreferences
 import com.enaboapps.switchify.pc.remote.PcRemoteSurface
 import kotlinx.coroutines.CancellationException
@@ -32,6 +33,9 @@ class PcControlViewModel(
     private val _tab = MutableStateFlow<PcControlTab?>(null)
     val tab: StateFlow<PcControlTab?> = _tab.asStateFlow()
 
+    private val _startTab = MutableStateFlow<PcControlTab?>(null)
+    val startTab: StateFlow<PcControlTab?> = _startTab.asStateFlow()
+
     private val autoConnect = PcAutoConnectPolicy()
 
     init {
@@ -43,14 +47,26 @@ class PcControlViewModel(
         _tab.value = tab
     }
 
+    fun onBack(): Boolean {
+        val start = _startTab.value ?: return false
+        if (_tab.value == start) return false
+        _tab.value = start
+        return true
+    }
+
     fun onStart() {
-        if (autoConnect.onStart(setup.isComplete)) launchSafely { connection.connectPreferred() }
+        val shouldConnect = autoConnect.onStart(setup.isComplete)
+        if (shouldConnect && PcResumeRecovery.pendingRetry(connection.state.value) == null) {
+            launchSafely { connection.connectPreferred() }
+        }
     }
 
     fun onStop(changingConfigurations: Boolean) = autoConnect.onStop(changingConfigurations)
 
     fun onResume() {
         if (permissions.requested.value) permissions.complete(permissions.isGranted())
+        val recovery = PcResumeRecovery.after(connection.state.value, permissions.isGranted(), connection.isLocationOff())
+        if (recovery is PcResumeRecovery.RetrySaved) launchSafely { connection.connectSaved(recovery.pc) }
     }
 
     fun onPermissionResult(granted: Boolean) = permissions.complete(granted)
@@ -64,8 +80,13 @@ class PcControlViewModel(
     fun finishSetup(searchForPcs: Boolean) {
         if (setup.isComplete) return
         setup.complete()
-        _tab.value = PcControlOpening.tabAfterSetup()
+        open(PcControlOpening.tabAfterSetup())
         if (searchForPcs) launchSafely { connection.scan() }
+    }
+
+    private fun open(tab: PcControlTab) {
+        _startTab.value = tab
+        _tab.value = tab
     }
 
     private fun resolveOpeningTab() {
@@ -77,7 +98,7 @@ class PcControlViewModel(
             } catch (_: Exception) {
                 emptyList()
             }
-            if (_tab.value == null) _tab.value = PcControlOpening.initialTab(saved)
+            if (_tab.value == null) open(PcControlOpening.initialTab(saved))
         }
     }
 
@@ -96,7 +117,7 @@ class PcControlViewModel(
         permissions.detachHost()
         cleanupScope.launch {
             try {
-                connection.cancelPreferredConnection()
+                connection.disconnect()
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {

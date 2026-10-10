@@ -10,6 +10,7 @@ import com.enaboapps.switchify.pc.remote.FakeRemoteSender
 import com.enaboapps.switchify.pc.remote.FakeSwitchStop
 import com.enaboapps.switchify.pc.remote.InMemoryPcRemotePreferences
 import com.enaboapps.switchify.pc.remote.PcRemoteConnection
+import com.enaboapps.switchify.pc.remote.PcRemoteSurface
 import com.enaboapps.switchify.pc.remote.layouts.InMemoryPcLayoutStore
 import com.enaboapps.switchify.pc.remote.remoteProfile
 import com.enaboapps.switchify.pc.storage.PcSavedPc
@@ -31,6 +32,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 private class FakeRemoteConnection : PcRemoteConnection {
@@ -148,5 +150,36 @@ class PcRemoteViewModelTest {
         assertEquals("mouse.repeat.stop", connection.sender.types.first())
         assertNull(switchStop.armed)
         assertEquals(0, connection.cleanups.size)
+    }
+
+    @Test
+    fun switchingToForwardingReleasesHeldInputAndLeavesEditMode() = viewModelTest { connection, viewModel, switchStop ->
+        viewModel.toggleLayoutEditing()
+        holdEverything(viewModel)
+        connection.sender.calls.clear()
+
+        viewModel.selectSurface(PcRemoteSurface.Forwarding)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("mouse.repeat.stop", "mouse.dragEnd", "keyboard.modifierUp", "keyboard.textStream.close"),
+            connection.sender.types
+        )
+        assertNull(switchStop.armed)
+        assertFalse(viewModel.editingLayout.value)
+        assertEquals(PcRemoteSurface.Forwarding, viewModel.preferences.surface.value)
+    }
+
+    @Test
+    fun switchingBetweenLayoutSurfacesKeepsHeldInput() = viewModelTest { connection, viewModel, _ ->
+        viewModel.toggleLayoutEditing()
+        holdEverything(viewModel)
+        connection.sender.calls.clear()
+
+        viewModel.selectSurface(PcRemoteSurface.Window)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), connection.sender.types)
+        assertTrue(viewModel.editingLayout.value)
     }
 }

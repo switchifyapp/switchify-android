@@ -43,7 +43,6 @@ class PcRemoteNameStore(private val storage: PcPreferenceStorage, private val mo
     }
 
     companion object {
-        const val FILE_NAME = "switchify_pc_control"
         const val KEY = "remoteName"
     }
 }

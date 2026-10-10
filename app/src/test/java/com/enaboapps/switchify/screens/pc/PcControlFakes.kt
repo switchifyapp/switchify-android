@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class FakePcControlConnection(var saved: List<PcSavedPc> = emptyList()) : PcControlConnection {
     override val state = MutableStateFlow<PcConnectionState>(PcConnectionState.Idle(saved))
     var connectCalls = 0
-    var cancelCalls = 0
+    var disconnectCalls = 0
+    val connectedSaved = mutableListOf<PcSavedPc>()
+    var locationOff = false
     var scanCalls = 0
     var syncCalls = 0
     var defaultId: String? = null
@@ -24,9 +26,15 @@ class FakePcControlConnection(var saved: List<PcSavedPc> = emptyList()) : PcCont
         connectCalls += 1
     }
 
-    override suspend fun cancelPreferredConnection() {
-        cancelCalls += 1
+    override suspend fun disconnect() {
+        disconnectCalls += 1
     }
+
+    override suspend fun connectSaved(pc: PcSavedPc) {
+        connectedSaved += pc
+    }
+
+    override fun isLocationOff() = locationOff
 
     override suspend fun scan() {
         scanCalls += 1

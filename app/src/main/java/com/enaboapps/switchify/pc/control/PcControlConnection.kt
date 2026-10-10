@@ -13,7 +13,11 @@ interface PcControlConnection {
 
     suspend fun connectPreferred()
 
-    suspend fun cancelPreferredConnection()
+    suspend fun connectSaved(pc: PcSavedPc)
+
+    fun isLocationOff(): Boolean
+
+    suspend fun disconnect()
 
     suspend fun scan()
 
@@ -33,7 +37,11 @@ fun PcConnectionManager.asControlConnection(): PcControlConnection {
 
         override suspend fun connectPreferred() = manager.connectPreferred()
 
-        override suspend fun cancelPreferredConnection() = manager.cancelPreferredConnection()
+        override suspend fun connectSaved(pc: PcSavedPc) = manager.connectSaved(pc)
+
+        override fun isLocationOff() = manager.isLocationOff()
+
+        override suspend fun disconnect() = manager.disconnect()
 
         override suspend fun scan() = manager.scan()
 

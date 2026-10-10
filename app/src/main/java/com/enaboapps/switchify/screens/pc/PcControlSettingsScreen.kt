@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +80,8 @@ fun PcControlSettingsScreen(navController: NavController, tabBar: @Composable ()
     val remoteName by viewModel.remoteName.collectAsStateWithLifecycle()
     val remoteNameSaving by viewModel.remoteNameSaving.collectAsStateWithLifecycle()
     val remoteNameStatus by viewModel.remoteNameStatus.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel) { viewModel.refresh() }
 
     BaseView(
         titleResId = R.string.pc_control_tab_settings,

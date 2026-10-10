@@ -1,8 +1,6 @@
 package com.enaboapps.switchify.screens.pc
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -43,6 +41,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.pc.control.PcControlSetup
 import com.enaboapps.switchify.pc.control.PcControlSetupPhase
+import com.enaboapps.switchify.pc.control.PcControlStorage
 import com.enaboapps.switchify.pc.control.PcControlTab
 import com.enaboapps.switchify.pc.control.SharedPreferencesPcStorage
 import com.enaboapps.switchify.pc.control.asControlConnection
@@ -50,6 +49,7 @@ import com.enaboapps.switchify.pc.remote.PcRemoteGraph
 import com.enaboapps.switchify.pc.transport.PcBluetoothPermissions
 import com.enaboapps.switchify.screens.pc.remote.PcRemoteScreen
 import com.enaboapps.switchify.theme.Dimens
+import com.enaboapps.switchify.utils.findActivity
 
 @Composable
 fun PcControlScreen(navController: NavController) {
@@ -58,7 +58,7 @@ fun PcControlScreen(navController: NavController) {
     val viewModel: PcControlViewModel = viewModel {
         PcControlViewModel(
             connection = graph.connection.manager.asControlConnection(),
-            setup = PcControlSetup(SharedPreferencesPcStorage(context, PcControlSetup.FILE_NAME)),
+            setup = PcControlSetup(SharedPreferencesPcStorage(context, PcControlStorage.FILE_NAME)),
             permissions = graph.connection.permissions,
             preferences = graph.preferences,
             cleanupScope = graph.scope
@@ -125,6 +125,9 @@ fun PcControlScreen(navController: NavController) {
         return
     }
 
+    val startTab by viewModel.startTab.collectAsStateWithLifecycle()
+    BackHandler(enabled = startTab != null && current != startTab) { viewModel.onBack() }
+
     val tabBar: @Composable () -> Unit = { PcControlTabBar(current, viewModel::selectTab) }
     when (current) {
         PcControlTab.Pcs -> PcConnectionScreen(navController, tabBar)
@@ -164,9 +167,3 @@ private val PcControlTab.icon: ImageVector
         PcControlTab.Remote -> Icons.Rounded.SettingsRemote
         PcControlTab.Settings -> Icons.Rounded.Settings
     }
-
-internal tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
