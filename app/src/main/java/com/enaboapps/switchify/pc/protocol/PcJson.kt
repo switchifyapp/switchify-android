@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.pc.protocol
 
 import java.math.BigDecimal
+import java.math.MathContext
+import java.math.RoundingMode
 import kotlin.math.abs
 
 typealias PcJsonObject = Map<String, Any?>
@@ -60,7 +62,7 @@ object PcJson {
         }
 
         private fun shortestDecimal(value: Double): String {
-            val decimal = BigDecimal(abs(value).toString()).stripTrailingZeros()
+            val decimal = BigDecimal(abs(value).toString()).round(SIGNIFICANT_DIGITS).stripTrailingZeros()
             val digits = decimal.unscaledValue().toString()
             val exponent = -decimal.scale()
             val pointPosition = digits.length + exponent
@@ -112,4 +114,5 @@ object PcJson {
     private const val LONG_RANGE_LIMIT = 9.223372036854775807E18
     private const val MAX_PLAIN_DIGITS = 16
     private const val MIN_PLAIN_POINT_POSITION = -4
+    private val SIGNIFICANT_DIGITS = MathContext(15, RoundingMode.HALF_EVEN)
 }

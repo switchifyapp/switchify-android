@@ -3,6 +3,7 @@ package com.enaboapps.switchify.pc.protocol
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PcCanonicalTest {
@@ -75,7 +76,7 @@ class PcCanonicalTest {
 
     @Test
     fun formatsDecimalsTheWayTheDesktopReserializesThem() {
-        mapOf(
+        listOf(
             0.0001 to "0.0001",
             0.00001 to "0.00001",
             1.25e-5 to "0.0000125",
@@ -83,11 +84,16 @@ class PcCanonicalTest {
             1e-7 to "1e-7",
             -2.5e-8 to "-2.5e-8",
             12345678.5 to "12345678.5",
-            123456789012345.6 to "123456789012345.6",
+            123456789012345.6 to "123456789012346.0",
+            36.912 * 1.05 to "38.7576",
+            38.757600000000004 to "38.7576",
+            97.71615000000001 to "97.71615",
+            -116.03535153926381 to "-116.035351539264",
+            0.1 + 0.2 to "0.3",
             1e16 to "10000000000000000",
             1e19 to "1e+19",
             1.5e300 to "1.5e+300",
-            9.223372036854776e18 to "9.223372036854776e+18"
+            9.223372036854776e18 to "9.22337203685478e+18"
         ).forEach { (value, expected) -> assertEquals(expected, PcJson.stringify(value)) }
     }
 
@@ -103,6 +109,11 @@ class PcCanonicalTest {
         val extreme = PcCommands.move(1.5e300, -1e-6).payload
         assertEquals("{\"dx\":1.5e+300,\"dy\":-1e-6}", PcCanonical.stableStringify(extreme))
         assertEquals("CY4J6g3VBl4xs8mkO5cs6gqRQRKhYe31Ia0DHazT-Z8", PcCanonical.authProof("decimal-3", "device-1", 1000L, "mouse.move", extreme, TOKEN))
+        val rounded = PcCommands.move(36.912 * 1.05, -116.03535153926381)
+        assertEquals("{\"dx\":38.7576,\"dy\":-116.035351539264}", PcCanonical.stableStringify(rounded.payload))
+        val wire = PcMessages.authenticatedCommand("decimal-4", "device-1", TOKEN, 1000L, rounded)
+        assertTrue(wire.contains("\"payload\":{\"dx\":38.7576,\"dy\":-116.035351539264}"))
+        assertEquals("ufaTp4bW6BOvVmi-AJWmR7E1JDqap3zVEgDwm_JYcH0", JSONObject(wire).getString("auth"))
     }
 
     @Test
