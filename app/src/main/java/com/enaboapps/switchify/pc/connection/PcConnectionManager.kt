@@ -463,6 +463,7 @@ class PcConnectionManager(
         protocolOperations += 1
         var healthyActivity = false
         var shouldProbe = false
+        var timedOut = false
         try {
             val response = activeChannel.request(command, responseMode)
             healthyActivity = true
@@ -487,6 +488,7 @@ class PcConnectionManager(
                 launchNow { unexpectedDisconnect(desktop, sourceOperation) }
             } else {
                 shouldProbe = true
+                timedOut = error is PcProtocolResponseTimeoutException
             }
         } finally {
             protocolOperations -= 1
@@ -495,7 +497,7 @@ class PcConnectionManager(
             }
         }
         diagnostics.add(PcDiagnosticEvent.CommandFailed, PcDiagnosticLevel.Warning)
-        return PcRequestResult(null, unconfirmed = shouldProbe)
+        return PcRequestResult(null, unconfirmed = timedOut && isCurrent(sourceOperation))
     }
 
     private fun applyPointerSpeed(command: PcCommand) {
