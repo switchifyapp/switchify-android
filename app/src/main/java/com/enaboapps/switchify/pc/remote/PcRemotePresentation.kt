@@ -41,6 +41,7 @@ object PcRemotePresentation {
             is PcConnectionState.Failed -> PcText.Res(failureMessage(connection.failure))
             is PcConnectionState.PermissionDenied -> PcText.Res(R.string.pc_remote_permission_required)
             is PcConnectionState.BluetoothOff -> PcText.Res(R.string.pc_remote_bluetooth_off)
+            is PcConnectionState.LocationOff -> PcText.Res(R.string.pc_location_off_body)
             is PcConnectionState.Unsupported -> PcText.Res(R.string.pc_remote_bluetooth_unsupported)
             else -> PcText.Res(if (saved.isEmpty()) R.string.pc_remote_pair_first else R.string.pc_remote_preparing_preferred)
         }
