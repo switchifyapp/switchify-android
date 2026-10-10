@@ -65,7 +65,7 @@ import com.enaboapps.switchify.pc.protocol.PcPlatform
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
-fun PcConnectionScreen(navController: NavController, tabBar: @Composable () -> Unit) {
+fun PcConnectionScreen(navController: NavController, tabBar: @Composable () -> Unit, onBackPressed: () -> Unit) {
     val context = LocalContext.current
     val graph = remember { PcConnectionGraph.getInstance(context) }
     val viewModel: PcConnectionViewModel = viewModel { PcConnectionViewModel(graph.manager, graph.permissions) }
@@ -80,7 +80,12 @@ fun PcConnectionScreen(navController: NavController, tabBar: @Composable () -> U
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.stopScan() }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
 
-    BaseView(titleResId = R.string.screen_title_pcs, navController = navController, bottomBar = tabBar) {
+    BaseView(
+        titleResId = R.string.screen_title_pcs,
+        navController = navController,
+        onBackPressed = onBackPressed,
+        bottomBar = tabBar
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)

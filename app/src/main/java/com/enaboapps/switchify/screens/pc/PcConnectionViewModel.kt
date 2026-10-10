@@ -7,7 +7,6 @@ import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcList
 import com.enaboapps.switchify.pc.connection.PcListItem
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
-import com.enaboapps.switchify.pc.control.PcResumeRecovery
 import com.enaboapps.switchify.pc.storage.PcSavedPc
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,8 +94,6 @@ class PcConnectionViewModel(
 
     fun onResume() {
         if (permissions.requested.value) permissions.complete(permissions.isGranted())
-        val recovery = PcResumeRecovery.after(manager.state.value, permissions.isGranted(), manager.isLocationOff())
-        if (recovery == PcResumeRecovery.Rescan) scan()
     }
 
     fun onPermissionResult(granted: Boolean) = permissions.complete(granted)

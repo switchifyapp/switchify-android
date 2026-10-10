@@ -144,6 +144,39 @@ class PcControlViewModelTest {
     }
 
     @Test
+    fun returningAfterABlockedSearchWithASavedPcStartsOneScanAndNoConnect() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.granted = false
+        f.connection.state.value = PcConnectionState.PermissionDenied(listOf(office))
+        f.viewModel.onStop(changingConfigurations = false)
+
+        f.granted = true
+        f.viewModel.onStart()
+        f.viewModel.onResume()
+        advanceUntilIdle()
+
+        assertEquals(1, f.connection.connectCalls)
+        assertEquals(1, f.connection.scanCalls)
+        assertEquals(emptyList<PcSavedPc>(), f.connection.connectedSaved)
+    }
+
+    @Test
+    fun aBlockedSearchStillDeniedOnReturnDoesNothing() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.granted = false
+        f.connection.state.value = PcConnectionState.LocationOff(listOf(office))
+        f.connection.locationOff = true
+        f.viewModel.onStop(changingConfigurations = false)
+        f.viewModel.onStart()
+        f.viewModel.onResume()
+        advanceUntilIdle()
+        assertEquals(1, f.connection.connectCalls)
+        assertEquals(0, f.connection.scanCalls)
+    }
+
+    @Test
     fun backReturnsToTheStartTabBeforeLeaving() = viewModelTest(saved = listOf(office)) { f ->
         advanceUntilIdle()
         assertEquals(PcControlTab.Remote, f.viewModel.startTab.value)

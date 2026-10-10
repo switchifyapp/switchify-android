@@ -129,14 +129,16 @@ fun PcControlScreen(navController: NavController) {
     BackHandler(enabled = startTab != null && current != startTab) { viewModel.onBack() }
 
     val tabBar: @Composable () -> Unit = { PcControlTabBar(current, viewModel::selectTab) }
+    val backToStartOrLeave: () -> Unit = { if (!viewModel.onBack()) navController.popBackStack() }
     when (current) {
-        PcControlTab.Pcs -> PcConnectionScreen(navController, tabBar)
+        PcControlTab.Pcs -> PcConnectionScreen(navController, tabBar, backToStartOrLeave)
         PcControlTab.Remote -> PcRemoteScreen(
             navController = navController,
             tabBar = tabBar,
-            onManagePcs = { viewModel.selectTab(PcControlTab.Pcs) }
+            onManagePcs = { viewModel.selectTab(PcControlTab.Pcs) },
+            onBackPressed = backToStartOrLeave
         )
-        PcControlTab.Settings -> PcControlSettingsScreen(navController, tabBar)
+        PcControlTab.Settings -> PcControlSettingsScreen(navController, tabBar, backToStartOrLeave)
     }
 }
 

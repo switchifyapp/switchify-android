@@ -56,7 +56,7 @@ class PcControlViewModel(
 
     fun onStart() {
         val shouldConnect = autoConnect.onStart(setup.isComplete)
-        if (shouldConnect && PcResumeRecovery.pendingRetry(connection.state.value) == null) {
+        if (shouldConnect && !PcResumeRecovery.blocksAutoConnect(connection.state.value)) {
             launchSafely { connection.connectPreferred() }
         }
     }
@@ -66,7 +66,11 @@ class PcControlViewModel(
     fun onResume() {
         if (permissions.requested.value) permissions.complete(permissions.isGranted())
         val recovery = PcResumeRecovery.after(connection.state.value, permissions.isGranted(), connection.isLocationOff())
-        if (recovery is PcResumeRecovery.RetrySaved) launchSafely { connection.connectSaved(recovery.pc) }
+        when (recovery) {
+            is PcResumeRecovery.RetrySaved -> launchSafely { connection.connectSaved(recovery.pc) }
+            PcResumeRecovery.Rescan -> launchSafely { connection.scan() }
+            null -> Unit
+        }
     }
 
     fun onPermissionResult(granted: Boolean) = permissions.complete(granted)

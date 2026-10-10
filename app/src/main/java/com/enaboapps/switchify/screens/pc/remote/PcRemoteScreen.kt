@@ -58,7 +58,12 @@ import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.utils.findActivity
 
 @Composable
-fun PcRemoteScreen(navController: NavController, tabBar: @Composable () -> Unit, onManagePcs: () -> Unit) {
+fun PcRemoteScreen(
+    navController: NavController,
+    tabBar: @Composable () -> Unit,
+    onManagePcs: () -> Unit,
+    onBackPressed: () -> Unit
+) {
     val context = LocalContext.current
     val graph = remember { PcRemoteGraph.getInstance(context) }
     val viewModel: PcRemoteViewModel = viewModel {
@@ -91,6 +96,7 @@ fun PcRemoteScreen(navController: NavController, tabBar: @Composable () -> Unit,
 
     BaseView(
         titleResId = R.string.screen_title_pc_remote,
+        onBackPressed = onBackPressed,
         navController = navController,
         bottomBar = {
             Column {

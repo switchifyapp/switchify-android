@@ -8,6 +8,9 @@ sealed class PcResumeRecovery {
     data object Rescan : PcResumeRecovery()
 
     companion object {
+        fun blocksAutoConnect(state: PcConnectionState): Boolean =
+            state is PcConnectionState.PermissionDenied || state is PcConnectionState.LocationOff
+
         fun pendingRetry(state: PcConnectionState): PcSavedPc? = when (state) {
             is PcConnectionState.PermissionDenied -> state.retry
             is PcConnectionState.LocationOff -> state.retry

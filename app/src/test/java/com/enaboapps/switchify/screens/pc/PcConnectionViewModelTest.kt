@@ -60,7 +60,7 @@ class PcConnectionViewModelTest {
     }
 
     @Test
-    fun leavesASavedPcRetryToPcControlAndDoesNotScanAfterPermissionIsGranted() = viewModelTest { f ->
+    fun leavesASavedPcRetryToPcControlAfterPermissionIsGranted() = viewModelTest { f ->
         f.storage.save(savedOffice(), "saved-secret")
         f.viewModel.connect(f.savedItem)
         runCurrent()
@@ -97,7 +97,7 @@ class PcConnectionViewModelTest {
     }
 
     @Test
-    fun rescansAfterPermissionIsGrantedWhenNoPcWasChosen() = viewModelTest { f ->
+    fun leavesTheRescanToPcControlAfterPermissionIsGranted() = viewModelTest { f ->
         f.viewModel.scan()
         runCurrent()
         f.viewModel.onPermissionResult(false)
@@ -107,6 +107,7 @@ class PcConnectionViewModelTest {
         f.granted = true
         f.viewModel.onResume()
         runCurrent()
-        assertTrue(f.manager.state.value is PcConnectionState.Scanning)
+        assertTrue(f.manager.state.value is PcConnectionState.PermissionDenied)
+        assertNull(f.transport.onScanDesktop)
     }
 }

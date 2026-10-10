@@ -60,7 +60,7 @@ import com.enaboapps.switchify.theme.Dimens
 import kotlin.math.roundToInt
 
 @Composable
-fun PcControlSettingsScreen(navController: NavController, tabBar: @Composable () -> Unit) {
+fun PcControlSettingsScreen(navController: NavController, tabBar: @Composable () -> Unit, onBackPressed: () -> Unit) {
     val context = LocalContext.current
     val graph = remember { PcRemoteGraph.getInstance(context) }
     val viewModel: PcControlSettingsViewModel = viewModel {
@@ -85,6 +85,7 @@ fun PcControlSettingsScreen(navController: NavController, tabBar: @Composable ()
 
     BaseView(
         titleResId = R.string.pc_control_tab_settings,
+        onBackPressed = onBackPressed,
         navController = navController,
         bottomBar = tabBar
     ) {

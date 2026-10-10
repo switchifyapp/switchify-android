@@ -85,6 +85,9 @@ class PcControlRulesTest {
 
         assertNull(PcResumeRecovery.after(PcConnectionState.Idle(listOf(office)), permissionGranted = true, locationOff = false))
         assertEquals(office, PcResumeRecovery.pendingRetry(denied))
+        assertTrue(PcResumeRecovery.blocksAutoConnect(denied.copy(retry = null)))
+        assertTrue(PcResumeRecovery.blocksAutoConnect(locationOff.copy(retry = null)))
+        assertFalse(PcResumeRecovery.blocksAutoConnect(PcConnectionState.Idle(listOf(office))))
         assertNull(PcResumeRecovery.pendingRetry(PcConnectionState.Failed(PcConnectionFailure.CouldNotConnect, listOf(office))))
     }
 
