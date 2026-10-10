@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.RemoteCallbackList
+import com.enaboapps.switchify.pc.remote.PcSwitchRepeatStop
 import com.enaboapps.switchify.remotebridge.ISwitchifyRemoteBridgeCallback
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -113,7 +114,16 @@ object SwitchifyRemoteBridgeCoordinator {
         publishSnapshot()
     }
 
-    fun stopRemoteRepeatForSwitch(): Boolean = callbackDispatcher.dispatch {
+    fun stopRemoteRepeatForSwitch(): Boolean {
+        if (PcSwitchRepeatStop.requestStop()) return true
+        return stopBridgedRepeat()
+    }
+
+    fun hasConfiguredExternalSwitches(): Boolean = synchronized(lock) {
+        externalSwitches?.invoke()?.isNotEmpty() == true
+    }
+
+    private fun stopBridgedRepeat(): Boolean = callbackDispatcher.dispatch {
         val generation = synchronized(lock) { repeatGeneration.also { repeatGeneration = 0 } }
         if (generation == 0L) return@dispatch false
         broadcast { it.onRepeatStopRequested(generation) }
