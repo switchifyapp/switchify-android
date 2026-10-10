@@ -68,7 +68,9 @@ class PcControlViewModel(
 
     fun onStop(changingConfigurations: Boolean) {
         autoConnect.onStop(changingConfigurations)
-        if (!changingConfigurations) connection.stopScan()
+        if (changingConfigurations || permissions.requested.value) return
+        if (PcResumeRecovery.blocksAutoConnect(connection.state.value)) return
+        launchSafely { connection.disconnect() }
     }
 
     fun onResume() {

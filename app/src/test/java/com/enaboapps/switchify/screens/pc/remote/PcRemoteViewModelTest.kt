@@ -11,6 +11,7 @@ import com.enaboapps.switchify.pc.remote.FakeSwitchStop
 import com.enaboapps.switchify.pc.remote.InMemoryPcRemotePreferences
 import com.enaboapps.switchify.pc.remote.PcRemoteConnection
 import com.enaboapps.switchify.pc.remote.PcRemoteSurface
+import com.enaboapps.switchify.pc.remote.PcTypingMode
 import com.enaboapps.switchify.pc.remote.layouts.InMemoryPcLayoutStore
 import com.enaboapps.switchify.pc.remote.remoteProfile
 import com.enaboapps.switchify.pc.storage.PcSavedPc
@@ -150,6 +151,26 @@ class PcRemoteViewModelTest {
         assertEquals("mouse.repeat.stop", connection.sender.types.first())
         assertNull(switchStop.armed)
         assertEquals(0, connection.cleanups.size)
+    }
+
+    @Test
+    fun theDraftSurfaceAndEditModeSurviveABackgroundDisconnect() = viewModelTest { connection, viewModel, _ ->
+        viewModel.selectSurface(PcRemoteSurface.Typing)
+        viewModel.selectTypingMode(PcTypingMode.Draft)
+        viewModel.setDraft("unsent words")
+        viewModel.toggleLayoutEditing()
+        advanceUntilIdle()
+
+        connection.state.value = PcConnectionState.Idle(emptyList())
+        advanceUntilIdle()
+        connection.state.value = PcConnectionState.Connected(office, remoteProfile(), PcProfileStatus.Ready)
+        advanceUntilIdle()
+
+        assertEquals("unsent words", viewModel.preferences.draft.value)
+        assertEquals(PcRemoteSurface.Typing, viewModel.preferences.surface.value)
+        assertEquals(PcTypingMode.Draft, viewModel.preferences.typingMode.value)
+        assertTrue(viewModel.editingLayout.value)
+        assertNotNull(viewModel.holder.value)
     }
 
     @Test

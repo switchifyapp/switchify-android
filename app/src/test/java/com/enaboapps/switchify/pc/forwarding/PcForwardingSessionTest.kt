@@ -30,7 +30,7 @@ class PcForwardingSessionTest {
     private fun connected(profileCommands: List<String> = GENERIC_COMMANDS) =
         PcConnectionState.Connected(desktop, pointerProfile(profileCommands), PcProfileStatus.Ready)
 
-    private fun TestScope.harness(connection: FakeConnection = FakeConnection()): Harness {
+    private fun TestScope.harness(connection: FakeConnection = FakeConnection(), attached: Boolean = true): Harness {
         val state = MutableStateFlow<PcConnectionState>(connected())
         val bridge = FakeBridge()
         val preferences = FakePreferences()
@@ -47,6 +47,7 @@ class PcForwardingSessionTest {
             scope = backgroundScope,
             sessionIds = { "00000000-0000-4000-8000-000000000001" }
         )
+        if (attached) session.attach()
         runCurrent()
         return Harness(state, connection, bridge, preferences, cleanups, session)
     }
@@ -152,11 +153,11 @@ class PcForwardingSessionTest {
     }
 
     @Test
-    fun leavingTheScreenStopsForwardingWithoutRestoring() = runTest {
+    fun leavingTheSurfaceThenReconnectingDoesNotRestart() = runTest {
         val h = harness()
         h.session.toggle()
         runCurrent()
-        h.session.stopForBackground(changingConfigurations = false)
+        h.session.detach(changingConfigurations = false)
         runCurrent()
         assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
         assertEquals(PcForwardingMessage.LeftScreen, h.session.state.value.message)
@@ -165,14 +166,53 @@ class PcForwardingSessionTest {
         h.connectionState.value = connected()
         runCurrent()
         assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
+        h.session.attach()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
     }
 
     @Test
-    fun aConfigurationChangeKeepsForwardingAndItsRestoreIntent() = runTest {
+    fun reconnectingThenLeavingTheSurfaceDoesNotRestart() = runTest {
         val h = harness()
         h.session.toggle()
         runCurrent()
-        h.session.stopForBackground(changingConfigurations = true)
+        h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+        runCurrent()
+        h.session.detach(changingConfigurations = false)
+        runCurrent()
+        h.connectionState.value = connected()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
+        h.session.attach()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
+    }
+
+    @Test
+    fun aReconnectWhileTheSurfaceIsHiddenNeverStartsForwarding() = runTest {
+        val h = harness()
+        h.session.toggle()
+        runCurrent()
+        h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+        runCurrent()
+        h.session.detach(changingConfigurations = true)
+        h.connectionState.value = connected()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
+        assertTrue(h.bridge.active.none { it.second && it.first > 41L })
+    }
+
+    @Test
+    fun aConfigurationChangeKeepsForwardingAndRestoresOnlyOnceTheSurfaceReturns() = runTest {
+        val h = harness()
+        h.session.toggle()
+        runCurrent()
+        h.session.detach(changingConfigurations = true)
         runCurrent()
         assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
         assertTrue(h.connection.of("switch.session.stop").isEmpty())
@@ -180,8 +220,31 @@ class PcForwardingSessionTest {
         runCurrent()
         h.connectionState.value = connected()
         runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
+        h.session.attach()
+        runCurrent()
         assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
         assertEquals(2, h.connection.of("switch.session.start").size)
+        h.session.detach(changingConfigurations = true)
+        h.session.attach()
+        runCurrent()
+        assertEquals(2, h.connection.of("switch.session.start").size)
+    }
+
+    @Test
+    fun startingWhileHiddenKeepsNoRestoreIntent() = runTest {
+        val h = harness(attached = false)
+        h.session.toggle()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, h.session.state.value.phase)
+        h.connectionState.value = PcConnectionState.Reconnecting(desktop, 1)
+        runCurrent()
+        h.connectionState.value = connected()
+        h.session.attach()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertEquals(1, h.connection.of("switch.session.start").size)
     }
 
     @Test
