@@ -208,7 +208,6 @@ fun PcTypingSurface(
                 else viewModel.setDraft(next)
             },
             enabled = if (mode == PcTypingMode.Live) liveSupported else draftSupported,
-            readOnly = mode == PcTypingMode.Live && submitting,
             label = { Text(fieldLabel) },
             placeholder = {
                 Text(stringResource(if (mode == PcTypingMode.Live) R.string.pc_typing_live_placeholder else R.string.pc_typing_draft_placeholder))

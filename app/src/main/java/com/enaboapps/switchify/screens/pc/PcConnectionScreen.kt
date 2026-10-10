@@ -15,8 +15,6 @@ import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -56,12 +54,12 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PanelListRow
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.pc.connection.PcConnectionFailure
 import com.enaboapps.switchify.pc.connection.PcConnectionGraph
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcListAction
 import com.enaboapps.switchify.pc.connection.PcListItem
 import com.enaboapps.switchify.pc.protocol.PcPlatform
+import com.enaboapps.switchify.pc.remote.PcRemotePresentation
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -265,7 +263,7 @@ private fun ConnectionStatus(state: PcConnectionState, onDisconnect: () -> Unit)
         is PcConnectionState.Failed -> StatusPanel(
             badge = stringResource(R.string.pc_connection_failed),
             title = stringResource(R.string.pc_could_not_connect),
-            body = stringResource(failureMessage(state.failure)),
+            body = stringResource(PcRemotePresentation.failureMessage(state.failure)),
             error = true
         )
         else -> Unit
@@ -389,36 +387,33 @@ private fun PcCard(
                         else R.string.pc_action_request_access_description,
                         name
                     )
-                    Button(
+                    ActionButton(
+                        textResId = if (pc.action == PcListAction.Connect) R.string.pc_action_connect else R.string.pc_action_request_access,
                         onClick = onConnect,
+                        applyPadding = false,
                         modifier = Modifier.semantics { contentDescription = connectDescription }
-                    ) {
-                        Text(
-                            stringResource(
-                                if (pc.action == PcListAction.Connect) R.string.pc_action_connect
-                                else R.string.pc_action_request_access
-                            )
-                        )
-                    }
+                    )
                 }
                 if (pc.saved != null) {
                     val defaultDescription = stringResource(
                         if (isDefault) R.string.pc_remove_default_description else R.string.pc_set_default_description,
                         name
                     )
-                    FilledTonalButton(
+                    ActionButton(
+                        textResId = if (isDefault) R.string.pc_remove_default else R.string.pc_set_default,
+                        type = ActionButtonType.SECONDARY,
                         onClick = onToggleDefault,
+                        applyPadding = false,
                         modifier = Modifier.semantics { contentDescription = defaultDescription }
-                    ) {
-                        Text(stringResource(if (isDefault) R.string.pc_remove_default else R.string.pc_set_default))
-                    }
+                    )
                     val unpairDescription = stringResource(R.string.pc_unpair_description, name)
-                    TextButton(
+                    ActionButton(
+                        textResId = R.string.pc_unpair,
+                        type = ActionButtonType.DESTRUCTIVE,
                         onClick = onUnpair,
+                        applyPadding = false,
                         modifier = Modifier.semantics { contentDescription = unpairDescription }
-                    ) {
-                        Text(stringResource(R.string.pc_unpair))
-                    }
+                    )
                 }
             }
         }
@@ -487,18 +482,4 @@ private fun PairingDialog(
             }
         }
     )
-}
-
-private fun failureMessage(failure: PcConnectionFailure): Int = when (failure) {
-    PcConnectionFailure.CouldNotConnect -> R.string.pc_failure_could_not_connect
-    PcConnectionFailure.NotFoundNearby -> R.string.pc_failure_not_found_nearby
-    PcConnectionFailure.SavedAccessLoadFailed -> R.string.pc_failure_saved_access_load_failed
-    PcConnectionFailure.SavedAccessUnavailable -> R.string.pc_failure_saved_access_unavailable
-    PcConnectionFailure.SavedAccessInvalid -> R.string.pc_failure_saved_access_invalid
-    PcConnectionFailure.AccessRevoked -> R.string.pc_failure_access_revoked
-    PcConnectionFailure.PairingRejected -> R.string.pc_failure_pairing_rejected
-    PcConnectionFailure.PairingExpired -> R.string.pc_failure_pairing_expired
-    PcConnectionFailure.ConnectionLost -> R.string.pc_failure_connection_lost
-    PcConnectionFailure.DiscoveryFailed -> R.string.pc_failure_discovery_failed
-    PcConnectionFailure.UnpairFailed -> R.string.pc_failure_unpair_failed
 }

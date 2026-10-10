@@ -67,6 +67,17 @@ class PcConnectionSupportTest {
         log.add(PcDiagnosticEvent.AuthenticationFailed, PcDiagnosticLevel.Error)
         assertEquals("authentication_failed", log.entries.value.single().code)
         assertEquals("Saved access is no longer valid.", log.entries.value.single().message)
+        assertEquals(PcDiagnosticDetail.Event(PcDiagnosticEvent.AuthenticationFailed), log.entries.value.single().detail)
+    }
+
+    @Test
+    fun keepsEnglishForExportAndRecordsTheStageForDisplay() {
+        val log = PcDiagnosticLog(PcClock { 0 })
+        log.addConnectionStage(PcConnectionStage.Mtu, PcConnectionStageOutcome.TimedOut)
+        val entry = log.entries.value.single()
+        assertEquals(PcDiagnosticLevel.Warning, entry.level)
+        assertEquals(PcDiagnosticDetail.Stage(PcConnectionStage.Mtu, PcConnectionStageOutcome.TimedOut), entry.detail)
+        assertEquals("1970-01-01T00:00:00.000Z [warning] ble_mtu_timed_out: Negotiate Bluetooth MTU: timed_out.", log.export())
     }
 
     @Test

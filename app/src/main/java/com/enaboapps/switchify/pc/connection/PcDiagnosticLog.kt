@@ -24,8 +24,14 @@ data class PcDiagnosticEntry(
     val timestamp: Long,
     val level: PcDiagnosticLevel,
     val code: String,
-    val message: String
+    val message: String,
+    val detail: PcDiagnosticDetail
 )
+
+sealed class PcDiagnosticDetail {
+    data class Event(val event: PcDiagnosticEvent) : PcDiagnosticDetail()
+    data class Stage(val stage: PcConnectionStage, val outcome: PcConnectionStageOutcome) : PcDiagnosticDetail()
+}
 
 enum class PcDiagnosticEvent(val code: String, val message: String) {
     ScanStarted("scan_started", "Looking for nearby PCs."),
@@ -55,7 +61,7 @@ class PcDiagnosticLog(private val clock: PcClock = PcClock.System) : PcConnectio
     val entries: StateFlow<List<PcDiagnosticEntry>> = _entries.asStateFlow()
 
     fun add(event: PcDiagnosticEvent, level: PcDiagnosticLevel = PcDiagnosticLevel.Info) {
-        append(event.code, event.message, level)
+        append(event.code, event.message, level, PcDiagnosticDetail.Event(event))
     }
 
     fun addConnectionStage(stage: PcConnectionStage, outcome: PcConnectionStageOutcome) {
@@ -64,7 +70,12 @@ class PcDiagnosticLog(private val clock: PcClock = PcClock.System) : PcConnectio
         } else {
             PcDiagnosticLevel.Info
         }
-        append("${stage.code}_${outcome.code}", "${stageDescription(stage)}: ${outcome.code}.", level)
+        append(
+            "${stage.code}_${outcome.code}",
+            "${stageDescription(stage)}: ${outcome.code}.",
+            level,
+            PcDiagnosticDetail.Stage(stage, outcome)
+        )
     }
 
     override fun onConnectionStage(stage: PcConnectionStage, outcome: PcConnectionStageOutcome) =
@@ -78,8 +89,8 @@ class PcDiagnosticLog(private val clock: PcClock = PcClock.System) : PcConnectio
         "${TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(entry.timestamp))} [${entry.level.label}] ${entry.code}: ${entry.message}"
     }
 
-    private fun append(code: String, message: String, level: PcDiagnosticLevel) {
-        val entry = PcDiagnosticEntry(nextId.getAndIncrement(), clock.nowMillis(), level, code, message)
+    private fun append(code: String, message: String, level: PcDiagnosticLevel, detail: PcDiagnosticDetail) {
+        val entry = PcDiagnosticEntry(nextId.getAndIncrement(), clock.nowMillis(), level, code, message, detail)
         _entries.update { (listOf(entry) + it).take(MAX_ENTRIES) }
     }
 

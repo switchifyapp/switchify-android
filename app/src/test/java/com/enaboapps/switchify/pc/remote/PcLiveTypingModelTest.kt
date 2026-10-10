@@ -38,6 +38,24 @@ class PcLiveTypingModelTest {
     }
 
     @Test
+    fun ignoresTypingWhileEnterIsSendingSoTheFieldCanStayEditable() = runTest {
+        val sender = FakeRemoteSender()
+        val session = PcRemoteSession(sender, { remoteProfile() }, this) { "stream-1" }
+        val model = PcLiveTypingModel(session, this)
+        model.change("hi")
+        advanceUntilIdle()
+        val enter = sender.gate("keyboard.textStream.key")
+        model.change("hi\n")
+        assertTrue(model.submitting.value)
+        model.change("hix")
+        assertEquals("hi", model.text.value)
+        enter.complete(true)
+        advanceUntilIdle()
+        assertEquals("", model.text.value)
+        assertEquals(1, sender.types.count { it == "keyboard.textStream.chunk" })
+    }
+
+    @Test
     fun reportsUnsentTextAndRetries() = runTest {
         val sender = FakeRemoteSender()
         var fail = true

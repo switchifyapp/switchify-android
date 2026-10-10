@@ -1,17 +1,24 @@
 package com.enaboapps.switchify.screens.pc
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -34,6 +41,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -80,6 +89,7 @@ fun PcControlSettingsScreen(navController: NavController, tabBar: @Composable ()
     val remoteName by viewModel.remoteName.collectAsStateWithLifecycle()
     val remoteNameSaving by viewModel.remoteNameSaving.collectAsStateWithLifecycle()
     val remoteNameStatus by viewModel.remoteNameStatus.collectAsStateWithLifecycle()
+    val linkErrorMessage = stringResource(R.string.error_no_app_to_open_link)
 
     LaunchedEffect(viewModel) { viewModel.refresh() }
 
@@ -158,6 +168,26 @@ fun PcControlSettingsScreen(navController: NavController, tabBar: @Composable ()
                     summaryResId = R.string.pc_diagnostics_summary,
                     leadingIcon = Icons.Rounded.History,
                     onClick = { navController.navigate(NavigationRoute.PcDiagnostics.name) }
+                )
+                PanelListRow(
+                    titleResId = R.string.button_privacy_policy,
+                    summaryResId = R.string.pc_settings_privacy_summary,
+                    leadingIcon = Icons.Rounded.PrivacyTip,
+                    onClick = {
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL.toUri()))
+                        } catch (_: ActivityNotFoundException) {
+                            Toast.makeText(context, linkErrorMessage, Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    trailing = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 )
             }
         }
@@ -343,6 +373,7 @@ private fun RemoteNameEditor(
 }
 
 private const val MAX_INPUT_CHARACTERS = 80
+private const val PRIVACY_POLICY_URL = "https://www.switchifyapp.com/privacy"
 
 private fun remoteNameErrorText(error: PcRemoteNameError): Int = when (error) {
     PcRemoteNameError.Empty -> R.string.pc_settings_remote_name_error_empty

@@ -3,8 +3,9 @@ package com.enaboapps.switchify.screens.pc
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -16,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -33,8 +35,14 @@ import com.enaboapps.switchify.pc.connection.PcConnectionGraph
 import com.enaboapps.switchify.pc.connection.PcDiagnosticEntry
 import com.enaboapps.switchify.pc.connection.PcDiagnosticLog
 import com.enaboapps.switchify.theme.Dimens
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.DateFormat
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Date
 
 class PcDiagnosticsViewModel(private val log: PcDiagnosticLog) : ViewModel() {
@@ -43,6 +51,16 @@ class PcDiagnosticsViewModel(private val log: PcDiagnosticLog) : ViewModel() {
     fun export(): String = log.export()
 
     fun clear() = log.clear()
+
+    companion object {
+        const val EXPORT_MIME_TYPE = "text/plain"
+
+        private val FILE_TIMESTAMP: DateTimeFormatter =
+            DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC)
+
+        fun exportFileName(nowMillis: Long): String =
+            "switchify-pc-diagnostics-${FILE_TIMESTAMP.format(Instant.ofEpochMilli(nowMillis))}.txt"
+    }
 }
 
 @Composable
@@ -54,6 +72,25 @@ fun PcDiagnosticsScreen(navController: NavController) {
     val timeFormat = remember { DateFormat.getTimeInstance(DateFormat.MEDIUM) }
     val copiedMessage = stringResource(R.string.pc_diagnostics_copied)
     val exportTitle = stringResource(R.string.pc_diagnostics_export_title)
+    val exportedMessage = stringResource(R.string.pc_diagnostics_exported)
+    val exportFailedMessage = stringResource(R.string.pc_diagnostics_export_failed)
+    val scope = rememberCoroutineScope()
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(PcDiagnosticsViewModel.EXPORT_MIME_TYPE)
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val text = viewModel.export()
+        scope.launch {
+            val written = withContext(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } != null
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            Toast.makeText(context, if (written) exportedMessage else exportFailedMessage, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     BaseView(titleResId = R.string.screen_title_pc_diagnostics, navController = navController) {
         Column(
@@ -84,12 +121,7 @@ fun PcDiagnosticsScreen(navController: NavController) {
                     type = ActionButtonType.SECONDARY,
                     enabled = entries.isNotEmpty(),
                     applyPadding = false,
-                    onClick = {
-                        val send = Intent(Intent.ACTION_SEND)
-                            .setType("text/plain")
-                            .putExtra(Intent.EXTRA_TEXT, viewModel.export())
-                        context.startActivity(Intent.createChooser(send, exportTitle))
-                    }
+                    onClick = { exportLauncher.launch(PcDiagnosticsViewModel.exportFileName(System.currentTimeMillis())) }
                 )
                 ActionButton(
                     textResId = R.string.pc_diagnostics_clear,
@@ -122,7 +154,7 @@ fun PcDiagnosticsScreen(navController: NavController) {
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text(text = entry.message, style = MaterialTheme.typography.bodyMedium)
+                                Text(text = entry.displayMessage(), style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
