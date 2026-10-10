@@ -16,11 +16,14 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 class DeviceProtectedPcKeyValueStore(
-    context: Context,
-    private val fileName: String = FILE_NAME,
-    directoryName: String = DIRECTORY
+    private val directory: File,
+    private val fileName: String = FILE_NAME
 ) : PcKeyValueStore {
-    private val directory = File(context.applicationContext.createDeviceProtectedStorageContext().filesDir, directoryName)
+    constructor(context: Context, fileName: String = FILE_NAME, directoryName: String = DIRECTORY) : this(
+        File(context.applicationContext.createDeviceProtectedStorageContext().filesDir, directoryName),
+        fileName
+    )
+
     private val lock = Any()
 
     private fun file() = File(directory, fileName)
@@ -29,6 +32,12 @@ class DeviceProtectedPcKeyValueStore(
         val file = file()
         if (!file.exists()) return JSONObject()
         return JSONObject(String(AtomicFile(file).readFully(), Charsets.UTF_8))
+    }
+
+    private fun readForWrite(): JSONObject = try {
+        read()
+    } catch (_: Exception) {
+        JSONObject()
     }
 
     private fun write(value: JSONObject) {
@@ -49,12 +58,12 @@ class DeviceProtectedPcKeyValueStore(
     }
 
     override suspend fun put(key: String, value: String) = withContext(Dispatchers.IO) {
-        synchronized(lock) { write(read().put(key, value)) }
+        synchronized(lock) { write(readForWrite().put(key, value)) }
     }
 
     override suspend fun remove(key: String) = withContext(Dispatchers.IO) {
         synchronized(lock) {
-            val current = read()
+            val current = readForWrite()
             if (current.has(key)) {
                 current.remove(key)
                 write(current)

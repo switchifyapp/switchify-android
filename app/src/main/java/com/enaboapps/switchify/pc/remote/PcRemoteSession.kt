@@ -40,6 +40,7 @@ class PcRemoteSession(
     private val profileProvider: () -> PcPointerProfile?,
     private val scope: CoroutineScope,
     private val switchStop: PcRepeatSwitchStop = PcRepeatSwitchStop.None,
+    private val streamRotationSequence: Int = STREAM_ROTATION_SEQUENCE,
     private val streamIds: PcIdGenerator = PcIdGenerator { "stream-${UUID.randomUUID()}" }
 ) : PcLiveTypingStream {
     private val _state = MutableStateFlow(PcRemoteSessionState())
@@ -104,7 +105,7 @@ class PcRemoteSession(
     override suspend fun streamChunk(text: String): Boolean {
         if (text.isEmpty()) return false
         return enqueue(false) {
-            if (!supports(PcCommandTypes.KEYBOARD_STREAM_CHUNK) || !openStreamNow()) return@enqueue false
+            if (!supports(PcCommandTypes.KEYBOARD_STREAM_CHUNK) || !prepareStreamNow()) return@enqueue false
             val id = streamId ?: return@enqueue false
             stopRepeatNow()
             val command = PcCommands.streamChunk(id, sequence, text)
@@ -115,7 +116,7 @@ class PcRemoteSession(
     }
 
     override suspend fun streamKey(key: String): Boolean = enqueue(false) {
-        if (!supports(PcCommandTypes.KEYBOARD_STREAM_KEY) || !openStreamNow()) return@enqueue false
+        if (!supports(PcCommandTypes.KEYBOARD_STREAM_KEY) || !prepareStreamNow()) return@enqueue false
         val id = streamId ?: return@enqueue false
         stopRepeatNow()
         val ok = sendAccepted(PcCommands.streamKey(id, sequence, key), PcResponseMode.Ack)
@@ -258,6 +259,11 @@ class PcRemoteSession(
         }
     }
 
+    private suspend fun prepareStreamNow(): Boolean {
+        if (_state.value.streamOpen && streamId != null && sequence >= streamRotationSequence) closeStreamNow()
+        return openStreamNow()
+    }
+
     private suspend fun openStreamNow(): Boolean {
         if (_state.value.streamOpen && streamId != null) return true
         if (!supports(PcCommandTypes.KEYBOARD_STREAM_OPEN) || !supports(PcCommandTypes.KEYBOARD_STREAM_CLOSE)) return false
@@ -381,6 +387,8 @@ class PcRemoteSession(
     }
 
     companion object {
+        const val STREAM_ROTATION_SEQUENCE = 9_900
+
         val REPEATABLE_KEYS = listOf(
             "ArrowUp",
             "ArrowDown",
