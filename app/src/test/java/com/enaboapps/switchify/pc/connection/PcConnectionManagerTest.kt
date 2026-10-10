@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.pc.connection
 
+import com.enaboapps.switchify.pc.client.PcAuthenticatedCommandChannel
 import com.enaboapps.switchify.pc.protocol.PcCanonical
 import com.enaboapps.switchify.pc.protocol.PcClock
 import com.enaboapps.switchify.pc.protocol.PcCommands
@@ -10,6 +11,9 @@ import com.enaboapps.switchify.pc.protocol.PcPlatform
 import com.enaboapps.switchify.pc.protocol.PcReassemblyResult
 import com.enaboapps.switchify.pc.protocol.PcResponse
 import com.enaboapps.switchify.pc.protocol.PcResponseMode
+import com.enaboapps.switchify.pc.remote.PcRemoteSession
+import com.enaboapps.switchify.pc.remote.PcSwitchRepeatStopHook
+import com.enaboapps.switchify.pc.remote.remoteProfile
 import com.enaboapps.switchify.pc.storage.InMemoryPcKeyValueStore
 import com.enaboapps.switchify.pc.storage.PcPairingStore
 import com.enaboapps.switchify.pc.storage.PcPairingStorage
@@ -19,10 +23,12 @@ import com.enaboapps.switchify.pc.transport.PcBluetoothException
 import com.enaboapps.switchify.pc.transport.PcDiscoveredDesktop
 import com.enaboapps.switchify.pc.transport.PcTransport
 import com.enaboapps.switchify.pc.transport.PcUnsubscribe
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -646,6 +652,104 @@ class PcConnectionManagerTest {
         assertTrue("connection_lost" in h.codes)
         assertEquals(PcConnectionFailure.ConnectionLost, (h.manager.state.value as PcConnectionState.Failed).failure)
         assertTrue("command_failed" in h.codes)
+    }
+
+    @Test
+    fun reportsAnUnansweredCommandSeparatelyFromARejectedOne() = managerTest { h ->
+        connect(h)
+        runCurrent()
+        assertEquals(PcSendOutcome.Accepted, h.manager.sendWithOutcome(PcCommands.dragStart()))
+
+        h.transport.dropTypes += "mouse.dragStart"
+        val unanswered = async { h.manager.sendWithOutcome(PcCommands.dragStart()) }
+        advanceTimeBy(PcAuthenticatedCommandChannel.DEFAULT_COMMAND_TIMEOUT_MS + 1)
+        runCurrent()
+        assertEquals(PcSendOutcome.Unconfirmed, unanswered.await())
+        assertTrue(h.manager.state.value is PcConnectionState.Connected)
+
+        h.transport.pingErrorCode = "command_failed"
+        assertEquals(PcSendOutcome.Rejected, h.manager.sendWithOutcome(PcCommands.ping("Phone")))
+        assertFalse(h.manager.send(PcCommands.ping("Phone")))
+    }
+
+    @Test
+    fun disconnectDuringAPendingCommandSendsNoUndo() = managerTest { h ->
+        connect(h)
+        runCurrent()
+        val session = PcRemoteSession({ command, mode -> h.manager.sendWithOutcome(command, mode) }, { remoteProfile() }, backgroundScope)
+        h.transport.dropTypes += "mouse.dragStart"
+        val drag = async { session.toggleDrag() }
+        runCurrent()
+        h.manager.disconnect()
+        runCurrent()
+        assertFalse(drag.await())
+        assertFalse("mouse.dragEnd" in h.transport.types)
+        assertFalse(session.snapshot().dragging)
+    }
+
+    @Test
+    fun rethrowsCancellationWithoutReportingACommandFailure() = managerTest { h ->
+        connect(h)
+        runCurrent()
+        val failuresBefore = h.codes.count { it == "command_failed" }
+        h.transport.dropTypes += "mouse.dragStart"
+        val pending = async { runCatching { h.manager.sendWithOutcome(PcCommands.dragStart()) } }
+        runCurrent()
+        h.scope.cancel()
+        runCurrent()
+        assertTrue(pending.await().exceptionOrNull() is CancellationException)
+        assertEquals(failuresBefore, h.codes.count { it == "command_failed" })
+    }
+
+    @Test
+    fun scanningHoldEndsAfterTheStopAckAndOnDisconnect() = managerTest { h ->
+        connect(h)
+        runCurrent()
+        val holds = mutableListOf<Boolean>()
+        val hook = PcSwitchRepeatStopHook(onArmedChanged = { holds += it })
+        val session = PcRemoteSession(
+            { command, mode -> h.manager.sendWithOutcome(command, mode) },
+            { remoteProfile() },
+            backgroundScope,
+            hook
+        )
+        val stops = { h.transport.types.count { it == "mouse.repeat.stop" } }
+
+        assertTrue(session.mouse(PcCommands.move(10.0, 0.0), repeatable = true))
+        val stopAck = CompletableDeferred<Unit>()
+        h.transport.responseGates["mouse.repeat.stop"] = stopAck
+        assertTrue(hook.requestStop())
+        runCurrent()
+        assertNull(session.snapshot().repeat)
+        assertTrue(hook.isArmed())
+        assertEquals(listOf(true), holds)
+        stopAck.complete(Unit)
+        runCurrent()
+        assertFalse(hook.isArmed())
+        assertEquals(listOf(true, false), holds)
+        h.transport.responseGates.remove("mouse.repeat.stop")
+
+        assertTrue(session.mouse(PcCommands.move(10.0, 0.0), repeatable = true))
+        h.transport.dropTypes += "mouse.repeat.stop"
+        assertTrue(hook.requestStop())
+        runCurrent()
+        assertTrue(hook.isArmed())
+        assertEquals(2, stops())
+        h.manager.disconnect()
+        runCurrent()
+        assertFalse(hook.isArmed())
+        assertEquals(listOf(true, false, true, false), holds)
+        assertEquals(2, stops())
+    }
+
+    @Test
+    fun reportsUnsentCommandsAsRejected() = managerTest { h ->
+        assertEquals(PcSendOutcome.Rejected, h.manager.sendWithOutcome(PcCommands.dragStart()))
+        connect(h)
+        runCurrent()
+        h.transport.failWriteTypes += "mouse.dragStart"
+        h.transport.connectFailures = 3
+        assertEquals(PcSendOutcome.Rejected, h.manager.sendWithOutcome(PcCommands.dragStart()))
     }
 
     @Test

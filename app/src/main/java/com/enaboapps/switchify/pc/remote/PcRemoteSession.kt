@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.pc.remote
 
+import com.enaboapps.switchify.pc.connection.PcSendOutcome
 import com.enaboapps.switchify.pc.protocol.PcCommand
 import com.enaboapps.switchify.pc.protocol.PcCommandTypes
 import com.enaboapps.switchify.pc.protocol.PcCommands
@@ -25,7 +26,7 @@ data class PcRemoteSessionState(
 }
 
 fun interface PcRemoteSender {
-    suspend fun send(command: PcCommand, responseMode: PcResponseMode): Boolean
+    suspend fun send(command: PcCommand, responseMode: PcResponseMode): PcSendOutcome
 }
 
 interface PcLiveTypingStream {
@@ -55,6 +56,7 @@ class PcRemoteSession(
     private var epoch = 0
     private var closed = false
     private var stopPending = false
+    private var repeatMayBeActive = false
 
     fun snapshot(): PcRemoteSessionState = _state.value
 
@@ -77,11 +79,20 @@ class PcRemoteSession(
 
     suspend fun toggleDrag(): Boolean = enqueue(false) {
         stopRepeatNow()
-        val command = if (_state.value.dragging) PcCommands.dragEnd() else PcCommands.dragStart()
+        val dragging = _state.value.dragging
+        val command = if (dragging) PcCommands.dragEnd() else PcCommands.dragStart()
         if (!supports(command.type)) return@enqueue false
-        val ok = sender.send(command, PcResponseMode.Ack)
-        if (ok) update { copy(dragging = !dragging) }
-        ok
+        when (sender.send(command, PcResponseMode.Ack)) {
+            PcSendOutcome.Accepted -> {
+                update { copy(dragging = !dragging) }
+                true
+            }
+            PcSendOutcome.Unconfirmed -> {
+                if (!dragging) undo(PcCommands.dragEnd())
+                false
+            }
+            PcSendOutcome.Rejected -> false
+        }
     }
 
     suspend fun toggleModifier(key: String): Boolean = enqueue(false) { toggleModifierNow(key) }
@@ -97,7 +108,7 @@ class PcRemoteSession(
             val id = streamId ?: return@enqueue false
             stopRepeatNow()
             val command = PcCommands.streamChunk(id, sequence, text)
-            val ok = sender.send(command, responseModeFor(command.type))
+            val ok = sendAccepted(command, responseModeFor(command.type))
             if (ok) sequence += 1
             ok
         }
@@ -107,7 +118,7 @@ class PcRemoteSession(
         if (!supports(PcCommandTypes.KEYBOARD_STREAM_KEY) || !openStreamNow()) return@enqueue false
         val id = streamId ?: return@enqueue false
         stopRepeatNow()
-        val ok = sender.send(PcCommands.streamKey(id, sequence, key), PcResponseMode.Ack)
+        val ok = sendAccepted(PcCommands.streamKey(id, sequence, key), PcResponseMode.Ack)
         if (ok) sequence += 1
         ok
     }
@@ -146,7 +157,8 @@ class PcRemoteSession(
         if (final) closed = true
         reserveRepeatStop()
         queue.enqueue {
-            stopRepeatNow()
+            val stopAttempted = stopRepeatNow()
+            if (!stopAttempted && repeatMayBeActive && repeatCommandsSupported()) sendRepeatStop()
             if (_state.value.dragging) sendQuietly(PcCommands.dragEnd())
             for (key in _state.value.modifiers) sendQuietly(PcCommands.modifierUp(key))
             closeStreamNow()
@@ -163,12 +175,17 @@ class PcRemoteSession(
         }
     }
 
-    private suspend fun commandNow(command: PcCommand): Boolean {
-        if (!supports(command.type)) return false
+    private suspend fun commandNow(command: PcCommand): Boolean =
+        commandOutcomeNow(command) == PcSendOutcome.Accepted
+
+    private suspend fun commandOutcomeNow(command: PcCommand): PcSendOutcome {
+        if (!supports(command.type)) return PcSendOutcome.Rejected
         stopRepeatNow()
-        val ok = sender.send(command, responseModeFor(command.type))
-        if (ok && _state.value.dragging && command.type in CLICK_TYPES) update { copy(dragging = false) }
-        return ok
+        val outcome = sender.send(command, responseModeFor(command.type))
+        if (outcome == PcSendOutcome.Accepted && _state.value.dragging && command.type in CLICK_TYPES) {
+            update { copy(dragging = false) }
+        }
+        return outcome
     }
 
     private suspend fun mouseNow(command: PcCommand, repeatable: Boolean): Boolean {
@@ -180,11 +197,9 @@ class PcRemoteSession(
         val repeatCommand = if (repeatable) repeatCommandFor(command) else null
         val mouseRepeat = profile?.capabilities?.mouseRepeat
         if (repeatCommand != null && repeatCommandsSupported() && mouseRepeat?.supported == true && mouseRepeat.enabled) {
-            val ok = sender.send(PcCommands.repeatStart(repeatCommand), PcResponseMode.Ack)
-            if (ok) startRepeat(command.type, null)
-            return ok
+            return startRepeat(PcCommands.repeatStart(repeatCommand), command.type, null)
         }
-        return sender.send(command, responseModeFor(command.type))
+        return sendAccepted(command, responseModeFor(command.type))
     }
 
     private suspend fun keyNow(key: String): Boolean {
@@ -197,22 +212,32 @@ class PcRemoteSession(
             return sendKey(key)
         }
         if (repeatableKey(key)) {
-            val ok = sender.send(PcCommands.repeatStart(PcRepeatCommand.Key(key)), PcResponseMode.Ack)
-            if (ok) startRepeat(PcCommandTypes.KEYBOARD_KEY, key)
-            return ok
+            return startRepeat(PcCommands.repeatStart(PcRepeatCommand.Key(key)), PcCommandTypes.KEYBOARD_KEY, key)
         }
         return sendKey(key)
     }
 
-    private fun startRepeat(type: String, key: String?) {
-        repeatingKey = key
-        update { copy(repeat = type) }
-        armSwitchStop()
+    private suspend fun startRepeat(start: PcCommand, type: String, key: String?): Boolean {
+        val outcome = sender.send(start, PcResponseMode.Ack)
+        if (outcome != PcSendOutcome.Rejected) repeatMayBeActive = true
+        return when (outcome) {
+            PcSendOutcome.Accepted -> {
+                repeatingKey = key
+                update { copy(repeat = type) }
+                armSwitchStop()
+                true
+            }
+            PcSendOutcome.Unconfirmed -> {
+                sendRepeatStop()
+                false
+            }
+            PcSendOutcome.Rejected -> false
+        }
     }
 
     private suspend fun sendKey(key: String): Boolean {
         val command = PcCommands.key(key)
-        return sender.send(command, responseModeFor(command.type))
+        return sendAccepted(command, responseModeFor(command.type))
     }
 
     private suspend fun toggleModifierNow(key: String): Boolean {
@@ -220,22 +245,36 @@ class PcRemoteSession(
         val command = if (active) PcCommands.modifierUp(key) else PcCommands.modifierDown(key)
         if (!supports(command.type)) return false
         stopRepeatNow()
-        val ok = sender.send(command, responseModeFor(command.type))
-        if (ok) update { copy(modifiers = if (active) modifiers - key else modifiers + key) }
-        return ok
+        return when (sender.send(command, responseModeFor(command.type))) {
+            PcSendOutcome.Accepted -> {
+                update { copy(modifiers = if (active) modifiers - key else modifiers + key) }
+                true
+            }
+            PcSendOutcome.Unconfirmed -> {
+                if (!active) undo(PcCommands.modifierUp(key))
+                false
+            }
+            PcSendOutcome.Rejected -> false
+        }
     }
 
     private suspend fun openStreamNow(): Boolean {
         if (_state.value.streamOpen && streamId != null) return true
         if (!supports(PcCommandTypes.KEYBOARD_STREAM_OPEN) || !supports(PcCommandTypes.KEYBOARD_STREAM_CLOSE)) return false
         val id = streamIds.nextId()
-        val ok = commandNow(PcCommands.streamOpen(id))
-        if (ok) {
-            streamId = id
-            sequence = 0
-            update { copy(streamOpen = true) }
+        return when (commandOutcomeNow(PcCommands.streamOpen(id))) {
+            PcSendOutcome.Accepted -> {
+                streamId = id
+                sequence = 0
+                update { copy(streamOpen = true) }
+                true
+            }
+            PcSendOutcome.Unconfirmed -> {
+                sendQuietly(PcCommands.streamClose(id, 0), PcResponseMode.Ack)
+                false
+            }
+            PcSendOutcome.Rejected -> false
         }
-        return ok
     }
 
     private suspend fun closeStreamNow() {
@@ -246,9 +285,9 @@ class PcRemoteSession(
         sendQuietly(PcCommands.streamClose(id, sequence), PcResponseMode.Ack)
     }
 
-    private suspend fun stopRepeatNow() {
+    private suspend fun stopRepeatNow(): Boolean {
         reserveRepeatStop()
-        completeRepeatStop()
+        return completeRepeatStop()
     }
 
     private fun repeatableKey(key: String): Boolean {
@@ -277,15 +316,29 @@ class PcRemoteSession(
         if (_state.value.repeat == null) return false
         repeatingKey = null
         stopPending = true
-        releaseSwitchStop()
         update { copy(repeat = null) }
         return true
     }
 
-    private suspend fun completeRepeatStop() {
-        if (!stopPending) return
+    private suspend fun completeRepeatStop(): Boolean {
+        if (!stopPending) return false
         stopPending = false
-        sendQuietly(PcCommands.repeatStop(), PcResponseMode.Ack)
+        try {
+            sendRepeatStop()
+        } finally {
+            releaseSwitchStop()
+        }
+        return true
+    }
+
+    private suspend fun undo(command: PcCommand) {
+        if (supports(command.type)) sendQuietly(command, responseModeFor(command.type))
+    }
+
+    private suspend fun sendRepeatStop() {
+        if (sendQuietly(PcCommands.repeatStop(), PcResponseMode.Ack) == PcSendOutcome.Accepted) {
+            repeatMayBeActive = false
+        }
     }
 
     private fun armSwitchStop() {
@@ -304,14 +357,17 @@ class PcRemoteSession(
         switchStopHandle = null
     }
 
-    private suspend fun sendQuietly(command: PcCommand, responseMode: PcResponseMode = PcResponseMode.None) {
+    private suspend fun sendAccepted(command: PcCommand, responseMode: PcResponseMode): Boolean =
+        sender.send(command, responseMode) == PcSendOutcome.Accepted
+
+    private suspend fun sendQuietly(command: PcCommand, responseMode: PcResponseMode = PcResponseMode.None): PcSendOutcome =
         try {
             sender.send(command, responseMode)
         } catch (error: CancellationException) {
             throw error
         } catch (_: Exception) {
+            PcSendOutcome.Rejected
         }
-    }
 
     private fun responseModeFor(type: String): PcResponseMode {
         val capabilities = profile?.capabilities ?: return PcResponseMode.Ack

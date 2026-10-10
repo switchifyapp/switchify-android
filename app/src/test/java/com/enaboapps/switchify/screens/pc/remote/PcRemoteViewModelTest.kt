@@ -2,6 +2,7 @@ package com.enaboapps.switchify.screens.pc.remote
 
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcProfileStatus
+import com.enaboapps.switchify.pc.connection.PcSendOutcome
 import com.enaboapps.switchify.pc.protocol.PcCommand
 import com.enaboapps.switchify.pc.protocol.PcCommands
 import com.enaboapps.switchify.pc.protocol.PcPlatform
@@ -43,7 +44,10 @@ private class FakeRemoteConnection : PcRemoteConnection {
 
     override val state = MutableStateFlow<PcConnectionState>(PcConnectionState.Idle(emptyList()))
 
-    override suspend fun send(command: PcCommand, responseMode: PcResponseMode) = sender.send(command, responseMode)
+    override suspend fun send(command: PcCommand, responseMode: PcResponseMode) =
+        sender.send(command, responseMode) == PcSendOutcome.Accepted
+
+    override suspend fun sendWithOutcome(command: PcCommand, responseMode: PcResponseMode) = sender.send(command, responseMode)
 
     override fun registerCleanup(cleanup: suspend () -> Unit): PcUnsubscribe {
         cleanups += cleanup

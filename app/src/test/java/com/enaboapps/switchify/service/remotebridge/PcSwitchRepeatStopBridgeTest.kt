@@ -32,30 +32,38 @@ class PcSwitchRepeatStopBridgeTest {
         first.release()
         assertTrue(hook.isArmed())
         assertTrue(hook.requestStop())
-        assertFalse(hook.requestStop())
+        assertTrue(hook.requestStop())
         assertEquals(10, stops)
+        assertTrue(hook.isArmed())
         second.release()
         assertFalse(hook.isArmed())
+        assertFalse(hook.requestStop())
     }
 
     @Test fun configuredExternalSwitchStopsInAppRepeatAndIsConsumed() {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
         var stops = 0
-        handles += PcSwitchRepeatStop.hook.arm { stops += 1 }
+        val handle = PcSwitchRepeatStop.hook.arm { stops += 1 }
+        handles += handle
 
         assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(31))
         assertEquals(0, stops)
         assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
         assertEquals(1, stops)
+        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
+        assertEquals(1, stops)
+        handle.release()
         assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
     }
 
     @Test fun anySwitchStopRequestReachesInAppRepeatBeforeBridgedRepeat() {
         assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(7, true))
         var stops = 0
-        handles += PcSwitchRepeatStop.hook.arm { stops += 1 }
+        val handle = PcSwitchRepeatStop.hook.arm { stops += 1 }
+        handles += handle
         assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
         assertEquals(1, stops)
+        handle.release()
         assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
         assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
     }
@@ -66,8 +74,10 @@ class PcSwitchRepeatStopBridgeTest {
         val first = hook.arm {}
         first.release()
         first.release()
-        hook.arm {}
+        val stopped = hook.arm {}
         hook.requestStop()
+        assertEquals(listOf(true, false, true), changes)
+        stopped.release()
         val replaced = hook.arm {}
         val replacement = hook.arm {}
         replaced.release()

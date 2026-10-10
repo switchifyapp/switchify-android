@@ -268,7 +268,7 @@ class PcRemoteViewModel(
             return
         }
         val session = PcRemoteSession(
-            sender = { command, responseMode -> manager.send(command, responseMode) },
+            sender = { command, responseMode -> manager.sendWithOutcome(command, responseMode) },
             profileProvider = {
                 (manager.state.value as? PcConnectionState.Connected)
                     ?.takeIf { it.desktop.desktopId == desktopId }
