@@ -23,6 +23,8 @@ import com.enaboapps.switchify.screens.account.AccountScreen
 import com.enaboapps.switchify.screens.account.AuthScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
+import com.enaboapps.switchify.screens.pc.PcConnectionScreen
+import com.enaboapps.switchify.screens.pc.PcDiagnosticsScreen
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
@@ -243,6 +245,12 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.GemmaTerms.name) {
             GemmaTermsScreen(navController)
+        }
+        composable(NavigationRoute.PcConnection.name) {
+            PcConnectionScreen(navController)
+        }
+        composable(NavigationRoute.PcDiagnostics.name) {
+            PcDiagnosticsScreen(navController)
         }
         composable("${NavigationRoute.SwitchActionSelection.name}/{currentActionId}") {
             it.arguments?.getString("currentActionId")?.toIntOrNull()?.let { actionId ->

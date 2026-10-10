@@ -173,6 +173,7 @@ dependencies {
     implementation(libs.compose.icons)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.lifecycle.runtime.ktx)
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.compose.runtime.livedata)
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)

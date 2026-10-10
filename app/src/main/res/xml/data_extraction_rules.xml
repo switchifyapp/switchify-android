@@ -4,6 +4,8 @@
    The Supabase session (access + refresh tokens) lives in the default shared
    preferences file and must never leave the device. RevenueCat caches are
    rebuilt from the network and are excluded to keep the backup small.
+   PC pairing metadata, the PC device ID and Keystore-encrypted pairing tokens
+   must stay on this device.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -17,6 +19,8 @@
         <exclude domain="device_sharedpref" path="com.enaboapps.switchify_preferences_etags_v2.xml" />
         <exclude domain="file" path="RevenueCat" />
         <exclude domain="device_file" path="RevenueCat" />
+        <exclude domain="file" path="switchify_pc" />
+        <exclude domain="device_file" path="switchify_pc" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="com.enaboapps.switchify_preferences.xml" />
@@ -29,5 +33,7 @@
         <exclude domain="device_sharedpref" path="com.enaboapps.switchify_preferences_etags_v2.xml" />
         <exclude domain="file" path="RevenueCat" />
         <exclude domain="device_file" path="RevenueCat" />
+        <exclude domain="file" path="switchify_pc" />
+        <exclude domain="device_file" path="switchify_pc" />
     </device-transfer>
 </data-extraction-rules>
