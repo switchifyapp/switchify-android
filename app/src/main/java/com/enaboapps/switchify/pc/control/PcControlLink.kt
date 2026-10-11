@@ -13,7 +13,6 @@ object PcControlLink {
     const val SCHEME = "switchify"
     const val HOST = "pc-control"
     const val SURFACE_PARAMETER = "surface"
-    const val LEGACY_REMOTE_PACKAGE = "com.enaboapps.switchify.remote"
 
     fun matches(scheme: String?, host: String?): Boolean = scheme == SCHEME && host == HOST
 
