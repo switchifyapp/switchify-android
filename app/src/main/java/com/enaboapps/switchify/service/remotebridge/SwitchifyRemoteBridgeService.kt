@@ -7,14 +7,14 @@ import com.enaboapps.switchify.remotebridge.ISwitchifyRemoteBridge
 import com.enaboapps.switchify.remotebridge.ISwitchifyRemoteBridgeCallback
 
 class SwitchifyRemoteBridgeService : Service() {
-    private val binder = object : ISwitchifyRemoteBridge.Stub() {
+    private val binder by lazy { object : ISwitchifyRemoteBridge.Stub() {
         override fun getVersion() = SwitchifyRemoteBridgeCoordinator.VERSION
         override fun getSnapshot() = SwitchifyRemoteBridgeCoordinator.snapshot()
         override fun registerCallback(callback: ISwitchifyRemoteBridgeCallback) = SwitchifyRemoteBridgeCoordinator.register(callback)
         override fun unregisterCallback(callback: ISwitchifyRemoteBridgeCallback) = SwitchifyRemoteBridgeCoordinator.unregister(callback)
         override fun setRepeatActive(generation: Long, active: Boolean) = SwitchifyRemoteBridgeCoordinator.setRepeatActive(generation, active)
         override fun setForwardingActive(generation: Long, active: Boolean) = SwitchifyRemoteBridgeCoordinator.setForwardingActive(generation, active)
-    }
+    } }
     override fun onBind(intent: Intent?): IBinder = binder
     override fun onUnbind(intent: Intent?): Boolean { SwitchifyRemoteBridgeCoordinator.clearRemoteActive(); return false }
     override fun onDestroy() { SwitchifyRemoteBridgeCoordinator.clearRemoteActive(); super.onDestroy() }

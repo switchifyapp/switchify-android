@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.pc.remote
 
+import com.enaboapps.switchify.service.remotebridge.ScanningHold
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -55,6 +57,12 @@ object PcSwitchRepeatStop {
     var armedListener: (Boolean) -> Unit = {}
 
     val hook = PcSwitchRepeatStopHook({ availability() }, { armedListener(it) })
+
+    fun bindToSwitchBridge() {
+        availability = { SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches() }
+        armedListener = { armed -> SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.PcRepeat, armed) }
+        SwitchifyRemoteBridgeCoordinator.pcRepeatActive = { hook.isArmed() }
+    }
 
     fun requestStop(): Boolean = hook.requestStop()
 

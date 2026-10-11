@@ -34,7 +34,9 @@ data class SwitchAction(
             ACTION_PAUSE,
             ACTION_TOGGLE_GESTURE_LOCK_REARM,
             ACTION_TOGGLE_GESTURE_REPEAT,
-            ACTION_LAUNCH_APP
+            ACTION_LAUNCH_APP,
+            ACTION_OPEN_PC_MOUSE,
+            ACTION_OPEN_PC_FORWARDING
         ).map { SwitchAction(it) }
 
         const val ACTION_LAUNCH_APP = 19
@@ -55,12 +57,11 @@ data class SwitchAction(
         const val ACTION_PAUSE = 14
         const val ACTION_TOGGLE_GESTURE_LOCK_REARM = 15
         const val ACTION_TOGGLE_GESTURE_REPEAT = 16
+        const val ACTION_OPEN_PC_MOUSE = 17
+        const val ACTION_OPEN_PC_FORWARDING = 18
     }
 
-    fun normalized(): SwitchAction = when (id) {
-        17, 18 -> SwitchAction(ACTION_LAUNCH_APP, "com.enaboapps.switchify.remote")
-        else -> this
-    }
+    fun normalized(): SwitchAction = this
 
     fun toMap(): Map<String, Any?> = mapOf("id" to id, "package_name" to packageName)
 
@@ -88,6 +89,8 @@ data class SwitchAction(
         ACTION_PAUSE -> Resources.getString(R.string.action_pause)
         ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm)
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat)
+        ACTION_OPEN_PC_MOUSE -> Resources.getString(R.string.action_open_pc_mouse)
+        ACTION_OPEN_PC_FORWARDING -> Resources.getString(R.string.action_open_pc_forwarding)
         else -> Resources.getString(R.string.unknown)
     }
 
@@ -110,6 +113,8 @@ data class SwitchAction(
         ACTION_PAUSE -> Resources.getString(R.string.action_pause_desc)
         ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm_desc)
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat_desc)
+        ACTION_OPEN_PC_MOUSE -> Resources.getString(R.string.action_open_pc_mouse_desc)
+        ACTION_OPEN_PC_FORWARDING -> Resources.getString(R.string.action_open_pc_forwarding_desc)
         else -> Resources.getString(R.string.unknown)
     }
 }

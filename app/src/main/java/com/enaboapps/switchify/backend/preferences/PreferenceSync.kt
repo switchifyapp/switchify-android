@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.core.content.edit
 import com.enaboapps.switchify.backend.supabase.SupabaseClient
 import com.enaboapps.switchify.backend.supabase.SupabaseManager
+import com.enaboapps.switchify.pc.storage.LegacyPcDataCleanup
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionSource
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -217,8 +218,7 @@ class PreferenceSync private constructor() {
 
         return try {
             // Filter out blacklisted keys
-            val filteredChanges =
-                changes.filterKeys { !PreferenceManager.Keys.BLACKLISTED_KEYS.contains(it) }
+            val filteredChanges = changes.filterKeys { isSyncable(it) }
 
             if (filteredChanges.isEmpty()) {
                 Log.d(TAG, "No valid changes to upload after filtering")
@@ -246,13 +246,16 @@ class PreferenceSync private constructor() {
         }
     }
 
+    private fun isSyncable(key: String): Boolean =
+        key !in PreferenceManager.Keys.BLACKLISTED_KEYS && key !in LegacyPcDataCleanup.LEGACY_PREFERENCE_KEYS
+
     /**
      * Gets all non-blacklisted preferences with supported types.
      */
     private fun getAllPreferences(): Map<String, Any>? {
         val prefs = sharedPreferences ?: return null
         return prefs.all.mapNotNull { (key, value) ->
-            if (!PreferenceManager.Keys.BLACKLISTED_KEYS.contains(key) && value != null) {
+            if (isSyncable(key) && value != null) {
                 when (value) {
                     is String, is Boolean, is Int, is Long, is Float -> key to value
                     else -> {
@@ -272,7 +275,7 @@ class PreferenceSync private constructor() {
         val prefs = sharedPreferences ?: return
         prefs.edit {
             settings.forEach { (key, value) ->
-                if (!PreferenceManager.Keys.BLACKLISTED_KEYS.contains(key)) {
+                if (isSyncable(key)) {
                     when (value) {
                         is String -> putString(key, value)
                         is Boolean -> putBoolean(key, value)

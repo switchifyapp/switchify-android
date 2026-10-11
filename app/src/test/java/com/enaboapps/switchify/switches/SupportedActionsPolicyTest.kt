@@ -4,14 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SupportedActionsPolicyTest {
-    @Test fun launchReplacesRetiredActionsInEveryMode() {
+    @Test fun launchAndPcControlActionsAreSupportedInEveryMode() {
         listOf("auto", "manual", "unknown").forEach { mode ->
             val supported = SupportedActionsPolicy.supportedActionIdsForMode(mode)
             assertTrue(19 in supported)
             assertTrue(1 in supported)
-            assertFalse(17 in supported)
-            assertFalse(18 in supported)
+            assertTrue(SwitchAction.ACTION_OPEN_PC_MOUSE in supported)
+            assertTrue(SwitchAction.ACTION_OPEN_PC_FORWARDING in supported)
         }
-        assertFalse(SwitchAction.actions.any { it.id == 17 || it.id == 18 })
+        assertTrue(SwitchAction.actions.any { it.id == 17 } && SwitchAction.actions.any { it.id == 18 })
     }
 }
