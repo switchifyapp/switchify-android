@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import androidx.core.net.toUri
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.control.PcControlLink
 
@@ -30,6 +31,7 @@ class PcWidgetProvider : AppWidgetProvider() {
     private fun views(context: Context, appWidgetId: Int): RemoteViews {
         val items = Intent(context, PcWidgetService::class.java)
             .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            .putExtra(EXTRA_VERSION_CODE, BuildConfig.VERSION_CODE)
         items.data = items.toUri(Intent.URI_INTENT_SCHEME).toUri()
         val openPcControl = PendingIntent.getActivity(
             context,
@@ -55,6 +57,7 @@ class PcWidgetProvider : AppWidgetProvider() {
     companion object {
         private const val REQUEST_OPEN = 0
         private const val REQUEST_OPEN_PC = 1
+        private const val EXTRA_VERSION_CODE = "com.enaboapps.switchify.pc.widget.VERSION_CODE"
 
         fun refresh(context: Context) {
             val manager = AppWidgetManager.getInstance(context) ?: return
