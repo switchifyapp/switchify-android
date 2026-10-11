@@ -50,7 +50,9 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(openPcControl) {
                 if (!openPcControl) return@LaunchedEffect
-                navController.navigate(NavigationRoute.PcControl.name) { launchSingleTop = true }
+                if (!navController.popBackStack(NavigationRoute.PcControl.name, inclusive = false)) {
+                    navController.navigate(NavigationRoute.PcControl.name) { launchSingleTop = true }
+                }
                 openPcControl = false
             }
         }

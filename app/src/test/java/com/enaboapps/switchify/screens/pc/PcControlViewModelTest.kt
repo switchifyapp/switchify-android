@@ -365,6 +365,7 @@ class PcControlViewModelTest {
         advanceUntilIdle()
         f.viewModel.selectTab(PcControlTab.Settings)
         f.viewModel.openSurface(PcRemoteSurface.Forwarding)
+        advanceUntilIdle()
         assertEquals(PcRemoteSurface.Forwarding, f.preferences.surface.value)
         assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
     }
@@ -373,6 +374,29 @@ class PcControlViewModelTest {
     fun openingASurfaceWithNothingSavedKeepsPcsAndRemembersTheSurface() = viewModelTest { f ->
         advanceUntilIdle()
         f.viewModel.openSurface(PcRemoteSurface.Forwarding)
+        advanceUntilIdle()
+        assertEquals(PcRemoteSurface.Forwarding, f.preferences.surface.value)
+        assertEquals(PcControlTab.Pcs, f.viewModel.tab.value)
+    }
+
+    @Test
+    fun openingASurfaceAfterPairingTheFirstPcShowsTheRemote() = viewModelTest { f ->
+        advanceUntilIdle()
+        assertEquals(PcControlTab.Pcs, f.viewModel.startTab.value)
+        f.connection.saved = listOf(office)
+        f.viewModel.selectTab(PcControlTab.Settings)
+        f.viewModel.openSurface(PcRemoteSurface.Mouse)
+        advanceUntilIdle()
+        assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
+    }
+
+    @Test
+    fun openingASurfaceAfterRemovingTheLastPcStaysPut() = viewModelTest(saved = listOf(office)) { f ->
+        advanceUntilIdle()
+        f.connection.saved = emptyList()
+        f.viewModel.selectTab(PcControlTab.Pcs)
+        f.viewModel.openSurface(PcRemoteSurface.Forwarding)
+        advanceUntilIdle()
         assertEquals(PcRemoteSurface.Forwarding, f.preferences.surface.value)
         assertEquals(PcControlTab.Pcs, f.viewModel.tab.value)
     }
