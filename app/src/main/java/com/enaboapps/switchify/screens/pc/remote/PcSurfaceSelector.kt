@@ -14,7 +14,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.Icon
@@ -118,13 +117,11 @@ private fun PcSurfaceDialog(selected: PcRemoteSurface, onSelect: (PcRemoteSurfac
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceS)
                 ) {
                     PcRemoteSurface.entries.forEach { surface ->
-                        val isSelected = surface == selected
                         PcControlButton(
                             label = stringResource(pcSurfaceLabel(surface)),
                             onClick = { onSelect(surface) },
                             modifier = Modifier.fillMaxWidth(),
-                            icon = if (isSelected) Icons.Rounded.Check else null,
-                            selected = isSelected
+                            selected = surface == selected
                         )
                     }
                 }
