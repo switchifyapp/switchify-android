@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -137,11 +136,14 @@ fun PcRemoteScreen(
                 }
                 current.profile == null -> ProfileUnavailable(current.profileStatus)
                 activeHolder != null && activeHolder.desktopId == current.desktop.desktopId -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.weight(1f)) { ConnectedHeader(current) }
+                    ConnectedHeader(current)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        PcSurfaceSelector(surface, viewModel::selectSurface, Modifier.weight(1f))
                         if (surface.usesLayouts) PcLayoutEditToggle(editingLayout, viewModel::toggleLayoutEditing)
                     }
-                    PcSurfaceSelector(surface, viewModel::selectSurface)
                     val state by activeHolder.session.state.collectAsState()
                     val submittingEnter by activeHolder.liveTyping.submitting.collectAsState()
                     LaunchedEffect(state.repeat) { viewModel.refreshPhysicalSwitchStop() }
