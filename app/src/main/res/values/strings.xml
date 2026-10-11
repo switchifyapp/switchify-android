@@ -1211,6 +1211,8 @@
     <string name="action_open_pc_mouse_desc">Open PC control on the Mouse surface.</string>
     <string name="action_open_pc_forwarding">Open PC Switch Forwarding</string>
     <string name="action_open_pc_forwarding_desc">Open PC control on the Switch Forwarding surface.</string>
+    <string name="action_start_pc_forwarding">Start PC Switch Forwarding</string>
+    <string name="action_start_pc_forwarding_desc">Open PC control on the Switch Forwarding surface and start forwarding switches to the connected PC.</string>
     <string name="choose_app">Choose app</string>
     <string name="unavailable_app">Unavailable app</string>
     <string name="unnamed_app">Unnamed app</string>

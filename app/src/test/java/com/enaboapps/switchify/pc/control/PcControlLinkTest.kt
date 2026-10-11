@@ -27,6 +27,7 @@ class PcControlLinkTest {
     fun buildsLinksThatRoundTrip() {
         assertEquals("switchify://pc-control?surface=mouse", PcControlLink.uri(PcRemoteSurface.Mouse))
         assertEquals("switchify://pc-control?surface=forwarding", PcControlLink.uri(PcRemoteSurface.Forwarding))
+        assertEquals("switchify://pc-control?surface=forwarding&start=forwarding", PcControlLink.uri(PcRemoteSurface.Forwarding, startForwarding = true))
         assertEquals("switchify://pc-control", PcControlLink.uri(null))
         assertEquals("switchify://pc-control?pc=desk-1", PcControlLink.uri(null, "desk-1"))
         assertEquals("switchify://pc-control?surface=mouse&pc=a%26b", PcControlLink.uri(PcRemoteSurface.Mouse, "a&b"))
@@ -46,6 +47,18 @@ class PcControlLinkTest {
         assertEquals("desk-2", PcControlRequests.desktop.value)
         PcControlRequests.consumeDesktop("desk-2")
         assertNull(PcControlRequests.desktop.value)
+    }
+
+    @Test
+    fun aForwardingStartRequestIsConsumedOnlyOnce() {
+        assertTrue(PcControlLink.startsForwarding("forwarding"))
+        assertFalse(PcControlLink.startsForwarding(null))
+        PcControlRequests.requestForwardingStart(true)
+        assertTrue(PcControlRequests.consumeForwardingStart())
+        assertFalse(PcControlRequests.consumeForwardingStart())
+        PcControlRequests.requestForwardingStart(true)
+        PcControlRequests.requestForwardingStart(false)
+        assertFalse(PcControlRequests.consumeForwardingStart())
     }
 
     @Test

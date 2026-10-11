@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
         if (intent.action != Intent.ACTION_VIEW || !PcControlLink.matches(data.scheme, data.host)) return
         PcControlLink.surface(data.getQueryParameter(PcControlLink.SURFACE_PARAMETER))?.let(PcControlRequests::request)
         PcControlLink.desktopId(data.getQueryParameter(PcControlLink.DESKTOP_PARAMETER))?.let(PcControlRequests::requestDesktop)
+        PcControlRequests.requestForwardingStart(PcControlLink.startsForwarding(data.getQueryParameter(PcControlLink.START_FORWARDING_PARAMETER)))
         openPcControl = true
     }
 
