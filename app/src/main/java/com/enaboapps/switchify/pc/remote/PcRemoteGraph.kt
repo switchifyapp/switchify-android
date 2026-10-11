@@ -5,8 +5,6 @@ import com.enaboapps.switchify.pc.connection.PcConnectionGraph
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutStore
 import com.enaboapps.switchify.pc.remote.layouts.PersistentPcLayoutStore
 import com.enaboapps.switchify.pc.storage.DeviceProtectedPcKeyValueStore
-import com.enaboapps.switchify.service.remotebridge.ScanningHold
-import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,10 +24,7 @@ class PcRemoteGraph private constructor(context: Context) {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     init {
-        PcSwitchRepeatStop.availability = { SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches() }
-        PcSwitchRepeatStop.armedListener = { armed ->
-            SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.PcRepeat, armed)
-        }
+        PcSwitchRepeatStop.bindToSwitchBridge()
         scope.launch { layouts.load() }
     }
 
