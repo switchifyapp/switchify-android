@@ -59,9 +59,12 @@ data class SwitchAction(
         const val ACTION_TOGGLE_GESTURE_REPEAT = 16
         const val ACTION_OPEN_PC_MOUSE = 17
         const val ACTION_OPEN_PC_FORWARDING = 18
+
+        private const val RETIRED_REMOTE_PACKAGE = "com.enaboapps.switchify.remote"
     }
 
-    fun normalized(): SwitchAction = this
+    fun normalized(): SwitchAction =
+        if (id == ACTION_LAUNCH_APP && packageName == RETIRED_REMOTE_PACKAGE) SwitchAction(ACTION_OPEN_PC_MOUSE) else this
 
     fun toMap(): Map<String, Any?> = mapOf("id" to id, "package_name" to packageName)
 

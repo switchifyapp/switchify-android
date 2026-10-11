@@ -288,9 +288,7 @@ class ScanningManager(
         try {
             when (action.id) {
                 SwitchAction.ACTION_LAUNCH_APP -> {
-                    val launched = com.enaboapps.switchify.service.utils.AppLauncher(accessibilityService).launch(action.packageName) ||
-                        (action.packageName == PcControlLink.LEGACY_REMOTE_PACKAGE && PcControlLink.open(accessibilityService, null))
-                    if (!launched) {
+                    if (!com.enaboapps.switchify.service.utils.AppLauncher(accessibilityService).launch(action.packageName)) {
                         android.widget.Toast.makeText(accessibilityService, com.enaboapps.switchify.R.string.app_launch_unavailable, android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
