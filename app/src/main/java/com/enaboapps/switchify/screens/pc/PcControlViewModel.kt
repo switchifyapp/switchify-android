@@ -15,6 +15,7 @@ import com.enaboapps.switchify.pc.control.PcControlTab
 import com.enaboapps.switchify.pc.control.PcResumeRecovery
 import com.enaboapps.switchify.pc.remote.PcRemotePreferences
 import com.enaboapps.switchify.pc.remote.PcRemoteSurface
+import com.enaboapps.switchify.pc.storage.PcSavedPc
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,6 +114,14 @@ class PcControlViewModel(
 
     fun chooseOpeningSurface(surface: PcRemoteSurface) = preferences.setSurface(surface)
 
+    fun openSurface(surface: PcRemoteSurface) {
+        preferences.setSurface(surface)
+        if (!setup.isComplete) return
+        viewModelScope.launch {
+            if (_tab.value != null && savedPcs().isNotEmpty()) _tab.value = PcControlTab.Remote
+        }
+    }
+
     fun finishSetup(searchForPcs: Boolean) {
         if (setup.isComplete) return
         setup.complete()
@@ -127,15 +136,17 @@ class PcControlViewModel(
 
     private fun resolveOpeningTab() {
         viewModelScope.launch {
-            val saved = try {
-                connection.listSaved()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                emptyList()
-            }
+            val saved = savedPcs()
             if (_tab.value == null) open(PcControlOpening.initialTab(saved))
         }
+    }
+
+    private suspend fun savedPcs(): List<PcSavedPc> = try {
+        connection.listSaved()
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Exception) {
+        emptyList()
     }
 
     private fun launchSafely(block: suspend () -> Unit) {
