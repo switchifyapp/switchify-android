@@ -205,12 +205,41 @@ private fun ForwardingBody(
         }
     }
 
+    ActionButton(
+        textResId = if (state.phase == PcForwardingPhase.Active) R.string.pc_forwarding_stop else R.string.pc_forwarding_start,
+        type = if (state.phase == PcForwardingPhase.Active) ActionButtonType.DESTRUCTIVE else ActionButtonType.PRIMARY,
+        enabled = state.phase != PcForwardingPhase.Starting && state.profiles.isNotEmpty(),
+        leadingIcon = if (state.phase == PcForwardingPhase.Active) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+        onClick = onToggle,
+        applyPadding = false,
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    if (state.phase == PcForwardingPhase.Active && state.overflow.isNotEmpty()) {
+        Text(
+            text = pluralStringResource(R.plurals.pc_forwarding_overflow, state.overflow.size, state.overflow.size),
+            style = MaterialTheme.typography.bodyMedium,
+            color = scheme.error
+        )
+    }
+
     if (state.selectedProfile?.kind == PcSwitchProfileKind.Scanning) {
         Text(
             text = stringResource(R.string.pc_forwarding_scanning_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = scheme.onSurfaceVariant
         )
+    }
+
+    if (state.phase == PcForwardingPhase.Active) {
+        Text(
+            text = stringResource(R.string.pc_forwarding_switches_title),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() }
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+            state.mappings.forEach { mapping -> MappingRow(mapping) }
+        }
     }
 
     if (state.profiles.isNotEmpty()) {
@@ -230,35 +259,6 @@ private fun ForwardingBody(
                     )
                 }
             }
-        }
-    }
-
-    ActionButton(
-        textResId = if (state.phase == PcForwardingPhase.Active) R.string.pc_forwarding_stop else R.string.pc_forwarding_start,
-        type = if (state.phase == PcForwardingPhase.Active) ActionButtonType.DESTRUCTIVE else ActionButtonType.PRIMARY,
-        enabled = state.phase != PcForwardingPhase.Starting && state.profiles.isNotEmpty(),
-        leadingIcon = if (state.phase == PcForwardingPhase.Active) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-        onClick = onToggle,
-        applyPadding = false,
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    if (state.phase == PcForwardingPhase.Active && state.overflow.isNotEmpty()) {
-        Text(
-            text = pluralStringResource(R.plurals.pc_forwarding_overflow, state.overflow.size, state.overflow.size),
-            style = MaterialTheme.typography.bodyMedium,
-            color = scheme.error
-        )
-    }
-
-    if (state.phase == PcForwardingPhase.Active) {
-        Text(
-            text = stringResource(R.string.pc_forwarding_switches_title),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() }
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-            state.mappings.forEach { mapping -> MappingRow(mapping) }
         }
     }
 }
