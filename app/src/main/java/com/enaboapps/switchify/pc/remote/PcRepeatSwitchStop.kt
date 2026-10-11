@@ -61,6 +61,7 @@ object PcSwitchRepeatStop {
     fun bindToSwitchBridge() {
         availability = { SwitchifyRemoteBridgeCoordinator.hasConfiguredSwitches() }
         armedListener = { armed -> SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.PcRepeat, armed) }
+        SwitchifyRemoteBridgeCoordinator.pcRepeatActive = { hook.isArmed() }
     }
 
     fun requestStop(): Boolean = hook.requestStop()

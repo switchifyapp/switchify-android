@@ -143,6 +143,31 @@ class ScanningHoldCoordinatorTest {
         assertFalse(PcSwitchRepeatStop.hook.isAvailable())
     }
 
+    @Test fun aPcRepeatStillArmedAfterAServiceRestartKeepsScanningHeld() {
+        PcSwitchRepeatStop.bindToSwitchBridge()
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        val handle = PcSwitchRepeatStop.hook.arm {}
+        handles += handle
+        runMainLooper()
+        SwitchifyRemoteBridgeCoordinator.detach()
+        runMainLooper()
+
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        runMainLooper()
+        assertEquals(listOf("pause", "pause"), target.calls)
+
+        handle.release()
+        runMainLooper()
+        assertEquals(listOf("pause", "pause", "resume"), target.calls)
+    }
+
+    @Test fun aServiceRestartWithoutAnArmedRepeatDoesNotHoldScanning() {
+        PcSwitchRepeatStop.bindToSwitchBridge()
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        runMainLooper()
+        assertEquals(emptyList<String>(), target.calls)
+    }
+
     @Test fun pcRepeatAndForwardingThroughTheRealHooksShareOneHold() {
         PcSwitchRepeatStop.bindToSwitchBridge()
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }

@@ -41,6 +41,7 @@ object SwitchifyRemoteBridgeCoordinator {
     internal var setScanningPaused: (Boolean) -> Unit = ::postScanningPaused
     internal var postToMain: (() -> Unit) -> Unit = ::postToMainLooper
     internal var scanningHoldTarget: () -> ScanningHoldTarget? = ::serviceScanningHoldTarget
+    @Volatile internal var pcRepeatActive: () -> Boolean = { false }
 
     fun attach(provider: SwitchEventProvider) = attach(provider::hasCameraSwitches) { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
     internal fun attach(cameraSwitches: () -> Boolean = { false }, provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
@@ -50,6 +51,7 @@ object SwitchifyRemoteBridgeCoordinator {
             configuredSwitchFingerprint = configuredSwitchFingerprintLocked()
         }
         publishSnapshot()
+        if (pcRepeatActive()) setScanningHeld(ScanningHold.PcRepeat) { pcRepeatActive() }
     }
     fun detach() = callbackDispatcher.dispatch {
         synchronized(lock) {
@@ -219,6 +221,7 @@ object SwitchifyRemoteBridgeCoordinator {
         setScanningPaused = ::postScanningPaused
         postToMain = ::postToMainLooper
         scanningHoldTarget = ::serviceScanningHoldTarget
+        pcRepeatActive = { false }
     }
     private fun isConfiguredExternalSwitch(keyCode: Int) = synchronized(lock) {
         externalSwitches?.invoke()?.any { it.first == keyCode } == true
@@ -246,12 +249,13 @@ object SwitchifyRemoteBridgeCoordinator {
     }
     private fun postScanningPaused(paused: Boolean) = setScanningHeld(ScanningHold.Forwarding, paused)
 
-    fun setScanningHeld(hold: ScanningHold, held: Boolean) {
+    fun setScanningHeld(hold: ScanningHold, held: Boolean) = setScanningHeld(hold) { held }
+    private fun setScanningHeld(hold: ScanningHold, held: () -> Boolean) {
         val epoch = synchronized(lock) { scanningHoldEpoch }
         postToMain {
             val target = scanningHoldTarget()
             synchronized(lock) {
-                if (epoch == scanningHoldEpoch) scanningHolds.apply(hold, held, target)
+                if (epoch == scanningHoldEpoch) scanningHolds.apply(hold, held(), target)
             }
         }
     }
