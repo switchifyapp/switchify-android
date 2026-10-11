@@ -17,12 +17,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -39,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.OutputStream
 import java.text.DateFormat
 import java.time.Instant
 import java.time.ZoneOffset
@@ -51,6 +52,20 @@ class PcDiagnosticsViewModel(private val log: PcDiagnosticLog) : ViewModel() {
     fun export(): String = log.export()
 
     fun clear() = log.clear()
+
+    fun exportTo(output: () -> OutputStream?, onResult: (Boolean) -> Unit) {
+        val text = log.export()
+        viewModelScope.launch {
+            val written = withContext(Dispatchers.IO) {
+                try {
+                    output()?.use { it.write(text.toByteArray(Charsets.UTF_8)) } != null
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            onResult(written)
+        }
+    }
 
     companion object {
         const val EXPORT_MIME_TYPE = "text/plain"
@@ -74,21 +89,13 @@ fun PcDiagnosticsScreen(navController: NavController) {
     val exportTitle = stringResource(R.string.pc_diagnostics_export_title)
     val exportedMessage = stringResource(R.string.pc_diagnostics_exported)
     val exportFailedMessage = stringResource(R.string.pc_diagnostics_export_failed)
-    val scope = rememberCoroutineScope()
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(PcDiagnosticsViewModel.EXPORT_MIME_TYPE)
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val text = viewModel.export()
-        scope.launch {
-            val written = withContext(Dispatchers.IO) {
-                try {
-                    context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } != null
-                } catch (_: Exception) {
-                    false
-                }
-            }
-            Toast.makeText(context, if (written) exportedMessage else exportFailedMessage, Toast.LENGTH_SHORT).show()
+        val appContext = context.applicationContext
+        viewModel.exportTo({ appContext.contentResolver.openOutputStream(uri) }) { written ->
+            Toast.makeText(appContext, if (written) exportedMessage else exportFailedMessage, Toast.LENGTH_SHORT).show()
         }
     }
 
