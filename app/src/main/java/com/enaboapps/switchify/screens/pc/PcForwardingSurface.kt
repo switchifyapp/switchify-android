@@ -294,7 +294,11 @@ private fun ProfileRow(profile: PcSwitchProfile, selected: Boolean, enabled: Boo
 @Composable
 private fun MappingRow(mapping: PcForwardingMapping) {
     val scheme = MaterialTheme.colorScheme
-    val output = mapping.outputLabel ?: stringResource(R.string.pc_forwarding_unassigned)
+    val output = when {
+        mapping.outputLabel == null -> stringResource(R.string.pc_forwarding_unassigned)
+        mapping.outputLabel.isBlank() -> stringResource(R.string.pc_forwarding_switch_number, mapping.switchId)
+        else -> mapping.outputLabel
+    }
     val status = stringResource(if (mapping.pressed) R.string.pc_forwarding_pressed else R.string.pc_forwarding_released)
     val description = stringResource(R.string.pc_forwarding_mapping_description, mapping.name, output, status)
     Surface(

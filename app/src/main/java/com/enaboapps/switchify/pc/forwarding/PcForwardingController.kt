@@ -511,7 +511,7 @@ class PcForwardingController(
             version = 1,
             name = "Grid 3",
             kind = PcSwitchProfileKind.Grid3,
-            bindings = (1..MAX_SWITCHES).map { PcSwitchBinding(it, "Switch $it", PcSwitchBindingBehavior.Stateful) }
+            bindings = (1..MAX_SWITCHES).map { PcSwitchBinding(it, "", PcSwitchBindingBehavior.Stateful) }
         )
     }
 }

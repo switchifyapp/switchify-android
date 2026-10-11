@@ -231,14 +231,15 @@ class PcSecretStoreTest {
     }
 
     @Test
-    fun pairingResetsAKeyThatStaysUnavailableAfterRetrying() = runTest {
-        pairedStore()
+    fun pairingKeepsAKeyThatStaysTransientlyUnavailableAfterRetrying() = runTest {
+        val stored = pairedStore()
         keys.failure = transientDaemonError()
-        val pairingDeviceId = store.deviceIdForPairing()
-        assertEquals(1, keys.deleted)
-        assertNotEquals("device-1", pairingDeviceId)
-        store.save(office, "new-secret")
-        assertEquals("new-secret", store.token("pc-1"))
+        expectUnavailable { store.deviceIdForPairing() }
+        assertEquals(0, keys.deleted)
+        assertEquals(stored, backing.values)
+        keys.failure = null
+        assertEquals("device-1", store.deviceIdForPairing())
+        assertEquals("fixture-secret", store.token("pc-1"))
     }
 
     private suspend fun expectUnavailable(action: suspend () -> Unit) {

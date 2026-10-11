@@ -886,6 +886,29 @@ class PcConnectionManagerTest {
     }
 
     @Test
+    fun unknownDeviceInvalidatesSavedAccessLikeInvalidAuth() = managerTest { h ->
+        h.savePc()
+        h.transport.pingErrorCode = "unknown_device"
+        h.manager.connectSaved(savedOffice())
+        runCurrent()
+        val failed = h.manager.state.value as PcConnectionState.Failed
+        assertEquals(PcConnectionFailure.SavedAccessInvalid, failed.failure)
+        assertEquals(emptyList<PcSavedPc>(), failed.saved)
+        assertNull(h.storage.token("desktop-1"))
+        assertFalse("pairing.request" in h.transport.types)
+        assertTrue("authentication_failed" in h.codes)
+    }
+
+    @Test
+    fun unknownDeviceDuringACommandFailsTheConnectionAsRevoked() = managerTest { h ->
+        connect(h)
+        runCurrent()
+        h.transport.pingErrorCode = "unknown_device"
+        assertEquals(PcRemoteNameSync.Failed, h.manager.syncRemoteName())
+        assertEquals(PcConnectionFailure.AccessRevoked, (h.manager.state.value as PcConnectionState.Failed).failure)
+    }
+
+    @Test
     fun appliesAnAcknowledgedPointerSpeedToTheProfile() = managerTest { h ->
         connect(h)
         runCurrent()

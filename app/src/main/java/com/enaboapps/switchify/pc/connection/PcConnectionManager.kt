@@ -478,7 +478,7 @@ class PcConnectionManager(
                     return PcRequestResult(response)
                 }
                 response is PcResponse.SwitchProfileCatalog || response is PcResponse.PointerProfile -> return PcRequestResult(response)
-                response is PcResponse.Error && response.code == INVALID_AUTH ->
+                isSavedAccessRejected(response) ->
                     fail(PcConnectionFailure.AccessRevoked, operation, auth = true)
                 response is PcResponse.Error && response.code == NAME_UPDATE_FAILED -> {
                     diagnostics.add(PcDiagnosticEvent.RemoteNameSyncFailed, PcDiagnosticLevel.Warning)
@@ -588,7 +588,7 @@ class PcConnectionManager(
         if (!isCurrent(current)) return
         val nameUpdateFailed = response is PcResponse.Error && response.code == NAME_UPDATE_FAILED
         if (response !is PcResponse.Ack && !nameUpdateFailed) {
-            if (response is PcResponse.Error && response.code == INVALID_AUTH) {
+            if (isSavedAccessRejected(response)) {
                 invalidSavedDesktopIds += desktop.desktopId
                 try {
                     storage.remove(desktop.desktopId)
@@ -942,6 +942,9 @@ class PcConnectionManager(
         if (isCurrent(current)) set(PcConnectionState.Failed(failure, saved))
     }
 
+    private fun isSavedAccessRejected(response: PcResponse): Boolean =
+        response is PcResponse.Error && (response.code == INVALID_AUTH || response.code == UNKNOWN_DEVICE)
+
     private fun isCurrent(value: Int) = value == operation
 
     private fun set(next: PcConnectionState) {
@@ -986,6 +989,7 @@ class PcConnectionManager(
         const val RECONNECT_ATTEMPTS = 3
         const val RECONNECT_BASE_DELAY_MS = 500L
         const val INVALID_AUTH = "invalid_auth"
+        const val UNKNOWN_DEVICE = "unknown_device"
         const val NAME_UPDATE_FAILED = "name_update_failed"
         const val PAIRING_REJECTED = "pairing_rejected"
         const val PAIRING_EXPIRED = "pairing_request_expired"
