@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
         val data = intent?.data ?: return
         if (intent.action != Intent.ACTION_VIEW || !PcControlLink.matches(data.scheme, data.host)) return
         PcControlLink.surface(data.getQueryParameter(PcControlLink.SURFACE_PARAMETER))?.let(PcControlRequests::request)
+        PcControlLink.desktopId(data.getQueryParameter(PcControlLink.DESKTOP_PARAMETER))?.let(PcControlRequests::requestDesktop)
         openPcControl = true
     }
 

@@ -14,6 +14,7 @@ class FakePcControlConnection(var saved: List<PcSavedPc> = emptyList()) : PcCont
     var connectCalls = 0
     var disconnectCalls = 0
     val connectedSaved = mutableListOf<PcSavedPc>()
+    val switchedSaved = mutableListOf<PcSavedPc>()
     var locationOff = false
     var scanCalls = 0
     var stopScanCalls = 0
@@ -34,6 +35,10 @@ class FakePcControlConnection(var saved: List<PcSavedPc> = emptyList()) : PcCont
 
     override suspend fun connectSaved(pc: PcSavedPc) {
         connectedSaved += pc
+    }
+
+    override suspend fun switchSaved(pc: PcSavedPc) {
+        switchedSaved += pc
     }
 
     override fun isLocationOff() = locationOff

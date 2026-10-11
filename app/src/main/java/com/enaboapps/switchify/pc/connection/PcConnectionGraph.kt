@@ -14,8 +14,16 @@ import com.enaboapps.switchify.pc.storage.keystorePcSecretStore
 import com.enaboapps.switchify.pc.transport.AndroidPcGattAdapter
 import com.enaboapps.switchify.pc.transport.PcBleTransport
 import com.enaboapps.switchify.pc.transport.PcBluetoothPermissions
+import com.enaboapps.switchify.pc.widget.PcWidgetProvider
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 
 class PcConnectionGraph private constructor(context: Context) {
     private val appContext = context.applicationContext
@@ -26,12 +34,14 @@ class PcConnectionGraph private constructor(context: Context) {
 
     val permissions = PcPermissionRequester { PcBluetoothPermissions.hasAll(appContext) }
 
+    val pairings = PcPairingStore(
+        publicStore = DeviceProtectedPcKeyValueStore(appContext),
+        secretStore = keystorePcSecretStore(appContext)
+    )
+
     val manager = PcConnectionManager(
         transport = PcBleTransport(AndroidPcGattAdapter(appContext), stageObserver = diagnostics),
-        storage = PcPairingStore(
-            publicStore = DeviceProtectedPcKeyValueStore(appContext),
-            secretStore = keystorePcSecretStore(appContext)
-        ),
+        storage = pairings,
         diagnostics = diagnostics,
         requestPermission = permissions::request,
         remoteName = { remoteNames.resolvedName() },
@@ -46,6 +56,18 @@ class PcConnectionGraph private constructor(context: Context) {
             Logger.log(LogEvent.PcConnectionUnexpectedError, throwable = PcSanitizedError.from(error))
         }
     )
+
+    private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        widgetScope.launch {
+            manager.state
+                .mapNotNull { it.savedPcs }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { PcWidgetProvider.refresh(appContext) }
+        }
+    }
 
     private fun locationServicesOff(): Boolean {
         if (!PcBluetoothScanRequirements.requiresLocationServices(Build.VERSION.SDK_INT)) return false

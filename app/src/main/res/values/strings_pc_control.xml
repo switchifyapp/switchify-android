@@ -70,4 +70,12 @@
     <string name="pc_settings_off">Off</string>
     <string name="pc_settings_forwarding_title">Switch Forwarding</string>
     <string name="pc_settings_forwarding_summary">How long a physical switch must be held to stop forwarding. With Switchify scanning, shorter holds run the PC\'s hold actions.</string>
+
+    <string name="pc_widget_label">PC control</string>
+    <string name="pc_widget_description">Open PC control for one of your paired PCs.</string>
+    <string name="pc_widget_empty">No paired PCs yet. Tap to set up PC control.</string>
+    <string name="pc_widget_default">Default PC</string>
+    <string name="pc_widget_windows">Windows PC</string>
+    <string name="pc_widget_mac">Mac</string>
+    <string name="pc_widget_paired">Paired PC</string>
 </resources>

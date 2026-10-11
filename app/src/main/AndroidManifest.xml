@@ -92,6 +92,24 @@
             android:taskAffinity=""
             android:theme="@style/Theme.Switchify" />
 
+        <receiver
+            android:name=".pc.widget.PcWidgetProvider"
+            android:exported="true"
+            android:label="@string/pc_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pc_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".pc.widget.PcWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <service
             android:name=".service.remotebridge.SwitchifyRemoteBridgeService"
             android:exported="true"

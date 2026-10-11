@@ -37,6 +37,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PcControlViewModelTest {
     private val office = PcSavedPc("pc-1", "Office", PcPlatform.Windows, "ble-1", 1)
+    private val home = PcSavedPc("pc-2", "Home", PcPlatform.MacOs, "ble-2", 2)
     private val connected = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
 
     private class TestActivity : LifecycleOwner {
@@ -53,7 +54,8 @@ class PcControlViewModelTest {
         val cleanupScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(test.testScheduler))
         var granted = true
         val permissions = PcPermissionRequester { granted }
-        val viewModel = PcControlViewModel(connection, setup, permissions, preferences, cleanupScope)
+        var requestedDesktop: String? = null
+        val viewModel = PcControlViewModel(connection, setup, permissions, preferences, cleanupScope) { requestedDesktop }
     }
 
     private fun viewModelTest(
@@ -77,6 +79,34 @@ class PcControlViewModelTest {
         advanceUntilIdle()
         assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
         assertEquals(1, f.connection.connectCalls)
+    }
+
+    @Test
+    fun aRequestedPcIsConnectedInsteadOfThePreferredOne() = viewModelTest(saved = listOf(home, office)) { f ->
+        f.requestedDesktop = office.desktopId
+        f.viewModel.onStart()
+        f.viewModel.openDesktop(office.desktopId)
+        advanceUntilIdle()
+        assertEquals(PcControlTab.Remote, f.viewModel.tab.value)
+        assertEquals(0, f.connection.connectCalls)
+        assertEquals(listOf(office), f.connection.switchedSaved)
+    }
+
+    @Test
+    fun anUnknownRequestedPcFallsBackToThePreferredOne() = viewModelTest(saved = listOf(office)) { f ->
+        f.requestedDesktop = "missing"
+        f.viewModel.onStart()
+        f.viewModel.openDesktop("missing")
+        advanceUntilIdle()
+        assertEquals(1, f.connection.connectCalls)
+        assertTrue(f.connection.switchedSaved.isEmpty())
+    }
+
+    @Test
+    fun aRequestedPcIsIgnoredBeforeSetupIsComplete() = viewModelTest(saved = listOf(office), setupComplete = false) { f ->
+        f.viewModel.openDesktop(office.desktopId)
+        advanceUntilIdle()
+        assertTrue(f.connection.switchedSaved.isEmpty())
     }
 
     @Test
