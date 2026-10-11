@@ -28,6 +28,24 @@ class PcControlLinkTest {
         assertEquals("switchify://pc-control?surface=mouse", PcControlLink.uri(PcRemoteSurface.Mouse))
         assertEquals("switchify://pc-control?surface=forwarding", PcControlLink.uri(PcRemoteSurface.Forwarding))
         assertEquals("switchify://pc-control", PcControlLink.uri(null))
+        assertEquals("switchify://pc-control?pc=desk-1", PcControlLink.uri(null, "desk-1"))
+        assertEquals("switchify://pc-control?surface=mouse&pc=a%26b", PcControlLink.uri(PcRemoteSurface.Mouse, "a&b"))
+    }
+
+    @Test
+    fun ignoresBlankDesktopIds() {
+        assertEquals("desk-1", PcControlLink.desktopId("desk-1"))
+        assertNull(PcControlLink.desktopId(" "))
+        assertNull(PcControlLink.desktopId(null))
+    }
+
+    @Test
+    fun aDesktopRequestIsConsumedOnlyOnce() {
+        PcControlRequests.requestDesktop("desk-2")
+        PcControlRequests.consumeDesktop("desk-1")
+        assertEquals("desk-2", PcControlRequests.desktop.value)
+        PcControlRequests.consumeDesktop("desk-2")
+        assertNull(PcControlRequests.desktop.value)
     }
 
     @Test

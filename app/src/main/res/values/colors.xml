@@ -14,4 +14,13 @@
     -->
     <color name="gesture_visual_primary">#FFD32F2F</color>
     <color name="gesture_visual_on_primary">#FFFFFFFF</color>
+
+
+    <!-- Home screen PC widget colours. Mirror LightColorScheme in Theme.kt. -->
+    <color name="pc_widget_primary">#FFD32F2F</color>
+    <color name="pc_widget_surface">#FFFFFBFF</color>
+    <color name="pc_widget_item">#FFE7E0EC</color>
+    <color name="pc_widget_on_surface">#FF1C1B1F</color>
+    <color name="pc_widget_on_surface_variant">#FF49454F</color>
+    <color name="pc_widget_ripple">#1F1C1B1F</color>
 </resources>

@@ -112,6 +112,13 @@ fun PcControlScreen(navController: NavController) {
         PcControlRequests.consume(surface)
     }
 
+    val requestedDesktop by PcControlRequests.desktop.collectAsStateWithLifecycle()
+    LaunchedEffect(requestedDesktop) {
+        val desktopId = requestedDesktop ?: return@LaunchedEffect
+        viewModel.openDesktop(desktopId)
+        PcControlRequests.consumeDesktop(desktopId)
+    }
+
     if (phase != PcControlSetupPhase.Complete) {
         val surface by viewModel.surface.collectAsStateWithLifecycle()
         PcControlSetupScreen(

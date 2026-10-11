@@ -9,6 +9,7 @@ import com.enaboapps.switchify.pc.connection.PcPermissionRequester
 import com.enaboapps.switchify.pc.control.PcAutoConnectPolicy
 import com.enaboapps.switchify.pc.control.PcControlConnection
 import com.enaboapps.switchify.pc.control.PcControlOpening
+import com.enaboapps.switchify.pc.control.PcControlRequests
 import com.enaboapps.switchify.pc.control.PcControlSetup
 import com.enaboapps.switchify.pc.control.PcControlSetupPhase
 import com.enaboapps.switchify.pc.control.PcControlTab
@@ -28,7 +29,8 @@ class PcControlViewModel(
     private val setup: PcControlSetup,
     private val permissions: PcPermissionRequester,
     private val preferences: PcRemotePreferences,
-    private val cleanupScope: CoroutineScope
+    private val cleanupScope: CoroutineScope,
+    private val requestedDesktop: () -> String? = { PcControlRequests.desktop.value }
 ) : ViewModel() {
     val setupPhase: StateFlow<PcControlSetupPhase> = setup.phase
     val surface: StateFlow<PcRemoteSurface> = preferences.surface
@@ -84,6 +86,7 @@ class PcControlViewModel(
 
     fun onStart() {
         if (!autoConnect.onStart(setup.isComplete)) return
+        if (requestedDesktop() != null) return
         val state = connection.state.value
         when (val recovery = PcResumeRecovery.after(state, permissions.isGranted(), connection.isLocationOff())) {
             is PcResumeRecovery.RetrySaved -> launchSafely { connection.connectSaved(recovery.pc) }
@@ -119,6 +122,19 @@ class PcControlViewModel(
         if (!setup.isComplete) return
         viewModelScope.launch {
             if (_tab.value != null && savedPcs().isNotEmpty()) _tab.value = PcControlTab.Remote
+        }
+    }
+
+    fun openDesktop(desktopId: String) {
+        if (!setup.isComplete) return
+        launchSafely {
+            val pc = savedPcs().firstOrNull { it.desktopId == desktopId }
+            if (pc == null) {
+                connection.connectPreferred()
+                return@launchSafely
+            }
+            if (_tab.value != null) _tab.value = PcControlTab.Remote
+            connection.switchSaved(pc)
         }
     }
 
