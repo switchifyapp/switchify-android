@@ -301,6 +301,36 @@ class PcForwardingSessionTest {
     }
 
     @Test
+    fun aStartRequestStartsForwardingOnceTheProfilesLoad() = runTest {
+        val connection = FakeConnection()
+        val state = MutableStateFlow<PcConnectionState>(PcConnectionState.Idle(emptyList()))
+        val session = PcForwardingSession(state, connection, { PcUnsubscribe {} }, FakeBridge(), FakePreferences(), backgroundScope)
+        session.requestStart()
+        session.attach()
+        runCurrent()
+        assertTrue(connection.of("switch.session.start").isEmpty())
+        state.value = connected()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, session.state.value.phase)
+        assertEquals(1, connection.of("switch.session.start").size)
+        session.requestStart()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Active, session.state.value.phase)
+        assertEquals(1, connection.of("switch.session.start").size)
+    }
+
+    @Test
+    fun aStartRequestIsDroppedWhenTheScreenIsLeft() = runTest {
+        val h = harness(attached = false)
+        h.session.requestStart()
+        h.session.detach(changingConfigurations = false)
+        h.session.attach()
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.session.state.value.phase)
+        assertTrue(h.connection.of("switch.session.start").isEmpty())
+    }
+
+    @Test
     fun anEqualProfileFromTheSamePcKeepsTheRunningController() = runTest {
         val h = harness()
         h.session.toggle()

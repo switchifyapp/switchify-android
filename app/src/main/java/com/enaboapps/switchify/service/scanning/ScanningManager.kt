@@ -294,6 +294,7 @@ class ScanningManager(
                 }
                 SwitchAction.ACTION_OPEN_PC_MOUSE -> PcControlLink.open(accessibilityService, PcRemoteSurface.Mouse)
                 SwitchAction.ACTION_OPEN_PC_FORWARDING -> PcControlLink.open(accessibilityService, PcRemoteSurface.Forwarding)
+                SwitchAction.ACTION_START_PC_FORWARDING -> PcControlLink.open(accessibilityService, PcRemoteSurface.Forwarding, startForwarding = true)
                 SwitchAction.ACTION_SELECT -> select()
                 SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanningAndReset()
                 SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()

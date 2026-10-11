@@ -11,7 +11,9 @@ class SupportedActionsPolicyTest {
             assertTrue(1 in supported)
             assertTrue(SwitchAction.ACTION_OPEN_PC_MOUSE in supported)
             assertTrue(SwitchAction.ACTION_OPEN_PC_FORWARDING in supported)
+            assertTrue(SwitchAction.ACTION_START_PC_FORWARDING in supported)
         }
         assertTrue(SwitchAction.actions.any { it.id == 17 } && SwitchAction.actions.any { it.id == 18 })
+        assertTrue(SwitchAction.actions.any { it.id == 20 })
     }
 }

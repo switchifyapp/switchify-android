@@ -43,6 +43,7 @@ class PcForwardingSession(
     private var active: Active? = null
     private var visibility = Visibility.Hidden
     private var leaves = 0
+    private var startRequested = false
     private val connectionJob: Job = scope.launch { connectionState.collect(::onConnection) }
 
     fun toggle() {
@@ -53,18 +54,14 @@ class PcForwardingSession(
                 restore.clear()
                 controller.stop()
             } else {
-                val leavesBefore = leaves
-                if (!controller.start()) return@launch
-                if (leftSince(leavesBefore, current)) {
-                    controller.stop(PcForwardingMessage.LeftScreen)
-                    return@launch
-                }
-                val selected = controller.selectedProfile()
-                if (selected != null && selected.kind != PcSwitchProfileKind.Scanning) {
-                    restore.set(PcForwardingRestoreIntent(current.desktopId, selected.id, selected.version))
-                }
+                start(current)
             }
         }
+    }
+
+    fun requestStart() {
+        startRequested = true
+        active?.let(::startIfRequested)
     }
 
     fun selectProfile(profileId: String) {
@@ -89,6 +86,7 @@ class PcForwardingSession(
     fun attach() {
         visibility = Visibility.Visible
         active?.let(::restoreIfVisible)
+        active?.let(::startIfRequested)
     }
 
     fun detach(changingConfigurations: Boolean) {
@@ -98,6 +96,7 @@ class PcForwardingSession(
         }
         visibility = Visibility.Hidden
         leaves += 1
+        startRequested = false
         restore.clear()
         val controller = active?.controller ?: return
         if (!controller.state.value.running) return
@@ -147,6 +146,7 @@ class PcForwardingSession(
             if (active !== next) return@launch
             next.loaded = true
             restoreIfVisible(next)
+            startIfRequested(next)
         }
     }
 
@@ -170,6 +170,27 @@ class PcForwardingSession(
             if (visibility != Visibility.Visible || active !== current || restore.get() != intent) return@launch
             val leavesBefore = leaves
             if (controller.start() && leftSince(leavesBefore, current)) controller.stop(PcForwardingMessage.LeftScreen)
+        }
+    }
+
+    private fun startIfRequested(current: Active) {
+        if (!startRequested || visibility != Visibility.Visible || !current.loaded) return
+        startRequested = false
+        if (current.controller.state.value.running) return
+        scope.launch { start(current) }
+    }
+
+    private suspend fun start(current: Active) {
+        val controller = current.controller
+        val leavesBefore = leaves
+        if (!controller.start()) return
+        if (leftSince(leavesBefore, current)) {
+            controller.stop(PcForwardingMessage.LeftScreen)
+            return
+        }
+        val selected = controller.selectedProfile()
+        if (selected != null && selected.kind != PcSwitchProfileKind.Scanning) {
+            restore.set(PcForwardingRestoreIntent(current.desktopId, selected.id, selected.version))
         }
     }
 

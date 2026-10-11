@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
@@ -47,6 +48,7 @@ import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.pc.connection.PcConnectionGraph
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcProfileStatus
+import com.enaboapps.switchify.pc.control.PcControlRequests
 import com.enaboapps.switchify.pc.forwarding.InAppSwitchBridge
 import com.enaboapps.switchify.pc.forwarding.PcForwardingMapping
 import com.enaboapps.switchify.pc.forwarding.PcForwardingMessage
@@ -95,6 +97,11 @@ fun PcForwardingSurface(onOpenPcs: () -> Unit) {
         }
     }
     LaunchedEffect(viewModel) { viewModel.refreshHoldToStop() }
+
+    val startRequested by PcControlRequests.forwardingStart.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, startRequested) {
+        if (startRequested && PcControlRequests.consumeForwardingStart()) viewModel.requestStart()
+    }
 
     val view = LocalView.current
     val forwardingActive = forwarding.phase == PcForwardingPhase.Active

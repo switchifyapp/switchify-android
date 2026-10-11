@@ -48,6 +48,8 @@ class PcForwardingViewModel(
 
     fun toggle() = session.toggle()
 
+    fun requestStart() = session.requestStart()
+
     fun selectProfile(profileId: String) = session.selectProfile(profileId)
 
     fun setHoldToStopMs(value: Long) = session.setHoldToStopMs(value)

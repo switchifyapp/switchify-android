@@ -36,7 +36,8 @@ data class SwitchAction(
             ACTION_TOGGLE_GESTURE_REPEAT,
             ACTION_LAUNCH_APP,
             ACTION_OPEN_PC_MOUSE,
-            ACTION_OPEN_PC_FORWARDING
+            ACTION_OPEN_PC_FORWARDING,
+            ACTION_START_PC_FORWARDING
         ).map { SwitchAction(it) }
 
         const val ACTION_LAUNCH_APP = 19
@@ -59,6 +60,7 @@ data class SwitchAction(
         const val ACTION_TOGGLE_GESTURE_REPEAT = 16
         const val ACTION_OPEN_PC_MOUSE = 17
         const val ACTION_OPEN_PC_FORWARDING = 18
+        const val ACTION_START_PC_FORWARDING = 20
 
         private const val RETIRED_REMOTE_PACKAGE = "com.enaboapps.switchify.remote"
     }
@@ -94,6 +96,7 @@ data class SwitchAction(
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat)
         ACTION_OPEN_PC_MOUSE -> Resources.getString(R.string.action_open_pc_mouse)
         ACTION_OPEN_PC_FORWARDING -> Resources.getString(R.string.action_open_pc_forwarding)
+        ACTION_START_PC_FORWARDING -> Resources.getString(R.string.action_start_pc_forwarding)
         else -> Resources.getString(R.string.unknown)
     }
 
@@ -118,6 +121,7 @@ data class SwitchAction(
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat_desc)
         ACTION_OPEN_PC_MOUSE -> Resources.getString(R.string.action_open_pc_mouse_desc)
         ACTION_OPEN_PC_FORWARDING -> Resources.getString(R.string.action_open_pc_forwarding_desc)
+        ACTION_START_PC_FORWARDING -> Resources.getString(R.string.action_start_pc_forwarding_desc)
         else -> Resources.getString(R.string.unknown)
     }
 }

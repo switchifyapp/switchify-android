@@ -15,6 +15,8 @@ object PcControlLink {
     const val HOST = "pc-control"
     const val SURFACE_PARAMETER = "surface"
     const val DESKTOP_PARAMETER = "pc"
+    const val START_FORWARDING_PARAMETER = "start"
+    const val START_FORWARDING_VALUE = "forwarding"
 
     fun matches(scheme: String?, host: String?): Boolean = scheme == SCHEME && host == HOST
 
@@ -22,10 +24,13 @@ object PcControlLink {
 
     fun desktopId(value: String?): String? = value?.takeIf { it.isNotBlank() }
 
-    fun uri(surface: PcRemoteSurface?, desktopId: String? = null): String {
+    fun startsForwarding(value: String?): Boolean = value == START_FORWARDING_VALUE
+
+    fun uri(surface: PcRemoteSurface?, desktopId: String? = null, startForwarding: Boolean = false): String {
         val parameters = listOfNotNull(
             surface?.let { "$SURFACE_PARAMETER=${it.storageKey}" },
-            desktopId?.let { "$DESKTOP_PARAMETER=${URLEncoder.encode(it, Charsets.UTF_8.name())}" }
+            desktopId?.let { "$DESKTOP_PARAMETER=${URLEncoder.encode(it, Charsets.UTF_8.name())}" },
+            "$START_FORWARDING_PARAMETER=$START_FORWARDING_VALUE".takeIf { startForwarding }
         )
         val base = "$SCHEME://$HOST"
         return if (parameters.isEmpty()) base else "$base?${parameters.joinToString("&")}"
@@ -35,11 +40,11 @@ object PcControlLink {
         .setClass(context, MainActivity::class.java)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
-    fun intent(context: Context, surface: PcRemoteSurface?, desktopId: String? = null): Intent =
-        intent(context).setData(uri(surface, desktopId).toUri())
+    fun intent(context: Context, surface: PcRemoteSurface?, desktopId: String? = null, startForwarding: Boolean = false): Intent =
+        intent(context).setData(uri(surface, desktopId, startForwarding).toUri())
 
-    fun open(context: Context, surface: PcRemoteSurface?): Boolean = runCatching {
-        context.startActivity(intent(context, surface))
+    fun open(context: Context, surface: PcRemoteSurface?, startForwarding: Boolean = false): Boolean = runCatching {
+        context.startActivity(intent(context, surface, startForwarding = startForwarding))
         true
     }.getOrDefault(false)
 }
@@ -50,6 +55,9 @@ object PcControlRequests {
 
     private val _desktop = MutableStateFlow<String?>(null)
     val desktop: StateFlow<String?> = _desktop.asStateFlow()
+
+    private val _forwardingStart = MutableStateFlow(false)
+    val forwardingStart: StateFlow<Boolean> = _forwardingStart.asStateFlow()
 
     fun request(surface: PcRemoteSurface) {
         _surface.value = surface
@@ -66,4 +74,10 @@ object PcControlRequests {
     fun consumeDesktop(desktopId: String) {
         _desktop.compareAndSet(desktopId, null)
     }
+
+    fun requestForwardingStart(requested: Boolean) {
+        _forwardingStart.value = requested
+    }
+
+    fun consumeForwardingStart(): Boolean = _forwardingStart.compareAndSet(true, false)
 }
