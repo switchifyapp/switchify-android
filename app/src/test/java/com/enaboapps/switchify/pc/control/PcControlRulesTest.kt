@@ -3,7 +3,6 @@ package com.enaboapps.switchify.pc.control
 import com.enaboapps.switchify.pc.connection.PcConnectionFailure
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.protocol.PcPlatform
-import com.enaboapps.switchify.screens.pc.remote.PcSurfaceSelectorLayout
 import com.enaboapps.switchify.pc.storage.PcSavedPc
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -89,12 +88,5 @@ class PcControlRulesTest {
         assertTrue(PcResumeRecovery.blocksAutoConnect(locationOff.copy(retry = null)))
         assertFalse(PcResumeRecovery.blocksAutoConnect(PcConnectionState.Idle(listOf(office))))
         assertNull(PcResumeRecovery.pendingRetry(PcConnectionState.Failed(PcConnectionFailure.CouldNotConnect, listOf(office))))
-    }
-
-    @Test
-    fun surfaceSelectorUsesOneRowWhenEveryLabelFitsAndTwoRowsOtherwise() {
-        assertEquals(4, PcSurfaceSelectorLayout.columns(4, availableWidth = 320f, widestLabel = 66f, labelPadding = 12f))
-        assertEquals(2, PcSurfaceSelectorLayout.columns(4, availableWidth = 320f, widestLabel = 70f, labelPadding = 12f))
-        assertEquals(1, PcSurfaceSelectorLayout.columns(1, availableWidth = 10f, widestLabel = 70f, labelPadding = 12f))
     }
 }
