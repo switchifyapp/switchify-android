@@ -12,6 +12,15 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.control.PcControlLink
 
 class PcWidgetProvider : AppWidgetProvider() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            val manager = AppWidgetManager.getInstance(context) ?: return
+            onUpdate(context, manager, widgetIds(context, manager))
+            return
+        }
+        super.onReceive(context, intent)
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, views(context, it)) }
         appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.pc_widget_list)
@@ -49,8 +58,11 @@ class PcWidgetProvider : AppWidgetProvider() {
 
         fun refresh(context: Context) {
             val manager = AppWidgetManager.getInstance(context) ?: return
-            val ids = manager.getAppWidgetIds(ComponentName(context, PcWidgetProvider::class.java))
+            val ids = widgetIds(context, manager)
             if (ids.isNotEmpty()) manager.notifyAppWidgetViewDataChanged(ids, R.id.pc_widget_list)
         }
+
+        private fun widgetIds(context: Context, manager: AppWidgetManager): IntArray =
+            manager.getAppWidgetIds(ComponentName(context, PcWidgetProvider::class.java))
     }
 }
