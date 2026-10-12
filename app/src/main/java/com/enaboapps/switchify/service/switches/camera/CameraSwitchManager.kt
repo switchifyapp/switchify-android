@@ -284,7 +284,7 @@ class CameraSwitchManager(
         switchEventProvider.findCamera(gesture.id)
 
     private fun stopRemoteMouseRepeatForSwitchPress(): Boolean {
-        return SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch()
+        return SwitchifyRemoteBridgeCoordinator.stopPcRepeatForSwitch()
     }
 
     /**

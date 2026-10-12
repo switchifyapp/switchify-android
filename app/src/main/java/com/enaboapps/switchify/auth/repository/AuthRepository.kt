@@ -64,6 +64,11 @@ class AuthRepository private constructor() {
         return supabaseClient.auth.currentUserOrNull() != null
     }
 
+    suspend fun awaitUserSignedIn(): Boolean {
+        supabaseClient.auth.awaitInitialization()
+        return isUserSignedIn()
+    }
+
     /**
      * Get the currently signed-in user, if any.
      */

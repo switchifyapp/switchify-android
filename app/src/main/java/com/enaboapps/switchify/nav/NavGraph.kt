@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavHostController
@@ -23,6 +24,10 @@ import com.enaboapps.switchify.screens.account.AccountScreen
 import com.enaboapps.switchify.screens.account.AuthScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
+import com.enaboapps.switchify.screens.pc.ObservePcControlActivity
+import com.enaboapps.switchify.screens.pc.PcControlScreen
+import com.enaboapps.switchify.screens.pc.PcDiagnosticsScreen
+import com.enaboapps.switchify.screens.pc.pcControlViewModel
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
@@ -243,6 +248,16 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.GemmaTerms.name) {
             GemmaTermsScreen(navController)
+        }
+        composable(NavigationRoute.PcControl.name) {
+            PcControlScreen(navController)
+        }
+        composable(NavigationRoute.PcDiagnostics.name) { entry ->
+            val pcControlEntry = remember(entry) {
+                runCatching { navController.getBackStackEntry(NavigationRoute.PcControl.name) }.getOrNull()
+            }
+            if (pcControlEntry != null) ObservePcControlActivity(pcControlViewModel(pcControlEntry))
+            PcDiagnosticsScreen(navController)
         }
         composable("${NavigationRoute.SwitchActionSelection.name}/{currentActionId}") {
             it.arguments?.getString("currentActionId")?.toIntOrNull()?.let { actionId ->

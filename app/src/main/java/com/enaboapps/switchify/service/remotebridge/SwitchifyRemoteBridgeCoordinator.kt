@@ -1,86 +1,61 @@
 package com.enaboapps.switchify.service.remotebridge
 
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.RemoteCallbackList
-import com.enaboapps.switchify.remotebridge.ISwitchifyRemoteBridgeCallback
+import com.enaboapps.switchify.pc.remote.PcSwitchRepeatStop
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
+import java.util.concurrent.CopyOnWriteArraySet
 
 object SwitchifyRemoteBridgeCoordinator {
-    const val VERSION = 1
     private val callbackDispatcher = SerializedCallbackDispatcher()
-    private val callbacks = object : RemoteCallbackList<ISwitchifyRemoteBridgeCallback>() {
-        override fun onCallbackDied(callback: ISwitchifyRemoteBridgeCallback?) {
-            synchronized(lock) {
-                callbackCount = (callbackCount - 1).coerceAtLeast(0)
-                if (callbackCount == 0) clearActiveLocked()
-            }
-        }
-    }
-    private var callbackCount = 0
     private val lock = Any()
     private var externalSwitches: (() -> List<Pair<Int, String>>)? = null
+    private var cameraSwitchesConfigured: () -> Boolean = { false }
     private var configuredSwitchFingerprint = emptyList<Pair<Int, String>>()
-    private var repeatGeneration = 0L
-    private var repeatGenerationHighWater = 0L
     private var forwardingGeneration = 0L
     private var forwardingGenerationHighWater = 0L
+    private var forwardingActivation = 0L
     private var edgeSequence = 0L
     private val activePresses = mutableMapOf<Int, Long>()
+    private val inAppListeners = CopyOnWriteArraySet<InAppSwitchForwardingListener>()
+    private val scanningHolds = ScanningHolds()
+    private var scanningHoldEpoch = 0L
     internal var setScanningPaused: (Boolean) -> Unit = ::postScanningPaused
+    internal var postToMain: (() -> Unit) -> Unit = ::postToMainLooper
+    internal var scanningHoldTarget: () -> ScanningHoldTarget? = ::serviceScanningHoldTarget
+    @Volatile internal var pcRepeatActive: () -> Boolean = { false }
 
-    fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
-    internal fun attach(provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
+    fun attach(provider: SwitchEventProvider) = attach(provider::hasCameraSwitches) { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
+    internal fun attach(cameraSwitches: () -> Boolean = { false }, provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
         synchronized(lock) {
             externalSwitches = provider
+            cameraSwitchesConfigured = cameraSwitches
             configuredSwitchFingerprint = configuredSwitchFingerprintLocked()
         }
         publishSnapshot()
+        if (pcRepeatActive()) setScanningHeld(ScanningHold.PcRepeat) { pcRepeatActive() }
     }
     fun detach() = callbackDispatcher.dispatch {
         synchronized(lock) {
             externalSwitches = null
+            cameraSwitchesConfigured = { false }
             configuredSwitchFingerprint = emptyList()
-            clearActiveLocked()
+            clearForwardingLocked()
+            scanningHolds.reset()
+            scanningHoldEpoch += 1
         }
         publishSnapshot()
-    }
-    fun register(callback: ISwitchifyRemoteBridgeCallback) = callbackDispatcher.dispatch {
-        val value = synchronized(lock) {
-            if (callbacks.register(callback)) callbackCount += 1
-            snapshotLocked()
-        }
-        runCatching { callback.onSnapshot(value) }
-        Unit
-    }
-    fun unregister(callback: ISwitchifyRemoteBridgeCallback) = callbackDispatcher.dispatch {
-        synchronized(lock) {
-            if (callbacks.unregister(callback)) callbackCount = (callbackCount - 1).coerceAtLeast(0)
-            if (callbackCount == 0) clearActiveLocked()
-        }
-    }
-
-    fun setRepeatActive(generation: Long, active: Boolean): Boolean = synchronized(lock) {
-        if (generation <= 0) return false
-        if (active) {
-            if (generation <= repeatGenerationHighWater) return false
-            repeatGenerationHighWater = generation
-            repeatGeneration = generation
-        } else {
-            if (generation != repeatGeneration) return false
-            repeatGeneration = 0
-        }
-        true
     }
 
     fun setForwardingActive(generation: Long, active: Boolean): Boolean = synchronized(lock) {
         if (externalSwitches == null || generation <= 0) return false
         if (active) {
+            if (forwardingGeneration != 0L) return false
             if (generation <= forwardingGenerationHighWater) return false
             forwardingGenerationHighWater = generation
             forwardingGeneration = generation
+            forwardingActivation += 1
             edgeSequence = 0
             activePresses.clear()
             setScanningPaused(true)
@@ -93,31 +68,36 @@ object SwitchifyRemoteBridgeCoordinator {
         true
     }
 
-    fun stopRemoteRepeatForExternalSwitch(keyCode: Int): Boolean {
-        if (!isConfiguredExternalSwitch(keyCode)) return false
-        return stopRemoteRepeatForSwitch()
+    fun isForwardingActive(): Boolean = synchronized(lock) { forwardingGeneration != 0L }
+
+    fun addInAppListener(listener: InAppSwitchForwardingListener): () -> Unit {
+        inAppListeners += listener
+        return { inAppListeners -= listener }
     }
+
+    fun inAppSnapshot(): Pair<Boolean, List<Pair<Int, String>>> = synchronized(lock) {
+        (externalSwitches != null) to externalSwitches?.invoke().orEmpty()
+    }
+
+    fun stopPcRepeatForExternalSwitch(keyCode: Int): Boolean {
+        if (!isConfiguredExternalSwitch(keyCode)) return false
+        return stopPcRepeatForSwitch()
+    }
+
+    fun stopPcRepeatForSwitch(): Boolean = PcSwitchRepeatStop.requestStop()
 
     fun configuredSwitchesChanged() = callbackDispatcher.dispatch {
         synchronized(lock) {
             val nextFingerprint = configuredSwitchFingerprintLocked()
             val changed = nextFingerprint != configuredSwitchFingerprint
             configuredSwitchFingerprint = nextFingerprint
-            if (changed && forwardingGeneration != 0L) {
-                forwardingGeneration = 0
-                edgeSequence = 0
-                activePresses.clear()
-                setScanningPaused(false)
-            }
+            if (changed) clearForwardingLocked()
         }
         publishSnapshot()
     }
 
-    fun stopRemoteRepeatForSwitch(): Boolean = callbackDispatcher.dispatch {
-        val generation = synchronized(lock) { repeatGeneration.also { repeatGeneration = 0 } }
-        if (generation == 0L) return@dispatch false
-        broadcast { it.onRepeatStopRequested(generation) }
-        true
+    fun hasConfiguredSwitches(): Boolean = synchronized(lock) {
+        externalSwitches?.invoke()?.isNotEmpty() == true || cameraSwitchesConfigured()
     }
 
     fun forwardExternalEdge(keyCode: Int, down: Boolean, downTimeMs: Long, eventTimeMs: Long, cancelled: Boolean): Boolean = callbackDispatcher.dispatch {
@@ -134,26 +114,27 @@ object SwitchifyRemoteBridgeCoordinator {
             edgeSequence += 1
             Edge(generation, edgeSequence, keyCode, down, downTimeMs, eventTimeMs, cancelled)
         }
-        broadcast { it.onSwitchEdge(event.generation, event.sequence, event.keyCode, event.down, event.downTimeMs, event.eventTimeMs, event.cancelled) }
+        inAppListeners.forEach { listener ->
+            runCatching {
+                listener.onSwitchEdge(event.generation, event.sequence, event.keyCode, event.down, event.downTimeMs, event.eventTimeMs, event.cancelled)
+            }
+        }
         true
     }
 
-    fun snapshot(): Bundle = synchronized(lock) { snapshotLocked() }
-
-    private fun snapshotLocked() =
-        Bundle().apply {
-            putInt("version", VERSION)
-            putBoolean("captureAvailable", externalSwitches != null)
-            putParcelableArrayList("externalSwitches", ArrayList(externalSwitches?.invoke().orEmpty().map { event -> Bundle().apply { putInt("keyCode", event.first); putString("name", event.second) } }))
-        }
-
-    fun clearActive() = synchronized(lock) { clearActiveLocked() }
-    internal fun activeForwardingGeneration() = synchronized(lock) { forwardingGeneration }
+    fun clearActive() = synchronized(lock) { clearForwardingLocked() }
+    internal fun activeForwardingGeneration() = synchronized(lock) { if (forwardingGeneration == 0L) 0L else forwardingActivation }
     internal fun currentEdgeSequence() = synchronized(lock) { edgeSequence }
     internal fun resetForTests() = synchronized(lock) {
-        clearActiveLocked()
-        repeatGenerationHighWater = 0
+        clearForwardingLocked()
         forwardingGenerationHighWater = 0
+        inAppListeners.clear()
+        scanningHolds.reset()
+        scanningHoldEpoch += 1
+        setScanningPaused = ::postScanningPaused
+        postToMain = ::postToMainLooper
+        scanningHoldTarget = ::serviceScanningHoldTarget
+        pcRepeatActive = { false }
     }
     private fun isConfiguredExternalSwitch(keyCode: Int) = synchronized(lock) {
         externalSwitches?.invoke()?.any { it.first == keyCode } == true
@@ -161,26 +142,39 @@ object SwitchifyRemoteBridgeCoordinator {
     private fun configuredSwitchFingerprintLocked() = externalSwitches?.invoke().orEmpty()
         .sortedWith(compareBy<Pair<Int, String>> { it.first }.thenBy { it.second })
         .take(8)
-    private fun clearActiveLocked() {
-        val wasForwarding = forwardingGeneration != 0L
-        repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear()
-        if (wasForwarding) setScanningPaused(false)
+    private fun clearForwardingLocked() {
+        val generation = forwardingGeneration
+        forwardingGeneration = 0; edgeSequence = 0; activePresses.clear()
+        if (generation == 0L) return
+        setScanningPaused(false)
+        inAppListeners.forEach { listener -> runCatching { listener.onForwardingRevoked(generation) } }
     }
-    private fun postScanningPaused(paused: Boolean) {
-        Handler(Looper.getMainLooper()).post {
-            val scanningManager = ServiceCore.getScanningManager() ?: return@post
-            if (paused) scanningManager.pauseScanning() else scanningManager.resumeScanning()
+    private fun postScanningPaused(paused: Boolean) = setScanningHeld(ScanningHold.Forwarding, paused)
+
+    fun setScanningHeld(hold: ScanningHold, held: Boolean) = setScanningHeld(hold) { held }
+    private fun setScanningHeld(hold: ScanningHold, held: () -> Boolean) {
+        val epoch = synchronized(lock) { scanningHoldEpoch }
+        postToMain {
+            val target = scanningHoldTarget()
+            synchronized(lock) {
+                if (epoch == scanningHoldEpoch) scanningHolds.apply(hold, held(), target)
+            }
+        }
+    }
+    private fun postToMainLooper(block: () -> Unit) {
+        Handler(Looper.getMainLooper()).post(block)
+    }
+    private fun serviceScanningHoldTarget(): ScanningHoldTarget? {
+        val scanningManager = ServiceCore.getScanningManager() ?: return null
+        return object : ScanningHoldTarget {
+            override fun pauseScanning() = scanningManager.pauseScanning()
+            override fun resumeScanning() = scanningManager.resumeScanning()
+            override fun isPausedByUser() = ServiceCore.getPauseManager().isPaused
         }
     }
     private fun publishSnapshot() {
-        if (synchronized(lock) { callbackCount == 0 }) return
-        val value = snapshot()
-        broadcast { it.onSnapshot(value) }
-    }
-    private inline fun broadcast(crossinline block: (ISwitchifyRemoteBridgeCallback) -> Unit) = callbackDispatcher.dispatch {
-        if (synchronized(lock) { callbackCount == 0 }) return@dispatch
-        val count = callbacks.beginBroadcast()
-        try { for (index in 0 until count) runCatching { block(callbacks.getBroadcastItem(index)) } } finally { callbacks.finishBroadcast() }
+        val (captureAvailable, switches) = inAppSnapshot()
+        inAppListeners.forEach { listener -> runCatching { listener.onSnapshot(captureAvailable, switches) } }
     }
     private data class Edge(val generation: Long, val sequence: Long, val keyCode: Int, val down: Boolean, val downTimeMs: Long, val eventTimeMs: Long, val cancelled: Boolean)
 }

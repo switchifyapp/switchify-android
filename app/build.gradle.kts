@@ -19,7 +19,7 @@ android {
         minSdk = 29
         targetSdk = 36
         versionCode = gitVersionCode()
-        versionName = "3.0.4"
+        versionName = "3.1.0-beta.11"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -115,7 +115,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
-        aidl = true
         compose = true
         buildConfig = true
     }
@@ -173,6 +172,7 @@ dependencies {
     implementation(libs.compose.icons)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.lifecycle.runtime.ktx)
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.compose.runtime.livedata)
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
@@ -237,35 +237,8 @@ val verifyPcSwitchForwardingNaming by tasks.registering {
     }
 }
 
-val verifyPcRemoteOwnership by tasks.registering {
-    val activeSources = fileTree("src/main") { include("**/*.kt", "**/*.java", "**/*.xml", "**/*.aidl") }
-    inputs.files(activeSources)
-    doLast {
-        val forbidden = listOf(
-            "android.bluetooth",
-            "bluetooth_gatt",
-            "bluetooth_scan",
-            "bluetooth_connect",
-            "hardware.bluetooth_le",
-            "switchifypcble",
-            "pcprotocol",
-            "pctokenstore",
-            "screens/pc/",
-            "screens/pcswitchforwarding/",
-            "service/pcswitchforwarding/"
-        )
-        val violations = activeSources.files.flatMap { source ->
-            val path = source.relativeTo(projectDir).invariantSeparatorsPath.lowercase()
-            val content = source.readText().lowercase()
-            forbidden.filter { value -> value in path || value in content }.map { value -> "$value in $path" }
-        }
-        check(violations.isEmpty()) { "Switchify Android still owns PC/BLE implementation:\n${violations.joinToString("\n")}" }
-    }
-}
-
 tasks.named("check") {
     dependsOn(verifyPcSwitchForwardingNaming)
-    dependsOn(verifyPcRemoteOwnership)
 }
 java {
     toolchain {

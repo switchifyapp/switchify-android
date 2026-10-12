@@ -84,33 +84,53 @@ class SwitchProfileRepositoryTest {
     }
 
     @Test
-    fun retiredBindingsMigrateAcrossAllProfilesAndImportedEvents() = runBlocking {
-        val old = event("remote").copy(pressAction = SwitchAction(17), holdActions = listOf(SwitchAction(18)))
+    fun pcControlBindingsAreKeptAcrossAllProfilesAndImportedEvents() = runBlocking {
+        val pc = event("remote").copy(
+            pressAction = SwitchAction(SwitchAction.ACTION_OPEN_PC_MOUSE),
+            holdActions = listOf(SwitchAction(SwitchAction.ACTION_OPEN_PC_FORWARDING))
+        )
+        val document = SwitchProfileDocument(activeProfileId = "one", profiles = listOf(
+            SwitchProfile("one", "One", listOf(pc)), SwitchProfile("two", "Two", listOf(pc))))
+        val persistence = FakePersistence(stored = document)
+        val repository = repository(persistence)
+        repository.initialize()
+        repository.profiles().forEach { profile ->
+            assertEquals(SwitchAction(17), profile.switches.single().pressAction)
+            assertEquals(listOf(SwitchAction(18)), profile.switches.single().holdActions)
+        }
+        assertEquals(document, persistence.stored)
+        repository.replaceEvents("one", listOf(pc))
+        assertEquals(SwitchAction(17), repository.events("one").single().pressAction)
+    }
+
+    @Test
+    fun retiredRemoteLaunchBindingsBecomeOpenPcMouseAcrossProfilesAndImports() = runBlocking {
+        val remote = SwitchAction(SwitchAction.ACTION_LAUNCH_APP, "com.enaboapps.switchify.remote")
+        val otherApp = SwitchAction(SwitchAction.ACTION_LAUNCH_APP, "com.example.notes")
+        val old = event("remote").copy(pressAction = remote, holdActions = listOf(remote, otherApp))
         val document = SwitchProfileDocument(activeProfileId = "one", profiles = listOf(
             SwitchProfile("one", "One", listOf(old)), SwitchProfile("two", "Two", listOf(old))))
         val persistence = FakePersistence(stored = document)
         val repository = repository(persistence)
         repository.initialize()
-        val expected = SwitchAction(19, "com.enaboapps.switchify.remote")
+        val mouse = SwitchAction(SwitchAction.ACTION_OPEN_PC_MOUSE)
         repository.profiles().forEach { profile ->
-            assertEquals(expected, profile.switches.single().pressAction)
-            assertEquals(listOf(expected), profile.switches.single().holdActions)
+            assertEquals(mouse, profile.switches.single().pressAction)
+            assertEquals(listOf(mouse, otherApp), profile.switches.single().holdActions)
         }
         assertEquals(repository.document.value, persistence.stored)
-        val writes = persistence.writeCount
-        repository.refresh()
-        assertEquals(writes, persistence.writeCount)
         repository.replaceEvents("one", listOf(old))
-        assertEquals(expected, repository.events("one").single().pressAction)
+        assertEquals(mouse, repository.events("one").single().pressAction)
+        assertEquals(mouse, SwitchAction.fromMap(mapOf("id" to 19, "package_name" to "com.enaboapps.switchify.remote")))
     }
 
     @Test
-    fun legacyRemoteEventsMigrateAndFailedWritesPreserveTheSource() = runBlocking {
+    fun legacyPcControlEventsAreKeptAndFailedWritesPreserveTheSource() = runBlocking {
         val old = event("remote").copy(pressAction = SwitchAction(18))
         val persistence = FakePersistence(legacy = listOf(old))
         val repository = repository(persistence)
         repository.initialize()
-        assertEquals(SwitchAction(19, "com.enaboapps.switchify.remote"), repository.events().single().pressAction)
+        assertEquals(SwitchAction(18), repository.events().single().pressAction)
         val document = SwitchProfileDocument(activeProfileId = "one", profiles = listOf(SwitchProfile("one", "One", listOf(old))))
         val failing = FakePersistence(stored = document, failWrites = true)
         repository(failing).initialize()

@@ -13,7 +13,9 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" /> <!-- Required for camera switches -->
-    <permission android:name="com.enaboapps.switchify.permission.REMOTE_BRIDGE" android:protectionLevel="signature" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> <!-- Required for foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" /> <!-- Required for camera foreground service -->
@@ -22,6 +24,19 @@
         tools:ignore="ProtectedPermissions" /> <!-- Required for recent apps -->
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required for camera service wake lock -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- Required for downloading the Reply Drafter model -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
         android:name=".SwitchifyApplication"
@@ -50,6 +65,16 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="pc-control"
+                    android:scheme="switchify" />
+            </intent-filter>
         </activity>
 
         <activity
@@ -66,12 +91,24 @@
             android:taskAffinity=""
             android:theme="@style/Theme.Switchify" />
 
-        <service
-            android:name=".service.remotebridge.SwitchifyRemoteBridgeService"
+        <receiver
+            android:name=".pc.widget.PcWidgetProvider"
             android:exported="true"
-            android:permission="com.enaboapps.switchify.permission.REMOTE_BRIDGE">
-            <intent-filter><action android:name="com.enaboapps.switchify.remote.BIND_BRIDGE" /></intent-filter>
-        </service>
+            android:label="@string/pc_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pc_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".pc.widget.PcWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <service
             android:name=".service.core.SwitchifyAccessibilityService"

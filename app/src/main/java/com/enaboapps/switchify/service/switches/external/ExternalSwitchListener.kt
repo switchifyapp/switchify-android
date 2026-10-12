@@ -496,7 +496,7 @@ internal class ExternalSwitchRemoteDiversion {
             suppressedUntilRelease[keyCode] = downTimeMs
             return true
         }
-        if (SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(keyCode)) {
+        if (SwitchifyRemoteBridgeCoordinator.stopPcRepeatForExternalSwitch(keyCode)) {
             suppressedUntilRelease[keyCode] = downTimeMs
             return true
         }

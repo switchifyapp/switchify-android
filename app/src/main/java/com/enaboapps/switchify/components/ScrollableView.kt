@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,12 +14,13 @@ import com.enaboapps.switchify.theme.Dimens
 @Composable
 fun ScrollableView(
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
     content: @Composable () -> Unit
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(Dimens.spaceM),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
