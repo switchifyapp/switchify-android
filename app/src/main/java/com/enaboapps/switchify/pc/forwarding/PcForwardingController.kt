@@ -411,7 +411,6 @@ class PcForwardingController(
     private fun resetIdle() {
         idleJob?.cancel()
         idleJob = null
-        if (scanningSelected()) return
         idleJob = scope.launch {
             delay(IDLE_TIMEOUT_MS)
             fire { stop(PcForwardingMessage.IdleTimeout, safety = true) }
