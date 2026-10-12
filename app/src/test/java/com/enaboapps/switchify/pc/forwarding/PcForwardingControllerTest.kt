@@ -123,16 +123,23 @@ class PcForwardingControllerTest {
     }
 
     @Test
-    fun doesNotArmTheIdleStopForScanningProfiles() = runTest {
+    fun stopsScanningForwardingAfterSixtySecondsWithoutSwitchActivity() = runTest {
         val h = scanningHarness(this)
         h.controller.loadProfiles()
         h.controller.start()
         h.bridge.edge(1, 20, down = true, downTimeMs = 0, eventTimeMs = 0)
         runCurrent()
-        advanceTimeBy(PcForwardingController.IDLE_TIMEOUT_MS + 1_000)
+        h.bridge.edge(2, 20, down = false, downTimeMs = 0, eventTimeMs = 20)
+        runCurrent()
+        advanceTimeBy(PcForwardingController.IDLE_TIMEOUT_MS - 1_000)
         runCurrent()
         assertEquals(PcForwardingPhase.Active, h.controller.state.value.phase)
-        h.controller.cleanup()
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(PcForwardingPhase.Idle, h.controller.state.value.phase)
+        assertEquals(PcForwardingMessage.IdleTimeout, h.controller.state.value.message)
+        assertEquals(1, h.safetyStops())
+        assertEquals(1, h.connection.of("switch.session.stop").size)
     }
 
     @Test
