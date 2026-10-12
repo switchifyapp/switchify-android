@@ -46,26 +46,25 @@ class PcSwitchRepeatStopBridgeTest {
         val handle = PcSwitchRepeatStop.hook.arm { stops += 1 }
         handles += handle
 
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(31))
+        assertFalse(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForExternalSwitch(31))
         assertEquals(0, stops)
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForExternalSwitch(30))
         assertEquals(1, stops)
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForExternalSwitch(30))
         assertEquals(1, stops)
         handle.release()
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
+        assertFalse(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForExternalSwitch(30))
     }
 
-    @Test fun anySwitchStopRequestReachesInAppRepeatBeforeBridgedRepeat() {
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(7, true))
+    @Test fun anySwitchStopRequestReachesInAppRepeatOnlyWhileArmed() {
+        assertFalse(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForSwitch())
         var stops = 0
         val handle = PcSwitchRepeatStop.hook.arm { stops += 1 }
         handles += handle
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
+        assertTrue(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForSwitch())
         assertEquals(1, stops)
         handle.release()
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForSwitch())
     }
 
     @Test fun hookReportsArmedChangesForEveryEndPath() {

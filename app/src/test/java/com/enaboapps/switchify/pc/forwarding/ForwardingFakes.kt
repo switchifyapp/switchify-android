@@ -66,7 +66,6 @@ internal class FakeBridge : PcSwitchBridge {
     val active = mutableListOf<Pair<Long, Boolean>>()
     var generation = 40L
     var acceptActivation = true
-    var remoteOwnsSwitches = false
 
     override fun snapshot() = value
 
@@ -81,8 +80,6 @@ internal class FakeBridge : PcSwitchBridge {
         this.active += generation to active
         return !active || acceptActivation
     }
-
-    override fun forwardingOwnedBySwitchifyRemote() = remoteOwnsSwitches
 
     fun emit(event: PcSwitchBridgeEvent) = listeners.toList().forEach { it(event) }
 

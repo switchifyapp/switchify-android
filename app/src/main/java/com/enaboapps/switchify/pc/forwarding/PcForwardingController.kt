@@ -45,7 +45,6 @@ enum class PcForwardingMessage {
     CaptureUnavailable,
     StartFailed,
     SwitchifyUnavailable,
-    SwitchifyRemoteForwarding,
     QueueFull,
     MissedEdge,
     ConfigurationChanged,
@@ -221,10 +220,6 @@ class PcForwardingController(
             return false
         }
         if (selected == null) return false
-        if (bridge.forwardingOwnedBySwitchifyRemote()) {
-            set { copy(phase = PcForwardingPhase.Failed, message = PcForwardingMessage.SwitchifyRemoteForwarding) }
-            return false
-        }
         set { copy(phase = PcForwardingPhase.Starting, message = null) }
         generation = bridge.nextGeneration()
         sessionId = sessionIds()
@@ -258,16 +253,9 @@ class PcForwardingController(
             }
         }
         if (!bridge.setForwardingActive(generation, true)) {
-            val remoteOwnsSwitches = bridge.forwardingOwnedBySwitchifyRemote()
             stopPc()
             if (current == attempt && !disposed) {
-                set {
-                    copy(
-                        phase = PcForwardingPhase.Failed,
-                        message = if (remoteOwnsSwitches) PcForwardingMessage.SwitchifyRemoteForwarding
-                        else PcForwardingMessage.SwitchifyUnavailable
-                    )
-                }
+                set { copy(phase = PcForwardingPhase.Failed, message = PcForwardingMessage.SwitchifyUnavailable) }
             }
             return false
         }

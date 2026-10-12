@@ -429,35 +429,18 @@ class PcForwardingControllerTest {
     }
 
     @Test
-    fun reportsWhenSwitchifyRemoteAlreadyOwnsTheSwitches() = runTest {
-        val bridge = FakeBridge().apply {
-            acceptActivation = false
-            remoteOwnsSwitches = true
-        }
-        val h = harness(bridge = bridge)
-        h.controller.loadProfiles()
-        assertFalse(h.controller.start())
-        assertEquals(PcForwardingPhase.Failed, h.controller.state.value.phase)
-        assertEquals(PcForwardingMessage.SwitchifyRemoteForwarding, h.controller.state.value.message)
-        assertTrue(h.connection.sent.isEmpty())
-        assertTrue(h.bridge.active.isEmpty())
-    }
-
-    @Test
-    fun reportsWhenSwitchifyRemoteTakesTheSwitchesWhileTheSessionStarts() = runTest {
+    fun reportsWhenTheSwitchesCannotBeClaimedWhileTheSessionStarts() = runTest {
         val bridge = FakeBridge()
         val connection = FakeConnection()
         connection.onSend = { command, _ ->
-            if (command.type == "switch.session.start") {
-                bridge.acceptActivation = false
-                bridge.remoteOwnsSwitches = true
-            }
+            if (command.type == "switch.session.start") bridge.acceptActivation = false
             true
         }
         val h = harness(bridge = bridge, connection = connection)
         h.controller.loadProfiles()
         assertFalse(h.controller.start())
-        assertEquals(PcForwardingMessage.SwitchifyRemoteForwarding, h.controller.state.value.message)
+        assertEquals(PcForwardingPhase.Failed, h.controller.state.value.phase)
+        assertEquals(PcForwardingMessage.SwitchifyUnavailable, h.controller.state.value.message)
         assertEquals(1, h.connection.of("switch.session.stop").size)
     }
 

@@ -8,7 +8,6 @@ import com.enaboapps.switchify.service.switches.external.ExternalSwitchRemoteDiv
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -34,7 +33,7 @@ class SwitchForwardingOwnershipTest {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
         val generation = InAppSwitchBridge.nextGeneration()
         assertTrue(InAppSwitchBridge.setForwardingActive(generation, true))
-        assertEquals(SwitchForwardingOwner.InApp, SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
+        assertTrue(SwitchifyRemoteBridgeCoordinator.isForwardingActive())
         assertFalse(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(31, true, 1, 1, false))
         assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 2, 2, false))
         assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 2, 3, false))
@@ -47,56 +46,24 @@ class SwitchForwardingOwnershipTest {
             events.filterIsInstance<PcSwitchBridgeEvent.SwitchEdge>()
         )
         assertTrue(InAppSwitchBridge.setForwardingActive(generation, false))
-        assertNull(SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.isForwardingActive())
         assertEquals(listOf(true, false), scanningPauses)
     }
 
-    @Test fun onlyOneForwarderOwnsTheSwitchesAtATime() {
+    @Test fun onlyOneForwardingSessionOwnsTheSwitchesAtATime() {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1_700_000_000_000, true))
-        assertTrue(InAppSwitchBridge.forwardingOwnedBySwitchifyRemote())
-        val generation = InAppSwitchBridge.nextGeneration()
-        assertFalse(InAppSwitchBridge.setForwardingActive(generation, true))
-        assertFalse(InAppSwitchBridge.setForwardingActive(1_700_000_000_000, false))
+        val first = InAppSwitchBridge.nextGeneration()
+        assertTrue(InAppSwitchBridge.setForwardingActive(first, true))
+        val second = InAppSwitchBridge.nextGeneration()
+        assertFalse(InAppSwitchBridge.setForwardingActive(second, true))
+        assertFalse(InAppSwitchBridge.setForwardingActive(second, false))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.isForwardingActive())
         assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 1, 1, false))
-        assertTrue(events.none { it is PcSwitchBridgeEvent.SwitchEdge })
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1_700_000_000_000, false))
-
-        val next = InAppSwitchBridge.nextGeneration()
-        assertTrue(InAppSwitchBridge.setForwardingActive(next, true))
-        assertFalse(InAppSwitchBridge.forwardingOwnedBySwitchifyRemote())
-        assertFalse(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1_700_000_000_001, true))
-        assertFalse(SwitchifyRemoteBridgeCoordinator.setForwardingActive(next, false))
-        assertEquals(SwitchForwardingOwner.InApp, SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
-    }
-
-    @Test fun inAppGenerationsAreIndependentOfSwitchifyRemoteGenerations() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1_700_000_000_000, true))
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1_700_000_000_000, false))
-        val generation = InAppSwitchBridge.nextGeneration()
-        assertTrue(InAppSwitchBridge.setForwardingActive(generation, true))
-        assertTrue(InAppSwitchBridge.setForwardingActive(generation, false))
-        assertFalse(InAppSwitchBridge.setForwardingActive(generation, true))
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1_700_000_000_001, true))
-    }
-
-    @Test fun switchifyRemoteUnbindLeavesInAppForwardingRunning() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        val generation = InAppSwitchBridge.nextGeneration()
-        assertTrue(InAppSwitchBridge.setForwardingActive(generation, true))
-        SwitchifyRemoteBridgeCoordinator.clearRemoteActive()
-        assertEquals(SwitchForwardingOwner.InApp, SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
-        assertTrue(events.none { it is PcSwitchBridgeEvent.Revoked })
-        assertEquals(listOf(true), scanningPauses)
-    }
-
-    @Test fun switchifyRemoteUnbindStillClearsItsOwnForwarding() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
-        SwitchifyRemoteBridgeCoordinator.clearRemoteActive()
-        assertNull(SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
-        assertEquals(listOf(true, false), scanningPauses)
+        assertEquals(listOf(first), events.filterIsInstance<PcSwitchBridgeEvent.SwitchEdge>().map { it.generation })
+        assertTrue(InAppSwitchBridge.setForwardingActive(first, false))
+        assertFalse(InAppSwitchBridge.setForwardingActive(first, true))
+        assertTrue(InAppSwitchBridge.setForwardingActive(second, true))
+        assertFalse(InAppSwitchBridge.setForwardingActive(first, true))
     }
 
     @Test fun serviceCleanupRevokesInAppForwardingAndResumesScanning() {
@@ -121,7 +88,7 @@ class SwitchForwardingOwnershipTest {
         assertTrue(InAppSwitchBridge.setForwardingActive(generation, true))
         configured = listOf(30 to "Renamed")
         SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
-        assertNull(SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.isForwardingActive())
         assertEquals(listOf<PcSwitchBridgeEvent>(PcSwitchBridgeEvent.Revoked(generation)), events.filterIsInstance<PcSwitchBridgeEvent.Revoked>())
         SwitchifyRemoteBridgeCoordinator.detach()
         val snapshots = events.filterIsInstance<PcSwitchBridgeEvent.Snapshot>().map { it.snapshot }
@@ -150,13 +117,14 @@ class SwitchForwardingOwnershipTest {
         assertEquals(1, events.count { it is PcSwitchBridgeEvent.SwitchEdge })
     }
 
-    @Test fun activationTokenChangesWhenForwardingMovesBetweenOwnersWithTheSameGeneration() {
+    @Test fun activationTokenChangesBetweenForwardingSessions() {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1, true))
-        val remoteActivation = SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration()
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1, false))
-        assertTrue(InAppSwitchBridge.setForwardingActive(1, true))
-        val inAppActivation = SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration()
-        assertTrue(remoteActivation != 0L && inAppActivation != 0L && remoteActivation != inAppActivation)
+        val first = InAppSwitchBridge.nextGeneration()
+        assertTrue(InAppSwitchBridge.setForwardingActive(first, true))
+        val firstActivation = SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration()
+        assertTrue(InAppSwitchBridge.setForwardingActive(first, false))
+        assertTrue(InAppSwitchBridge.setForwardingActive(InAppSwitchBridge.nextGeneration(), true))
+        val secondActivation = SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration()
+        assertTrue(firstActivation != 0L && secondActivation != 0L && firstActivation != secondActivation)
     }
 }

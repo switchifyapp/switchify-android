@@ -25,7 +25,7 @@ class Tasks private constructor() {
     }
 
     fun stopActiveStoppableTask(): Boolean {
-        if (SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch()) return true
+        if (SwitchifyRemoteBridgeCoordinator.stopPcRepeatForSwitch()) return true
         if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) return true
         if (AutoScrollManager.getInstance().stopAutoScroll()) return true
         if (GesturePatternManager.advanceToNextStep()) return true

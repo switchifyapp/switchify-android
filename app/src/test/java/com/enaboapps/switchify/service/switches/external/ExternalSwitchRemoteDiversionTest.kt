@@ -20,16 +20,6 @@ class ExternalSwitchRemoteDiversionTest {
     }
 
     @Test
-    fun unconfiguredKeyDoesNotStopRemoteRepeat() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(10, true))
-        val diversion = ExternalSwitchRemoteDiversion()
-
-        assertFalse(diversion.onPressed(31, 1, 1) { false })
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
-    }
-
-    @Test
     fun releaseOfNormallyHandledPressIsSuppressedWhenForwardingActivates() {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
         val diversion = ExternalSwitchRemoteDiversion()

@@ -1,10 +1,5 @@
 package com.enaboapps.switchify.service.remotebridge
 
-enum class SwitchForwardingOwner {
-    SwitchifyRemote,
-    InApp
-}
-
 interface InAppSwitchForwardingListener {
     fun onSnapshot(captureAvailable: Boolean, externalSwitches: List<Pair<Int, String>>)
 

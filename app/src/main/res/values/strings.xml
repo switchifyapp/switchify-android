@@ -1386,7 +1386,6 @@
     <string name="pc_forwarding_message_capture_unavailable">Turn on the Switchify accessibility service and set up an external switch first.</string>
     <string name="pc_forwarding_message_start_failed">Could not start Switch Forwarding.</string>
     <string name="pc_forwarding_message_switchify_unavailable">Switchify is not available for forwarding.</string>
-    <string name="pc_forwarding_message_remote_forwarding">Switchify Remote is forwarding your switches. Stop forwarding there first.</string>
     <string name="pc_forwarding_message_queue_full">Switch input queue is full. Start forwarding again.</string>
     <string name="pc_forwarding_message_missed_edge">A switch event was missed. Forwarding stopped safely.</string>
     <string name="pc_forwarding_message_configuration_changed">Switchify switch configuration changed. Forwarding stopped safely.</string>

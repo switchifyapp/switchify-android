@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.pc.forwarding
 
 import com.enaboapps.switchify.service.remotebridge.InAppSwitchForwardingListener
-import com.enaboapps.switchify.service.remotebridge.SwitchForwardingOwner
 import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import java.util.concurrent.atomic.AtomicLong
 
@@ -37,8 +36,6 @@ interface PcSwitchBridge {
     fun nextGeneration(): Long
 
     fun setForwardingActive(generation: Long, active: Boolean): Boolean
-
-    fun forwardingOwnedBySwitchifyRemote(): Boolean
 }
 
 object InAppSwitchBridge : PcSwitchBridge {
@@ -70,10 +67,7 @@ object InAppSwitchBridge : PcSwitchBridge {
     override fun nextGeneration(): Long = generation.incrementAndGet()
 
     override fun setForwardingActive(generation: Long, active: Boolean): Boolean =
-        SwitchifyRemoteBridgeCoordinator.setInAppForwardingActive(generation, active)
-
-    override fun forwardingOwnedBySwitchifyRemote(): Boolean =
-        SwitchifyRemoteBridgeCoordinator.activeForwardingOwner() == SwitchForwardingOwner.SwitchifyRemote
+        SwitchifyRemoteBridgeCoordinator.setForwardingActive(generation, active)
 
     internal fun resetForTests() = generation.set(0)
 

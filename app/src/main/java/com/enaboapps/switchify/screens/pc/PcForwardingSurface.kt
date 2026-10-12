@@ -364,7 +364,6 @@ private fun messageText(message: PcForwardingMessage): Int = when (message) {
     PcForwardingMessage.CaptureUnavailable -> R.string.pc_forwarding_message_capture_unavailable
     PcForwardingMessage.StartFailed -> R.string.pc_forwarding_message_start_failed
     PcForwardingMessage.SwitchifyUnavailable -> R.string.pc_forwarding_message_switchify_unavailable
-    PcForwardingMessage.SwitchifyRemoteForwarding -> R.string.pc_forwarding_message_remote_forwarding
     PcForwardingMessage.QueueFull -> R.string.pc_forwarding_message_queue_full
     PcForwardingMessage.MissedEdge -> R.string.pc_forwarding_message_missed_edge
     PcForwardingMessage.ConfigurationChanged -> R.string.pc_forwarding_message_configuration_changed
