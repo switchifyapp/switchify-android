@@ -5,7 +5,6 @@ import com.enaboapps.switchify.pc.remote.PcSwitchStopHandle
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -133,7 +132,7 @@ class ScanningHoldCoordinatorTest {
         runMainLooper()
         assertEquals(listOf("pause"), target.calls)
 
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.stopPcRepeatForExternalSwitch(30))
         assertEquals(1, stops)
         handle.release()
         runMainLooper()
@@ -173,36 +172,12 @@ class ScanningHoldCoordinatorTest {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
         val handle = PcSwitchRepeatStop.hook.arm {}
         handles += handle
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setInAppForwardingActive(5, true))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(5, true))
         handle.release()
         runMainLooper()
         assertEquals(listOf("pause"), target.calls)
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setInAppForwardingActive(5, false))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(5, false))
         runMainLooper()
-        assertEquals(listOf("pause", "resume"), target.calls)
-    }
-
-    @Test fun bridgeServiceUnbindClearsOnlySwitchifyRemoteState() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(9, true))
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setInAppForwardingActive(3, true))
-        runMainLooper()
-
-        assertFalse(SwitchifyRemoteBridgeService().onUnbind(null))
-        runMainLooper()
-        assertEquals(SwitchForwardingOwner.InApp, SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
-        assertEquals(listOf("pause"), target.calls)
-    }
-
-    @Test fun bridgeServiceUnbindReleasesSwitchifyRemoteForwardingHold() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(4, true))
-        runMainLooper()
-
-        assertFalse(SwitchifyRemoteBridgeService().onUnbind(null))
-        runMainLooper()
-        assertNull(SwitchifyRemoteBridgeCoordinator.activeForwardingOwner())
         assertEquals(listOf("pause", "resume"), target.calls)
     }
 }

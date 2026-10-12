@@ -48,16 +48,4 @@ class TasksPcRepeatTest {
         assertFalse(Tasks.getInstance().stopActiveStoppableTask())
         assertEquals(1, stops)
     }
-
-    @Test fun bridgedRepeatIsStoppedAfterPcRepeat() {
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(11, true))
-        var stops = 0
-        val handle = PcSwitchRepeatStop.hook.arm { stops += 1 }
-        handles += handle
-        assertTrue(Tasks.getInstance().stopActiveStoppableTask())
-        assertEquals(1, stops)
-        handle.release()
-        assertTrue(Tasks.getInstance().stopActiveStoppableTask())
-        assertFalse(Tasks.getInstance().stopActiveStoppableTask())
-    }
 }

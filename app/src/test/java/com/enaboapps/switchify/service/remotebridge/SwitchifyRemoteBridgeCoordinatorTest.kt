@@ -22,13 +22,6 @@ class SwitchifyRemoteBridgeCoordinatorTest {
         SwitchifyRemoteBridgeCoordinator.resetForTests()
     }
 
-    @Test fun repeatStopIsGenerationScopedAndConsumedOnce() {
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(7, true))
-        assertFalse(SwitchifyRemoteBridgeCoordinator.setRepeatActive(6, true))
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
-    }
-
     @Test fun forwardingSendsOnlyConfiguredOrderedEdgesAndFailsClosedAfterDetach() {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(11, true))
@@ -40,17 +33,12 @@ class SwitchifyRemoteBridgeCoordinatorTest {
         assertFalse(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 3, 3, false))
     }
 
-    @Test fun explicitCleanupClearsActiveState() {
-        SwitchifyRemoteBridgeCoordinator.setRepeatActive(3, true)
+    @Test fun explicitCleanupClearsActiveForwarding() {
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(3, true))
         SwitchifyRemoteBridgeCoordinator.clearActive()
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
-    }
-
-    @Test fun delayedRepeatActivationCannotResurrectConsumedGeneration() {
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(20, true))
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
-        assertFalse(SwitchifyRemoteBridgeCoordinator.setRepeatActive(20, true))
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.isForwardingActive())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 1, 1, false))
     }
 
     @Test fun delayedForwardingActivationCannotResurrectStoppedGeneration() {
@@ -59,13 +47,6 @@ class SwitchifyRemoteBridgeCoordinatorTest {
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, false))
         assertFalse(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
         assertFalse(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 1, 1, false))
-    }
-
-    @Test fun unconfiguredExternalSwitchDoesNotStopRemoteRepeat() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(20, true))
-        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(31))
-        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
     }
 
     @Test fun configuredSwitchChangeStopsActiveForwarding() {
@@ -96,7 +77,6 @@ class SwitchifyRemoteBridgeCoordinatorTest {
 
     @Test fun clearingWithoutForwardingLeavesScanningAlone() {
         SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
-        SwitchifyRemoteBridgeCoordinator.setRepeatActive(3, true)
         SwitchifyRemoteBridgeCoordinator.clearActive()
         SwitchifyRemoteBridgeCoordinator.detach()
         assertEquals(emptyList<Boolean>(), scanningPauses)

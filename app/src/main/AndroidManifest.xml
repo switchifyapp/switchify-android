@@ -16,7 +16,6 @@
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="false" />
-    <permission android:name="com.enaboapps.switchify.permission.REMOTE_BRIDGE" android:protectionLevel="signature" />
     <uses-permission android:name="android.permission.CAMERA" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> <!-- Required for foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" /> <!-- Required for camera foreground service -->
@@ -110,13 +109,6 @@
             android:name=".pc.widget.PcWidgetService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
-
-        <service
-            android:name=".service.remotebridge.SwitchifyRemoteBridgeService"
-            android:exported="true"
-            android:permission="com.enaboapps.switchify.permission.REMOTE_BRIDGE">
-            <intent-filter><action android:name="com.enaboapps.switchify.remote.BIND_BRIDGE" /></intent-filter>
-        </service>
 
         <service
             android:name=".service.core.SwitchifyAccessibilityService"
