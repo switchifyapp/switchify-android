@@ -155,7 +155,7 @@ fun PcControlButton(
     ) {
         val inner = Modifier
             .alpha(if (enabled) 1f else 0.4f)
-            .padding(horizontal = if (stacked) 8.dp else 12.dp, vertical = 8.dp)
+            .padding(horizontal = if (stacked) 8.dp else 12.dp, vertical = if (stacked) 4.dp else 8.dp)
         if (stacked) {
             Column(
                 modifier = inner,
@@ -178,17 +178,18 @@ fun PcControlButton(
 
 @Composable
 private fun ButtonContent(label: String, icon: ImageVector?, selected: Boolean, compact: Boolean = false) {
-    if (icon != null) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
+    val leading = if (compact && selected) Icons.Rounded.Check else icon
+    if (leading != null) {
+        Icon(imageVector = leading, contentDescription = null, modifier = Modifier.size(20.dp))
     }
     Text(
         text = label,
         style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
         textAlign = TextAlign.Center,
-        maxLines = if (compact) 3 else Int.MAX_VALUE,
+        maxLines = if (compact) 2 else Int.MAX_VALUE,
         overflow = TextOverflow.Ellipsis
     )
-    if (selected) {
+    if (selected && !compact) {
         Icon(imageVector = Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
     }
 }

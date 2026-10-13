@@ -97,9 +97,11 @@ class PcLayoutTest {
 
     @Test
     fun sizesEveryKeyTheSame() {
-        assertEquals(88, PcLayoutSections.keySize(1f))
-        assertEquals(88, PcLayoutSections.keySize(0.85f))
-        assertEquals(110, PcLayoutSections.keySize(1.5f))
+        assertEquals(88, PcLayoutSections.keyWidth(1f))
+        assertEquals(64, PcLayoutSections.keyHeight(1f))
+        assertEquals(88, PcLayoutSections.keyWidth(0.85f))
+        assertEquals(110, PcLayoutSections.keyWidth(1.5f))
+        assertEquals(80, PcLayoutSections.keyHeight(1.5f))
         val keys = PcSectionGroup(List(8) { "key.$it" }, minItemWidth = 80, maxColumns = 4)
         assertEquals(3, PcLayoutSections.keyColumns(keys, 300f, 88))
         assertEquals(4, PcLayoutSections.keyColumns(keys, 960f, 88))

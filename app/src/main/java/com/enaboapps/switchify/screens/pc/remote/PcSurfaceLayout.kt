@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.pc.remote.actions.PcResolvedAction
 import com.enaboapps.switchify.pc.remote.layouts.PcButtonLayout
@@ -67,10 +68,10 @@ private fun DefaultGroup(
     controls: Map<String, PcResolvedAction>,
     onAction: (PcResolvedAction) -> Unit
 ) {
-    val keySize = PcLayoutSections.keySize(LocalDensity.current.fontScale)
+    val keySize = currentKeySize()
     val gap = group.gap ?: PcLayoutSections.DEFAULT_GAP
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val columns = PcLayoutSections.keyColumns(group, maxWidth.value, keySize, gap)
+        val columns = PcLayoutSections.keyColumns(group, maxWidth.value, keySize.width.value.toInt(), gap)
         val rows = group.ids.mapNotNull { controls[it] }.chunked(columns)
         KeyGrid(rows, columns, keySize, gap, maxWidth.value, onAction)
     }
@@ -82,7 +83,7 @@ private fun CustomGrid(
     controls: Map<String, PcResolvedAction>,
     onAction: (PcResolvedAction) -> Unit
 ) {
-    val keySize = PcLayoutSections.keySize(LocalDensity.current.fontScale)
+    val keySize = currentKeySize()
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val rows = List(layout.rows) { rowIndex -> layout.row(rowIndex).map { id -> id?.let(controls::get) } }
         KeyGrid(rows, layout.columns, keySize, PcLayoutSections.DEFAULT_GAP, maxWidth.value, onAction)
@@ -93,12 +94,12 @@ private fun CustomGrid(
 private fun KeyGrid(
     rows: List<List<PcResolvedAction?>>,
     columns: Int,
-    keySize: Int,
+    keySize: DpSize,
     gap: Int,
     viewportWidth: Float,
     onAction: (PcResolvedAction) -> Unit
 ) {
-    val gridWidth = PcLayoutSections.keyGridWidth(columns, keySize, gap)
+    val gridWidth = PcLayoutSections.keyGridWidth(columns, keySize.width.value.toInt(), gap)
     val scroll = rememberScrollState()
     Column(
         modifier = Modifier
@@ -113,15 +114,21 @@ private fun KeyGrid(
                         PcActionControl(
                             action = action,
                             onClick = { onAction(action) },
-                            modifier = Modifier.size(keySize.dp)
+                            modifier = Modifier.size(keySize)
                         )
                     } else {
-                        Spacer(modifier = Modifier.size(keySize.dp))
+                        Spacer(modifier = Modifier.size(keySize))
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun currentKeySize(): DpSize {
+    val fontScale = LocalDensity.current.fontScale
+    return DpSize(PcLayoutSections.keyWidth(fontScale).dp, PcLayoutSections.keyHeight(fontScale).dp)
 }
 
 private val GAP = Dimens.spaceXs
