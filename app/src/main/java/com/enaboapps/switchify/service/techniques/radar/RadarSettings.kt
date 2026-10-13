@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.techniques.radar
 import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.techniques.radar.sweep.RadarPivot
 import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 import com.enaboapps.switchify.utils.Resources
 
@@ -17,6 +18,7 @@ object RadarSettings {
     object StartingPosition {
         const val TOP = "top"
         const val BOTTOM = "bottom"
+        const val CENTER = "center"
     }
 
     object Modes {
@@ -157,6 +159,14 @@ object RadarSettings {
      * Check if starting position is top
      * @return true if starting from top, false otherwise
      */
+    fun getPivot(): RadarPivot {
+        return when (getStartingPosition()) {
+            StartingPosition.BOTTOM -> RadarPivot.BOTTOM
+            StartingPosition.CENTER -> RadarPivot.CENTER
+            else -> RadarPivot.TOP
+        }
+    }
+
     fun isStartingFromTop(): Boolean {
         return getStartingPosition() == StartingPosition.TOP
     }

@@ -448,6 +448,7 @@
     <string name="preference_summary_radar_starting_position">Choose where the radar line starts from</string>
     <string name="radar_position_top">Top</string>
     <string name="radar_position_bottom">Bottom</string>
+    <string name="radar_position_center">Center</string>
     <string name="section_title_radar_mode">Radar Mode</string>
     <string name="picker_title_select_radar_mode">Select Radar Mode</string>
     <string name="radar_mode_radar_only">Radar only</string>
