@@ -32,6 +32,7 @@ class RadarSweepManager(
 
         private const val ANGLE_RIGHT = 0f
         private const val ANGLE_LEFT = 180f
+        private const val ANGLE_UP = 270f
 
         private const val INITIAL_DISTANCE_RATIO = 0f
         private const val MAX_DISTANCE_RATIO = 1f
@@ -77,7 +78,7 @@ class RadarSweepManager(
         get() {
             val bounds = currentBlock?.let { Rect(it.left, it.top, it.right, it.bottom) }
                 ?: Rect(0, 0, ScreenUtils.getWidth(context), ScreenUtils.getHeight(context))
-            return RadarSweepGeometry(bounds, RadarSettings.isStartingFromTop())
+            return RadarSweepGeometry(bounds, RadarSettings.getPivot())
         }
 
     private var currentStep = RadarStep.IDLE
@@ -98,7 +99,11 @@ class RadarSweepManager(
     private fun isSetupRequired(): Boolean = scanningScheduler == null
 
     private fun getStartingAngle(): Float {
-        return if (RadarSettings.isStartingFromTop()) ANGLE_RIGHT else ANGLE_LEFT
+        return when (RadarSettings.getPivot()) {
+            RadarPivot.TOP -> ANGLE_RIGHT
+            RadarPivot.BOTTOM -> ANGLE_LEFT
+            RadarPivot.CENTER -> ANGLE_UP
+        }
     }
 
     private fun update() {
@@ -149,7 +154,9 @@ class RadarSweepManager(
     }
 
     private fun crossedHorizontalBoundary(previousAngle: Float, nextAngle: Float): Float? {
-        return if (RadarSettings.isStartingFromTop()) {
+        val pivot = RadarSettings.getPivot()
+        if (pivot == RadarPivot.CENTER) return null
+        return if (pivot == RadarPivot.TOP) {
             if (rotationDirection == RotationDirection.CLOCKWISE) {
                 if (nextAngle >= ANGLE_LEFT) ANGLE_LEFT else null
             } else {

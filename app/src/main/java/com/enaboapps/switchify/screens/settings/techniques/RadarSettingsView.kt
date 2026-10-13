@@ -33,6 +33,15 @@ fun RadarSettingsView() {
 
     val radarPositionTop = stringResource(R.string.radar_position_top)
     val radarPositionBottom = stringResource(R.string.radar_position_bottom)
+    val radarPositionCenter = stringResource(R.string.radar_position_center)
+    val positionLabel = { index: Int ->
+        when (index) {
+            0 -> radarPositionTop
+            1 -> radarPositionBottom
+            2 -> radarPositionCenter
+            else -> ""
+        }
+    }
 
     Section(titleResId = R.string.section_title_radar_mode) {
         Picker(
@@ -85,29 +94,19 @@ fun RadarSettingsView() {
             value = when (RadarSettings.getStartingPosition()) {
                 RadarSettings.StartingPosition.TOP -> 0
                 RadarSettings.StartingPosition.BOTTOM -> 1
+                RadarSettings.StartingPosition.CENTER -> 2
                 else -> 0
             },
             titleResId = R.string.preference_title_radar_starting_position,
             summaryResId = R.string.preference_summary_radar_starting_position,
-            values = intArrayOf(0, 1),
-            buttonLabelFormatter = { index ->
-                when (index) {
-                    0 -> radarPositionTop
-                    1 -> radarPositionBottom
-                    else -> ""
-                }
-            },
-            displayFormatter = { index ->
-                when (index) {
-                    0 -> radarPositionTop
-                    1 -> radarPositionBottom
-                    else -> ""
-                }
-            },
+            values = intArrayOf(0, 1, 2),
+            buttonLabelFormatter = positionLabel,
+            displayFormatter = positionLabel,
             onValueChanged = { index ->
                 val position = when (index) {
                     0 -> RadarSettings.StartingPosition.TOP
                     1 -> RadarSettings.StartingPosition.BOTTOM
+                    2 -> RadarSettings.StartingPosition.CENTER
                     else -> RadarSettings.StartingPosition.TOP
                 }
                 RadarSettings.setStartingPosition(position)
