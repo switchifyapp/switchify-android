@@ -96,6 +96,23 @@ class PcLayoutTest {
     }
 
     @Test
+    fun sizesEveryKeyTheSame() {
+        assertEquals(88, PcLayoutSections.keySize(1f))
+        assertEquals(88, PcLayoutSections.keySize(0.85f))
+        assertEquals(110, PcLayoutSections.keySize(1.5f))
+        val keys = PcSectionGroup(List(8) { "key.$it" }, minItemWidth = 80, maxColumns = 4)
+        assertEquals(3, PcLayoutSections.keyColumns(keys, 300f, 88))
+        assertEquals(4, PcLayoutSections.keyColumns(keys, 960f, 88))
+        assertEquals(1, PcLayoutSections.keyColumns(keys, 0f, 88))
+        val pair = PcSectionGroup(listOf("speed.slower", "speed.faster"), minItemWidth = 120)
+        assertEquals(2, PcLayoutSections.keyColumns(pair, 960f, 88))
+        val grid = PcSectionGroup(List(9) { "move.$it" }, minItemWidth = 48, exactColumns = 3)
+        assertEquals(3, PcLayoutSections.keyColumns(grid, 100f, 88))
+        assertEquals(280, PcLayoutSections.keyGridWidth(3, 88, 8))
+        assertEquals(88, PcLayoutSections.keyGridWidth(1, 88, 8))
+    }
+
+    @Test
     fun computesResponsiveColumnsLikeRemote() {
         assertEquals(1, PcLayoutSections.gridColumns(0f, 140, 8, 1f))
         assertEquals(3, PcLayoutSections.gridColumns(460f, 140, 8, 1f))

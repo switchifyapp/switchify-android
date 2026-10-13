@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AdsClick
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -35,10 +37,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.pc.remote.PcText
 import com.enaboapps.switchify.pc.remote.actions.PcActionIcon
 import com.enaboapps.switchify.pc.remote.actions.PcResolvedAction
+import kotlin.math.min
 
 @Composable
 fun PcText.resolve(): String = when (this) {
@@ -62,7 +66,7 @@ fun PcActionIcon.vector(): ImageVector = when (this) {
 }
 
 @Composable
-fun PcActionControl(action: PcResolvedAction, onClick: () -> Unit, modifier: Modifier = Modifier, stacked: Boolean = false) {
+fun PcActionControl(action: PcResolvedAction, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val presentation = action.presentation
     PcControlButton(
         label = presentation.label.resolve(),
@@ -75,8 +79,26 @@ fun PcActionControl(action: PcResolvedAction, onClick: () -> Unit, modifier: Mod
         danger = presentation.danger,
         emphasized = presentation.emphasized,
         keySize = presentation.keySize,
-        stacked = stacked
+        stacked = true,
+        shape = PcKeyShape
     )
+}
+
+val PcKeyShape: Shape = GenericShape { size, _ ->
+    val width = size.width
+    val height = size.height
+    val radius = min(width, height) * 0.24f
+    val handle = radius * 0.2f
+    moveTo(radius, 0f)
+    lineTo(width - radius, 0f)
+    cubicTo(width - handle, 0f, width, handle, width, radius)
+    lineTo(width, height - radius)
+    cubicTo(width, height - handle, width - handle, height, width - radius, height)
+    lineTo(radius, height)
+    cubicTo(handle, height, 0f, height - handle, 0f, height - radius)
+    lineTo(0f, radius)
+    cubicTo(0f, handle, handle, 0f, radius, 0f)
+    close()
 }
 
 @Composable
@@ -92,7 +114,8 @@ fun PcControlButton(
     danger: Boolean = false,
     emphasized: Boolean = false,
     keySize: Boolean = false,
-    stacked: Boolean = false
+    stacked: Boolean = false,
+    shape: Shape = MaterialTheme.shapes.medium
 ) {
     val scheme = MaterialTheme.colorScheme
     val isSelected = selected == true || checked == true
@@ -115,7 +138,7 @@ fun PcControlButton(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = MaterialTheme.shapes.medium,
+        shape = shape,
         color = container,
         contentColor = content,
         border = BorderStroke(1.dp, border),
@@ -139,7 +162,7 @@ fun PcControlButton(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
             ) {
-                ButtonContent(label, icon, isSelected)
+                ButtonContent(label, icon, isSelected, compact = true)
             }
         } else {
             Row(
@@ -154,14 +177,16 @@ fun PcControlButton(
 }
 
 @Composable
-private fun ButtonContent(label: String, icon: ImageVector?, selected: Boolean) {
+private fun ButtonContent(label: String, icon: ImageVector?, selected: Boolean, compact: Boolean = false) {
     if (icon != null) {
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
     }
     Text(
         text = label,
-        style = MaterialTheme.typography.labelLarge,
-        textAlign = TextAlign.Center
+        style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
+        textAlign = TextAlign.Center,
+        maxLines = if (compact) 3 else Int.MAX_VALUE,
+        overflow = TextOverflow.Ellipsis
     )
     if (selected) {
         Icon(imageVector = Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))

@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
@@ -67,28 +67,12 @@ private fun DefaultGroup(
     controls: Map<String, PcResolvedAction>,
     onAction: (PcResolvedAction) -> Unit
 ) {
-    val fontScale = LocalDensity.current.fontScale
-    val gap = (group.gap ?: PcLayoutSections.DEFAULT_GAP).dp
+    val keySize = PcLayoutSections.keySize(LocalDensity.current.fontScale)
+    val gap = group.gap ?: PcLayoutSections.DEFAULT_GAP
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val columns = PcLayoutSections.groupColumns(group, maxWidth.value, fontScale)
-        val items = group.ids.mapNotNull { controls[it] }
-        Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-            items.chunked(columns).forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(gap)
-                ) {
-                    row.forEach { action ->
-                        PcActionControl(
-                            action = action,
-                            onClick = { onAction(action) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
-                }
-            }
-        }
+        val columns = PcLayoutSections.keyColumns(group, maxWidth.value, keySize, gap)
+        val rows = group.ids.mapNotNull { controls[it] }.chunked(columns)
+        KeyGrid(rows, columns, keySize, gap, maxWidth.value, onAction)
     }
 }
 
@@ -98,32 +82,41 @@ private fun CustomGrid(
     controls: Map<String, PcResolvedAction>,
     onAction: (PcResolvedAction) -> Unit
 ) {
+    val keySize = PcLayoutSections.keySize(LocalDensity.current.fontScale)
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val metrics = PcLayoutSections.gridMetrics(maxWidth.value, layout.columns)
-        val scroll = rememberScrollState()
-        Column(
-            modifier = Modifier
-                .then(if (metrics.overflows) Modifier.horizontalScroll(scroll) else Modifier)
-                .width(metrics.gridWidth.dp),
-            verticalArrangement = Arrangement.spacedBy(GAP)
-        ) {
-            repeat(layout.rows) { rowIndex ->
-                Row(
-                    modifier = Modifier.heightIn(min = 58.dp),
-                    horizontalArrangement = Arrangement.spacedBy(GAP)
-                ) {
-                    layout.row(rowIndex).forEach { id ->
-                        val action = id?.let(controls::get)
-                        if (action != null) {
-                            PcActionControl(
-                                action = action,
-                                onClick = { onAction(action) },
-                                modifier = Modifier.width(metrics.cellWidth.dp),
-                                stacked = true
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.width(metrics.cellWidth.dp))
-                        }
+        val rows = List(layout.rows) { rowIndex -> layout.row(rowIndex).map { id -> id?.let(controls::get) } }
+        KeyGrid(rows, layout.columns, keySize, PcLayoutSections.DEFAULT_GAP, maxWidth.value, onAction)
+    }
+}
+
+@Composable
+private fun KeyGrid(
+    rows: List<List<PcResolvedAction?>>,
+    columns: Int,
+    keySize: Int,
+    gap: Int,
+    viewportWidth: Float,
+    onAction: (PcResolvedAction) -> Unit
+) {
+    val gridWidth = PcLayoutSections.keyGridWidth(columns, keySize, gap)
+    val scroll = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .then(if (gridWidth > viewportWidth) Modifier.horizontalScroll(scroll) else Modifier)
+            .width(gridWidth.dp),
+        verticalArrangement = Arrangement.spacedBy(gap.dp)
+    ) {
+        rows.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(gap.dp)) {
+                row.forEach { action ->
+                    if (action != null) {
+                        PcActionControl(
+                            action = action,
+                            onClick = { onAction(action) },
+                            modifier = Modifier.size(keySize.dp)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.size(keySize.dp))
                     }
                 }
             }

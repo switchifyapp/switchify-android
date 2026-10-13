@@ -37,6 +37,7 @@ object PcLayoutSections {
 
     const val DEFAULT_GAP = 8
     const val MIN_CELL_WIDTH = 48
+    const val KEY_SIZE = 88
 
     private val monitorIds = PcActionCatalog.monitorDirections.map { "monitor.${it.protocolValue}" }
 
@@ -165,4 +166,19 @@ object PcLayoutSections {
         val gridWidth = handleWidth + gaps + cellWidth * columns
         return PcGridMetrics(cellWidth, gridWidth, width > 0f && gridWidth > width)
     }
+
+    fun keySize(fontScale: Float): Int {
+        val scale = if (fontScale.isFinite() && fontScale > 0f) max(1f, fontScale) else 1f
+        return (KEY_SIZE * (1 + (scale - 1) * 0.5f)).roundToInt()
+    }
+
+    fun keyColumns(group: PcSectionGroup, width: Float, keySize: Int, gap: Int = DEFAULT_GAP): Int {
+        group.exactColumns?.let { return it }
+        if (!width.isFinite() || width <= 0f) return 1
+        val limit = min(group.ids.size, group.maxColumns ?: Int.MAX_VALUE)
+        return max(1, min(limit, floor((width + gap) / (keySize + gap).toFloat()).toInt()))
+    }
+
+    fun keyGridWidth(columns: Int, keySize: Int, gap: Int = DEFAULT_GAP): Int =
+        columns * keySize + gap * max(0, columns - 1)
 }
