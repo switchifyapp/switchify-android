@@ -1,20 +1,26 @@
-package com.enaboapps.switchify.service.techniques.pointscan.blocks
+package com.enaboapps.switchify.service.techniques.blocks
 
 import android.content.Context
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import com.enaboapps.switchify.service.techniques.nodes.Node
-import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
-class PointScanBlockManager(
+/**
+ * Scans a grid of [ScanBlock]s so a technique can narrow the screen down to one
+ * block before refining the point inside it. Point scan and radar each own one of
+ * these with their own grid size and scan rate preferences.
+ */
+class BlockManager(
     private val context: Context,
+    private val gridSizeProvider: () -> Int,
+    private val scanRateProvider: () -> Long,
     private val onBlockSelected: (Int) -> Unit
 ) : ScanTreeCallback {
-    private var blocks: List<PointScanBlock> = emptyList()
+    private var blocks: List<ScanBlock> = emptyList()
     private var isInitialized = false
 
-    private val cursorBlockGridUI = PointScanBlockGridUI(context)
+    private val gridUI = BlockGridUI(context, gridSizeProvider)
 
     private val scanTree = ScanTree(
         context,
@@ -24,55 +30,59 @@ class PointScanBlockManager(
     )
 
     override fun onScanTreeReset() {
-        cursorBlockGridUI.hideGrid()
+        gridUI.hideGrid()
     }
 
     override fun onScanTreeStarted() {
-        cursorBlockGridUI.showGrid()
+        gridUI.showGrid()
     }
 
     override fun onScanTreeStopped() {
-        cursorBlockGridUI.hideGrid()
+        gridUI.hideGrid()
     }
 
     fun initializeBlocks() {
         val screenWidth = ScreenUtils.getWidth(context)
         val screenHeight = ScreenUtils.getHeight(context)
 
-        blocks = PointScanGridGeometry.blocks(screenWidth, screenHeight, PointScanSettings.getCursorBlockCount())
+        blocks = BlockGridGeometry.blocks(screenWidth, screenHeight, gridSizeProvider())
 
-        val nodes = blocks.map { Node.fromPointScanBlock(it) }.toList()
+        val nodes = blocks.map { Node.fromScanBlock(it) }.toList()
         nodes.forEachIndexed { index, node -> node.setOnSelect { onBlockSelected(index) } }
-        scanTree.setSpeed(PointScanSettings.getCursorBlockScanRate())
+        scanTree.setSpeed(scanRateProvider())
         scanTree.buildTree(nodes)
         isInitialized = true
+    }
+
+    fun refreshTiming() {
+        scanTree.setSpeed(scanRateProvider())
     }
 
     fun cleanup() {
         blocks = emptyList()
         scanTree.cleanup()
-        cursorBlockGridUI.reset()
+        gridUI.reset()
     }
 
     /**
      * Stops block scanning but keeps the grid on screen, dimmed, while the
-     * crosshair scans inside the chosen block.
+     * technique refines the point inside the chosen block.
      */
-    fun enterLinePhase() {
-        cursorBlockGridUI.holdForLinePhase()
+    fun enterRefinePhase() {
+        gridUI.holdForRefinePhase()
         scanTree.stopScanningAndReset()
     }
 
     fun resetForNextUse() {
         scanTree.stopScanningAndReset()
-        cursorBlockGridUI.reset()
+        gridUI.reset()
     }
 
     fun getScanTree(): ScanTree {
         return scanTree
     }
 
-    fun getBlock(index: Int): PointScanBlock? {
+    fun getBlock(index: Int): ScanBlock? {
         return blocks.getOrNull(index)
     }
 

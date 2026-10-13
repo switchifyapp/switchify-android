@@ -10,7 +10,8 @@ internal enum class ScanPreferenceEffect {
     REFRESH_ITEM_TIMING,
     REFRESH_POINT_STRUCTURE,
     REFRESH_POINT_TIMING,
-    RESET_RADAR_ORIGIN,
+    REFRESH_RADAR_STRUCTURE,
+    REFRESH_RADAR_TIMING,
     REFRESH_HIGHLIGHT,
     LIVE_READ
 }
@@ -35,7 +36,10 @@ internal object ScanPreferencePolicy {
         PreferenceManager.PREFERENCE_KEY_CURSOR_MODE to ScanPreferenceEffect.REFRESH_POINT_STRUCTURE,
         PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_COUNT to ScanPreferenceEffect.REFRESH_POINT_STRUCTURE,
         PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE to ScanPreferenceEffect.REFRESH_POINT_TIMING,
-        PreferenceManager.PREFERENCE_KEY_RADAR_STARTING_POSITION to ScanPreferenceEffect.RESET_RADAR_ORIGIN,
+        PreferenceManager.PREFERENCE_KEY_RADAR_STARTING_POSITION to ScanPreferenceEffect.REFRESH_RADAR_STRUCTURE,
+        PreferenceManager.PREFERENCE_KEY_RADAR_MODE to ScanPreferenceEffect.REFRESH_RADAR_STRUCTURE,
+        PreferenceManager.PREFERENCE_KEY_RADAR_BLOCK_COUNT to ScanPreferenceEffect.REFRESH_RADAR_STRUCTURE,
+        PreferenceManager.PREFERENCE_KEY_RADAR_BLOCK_SCAN_RATE to ScanPreferenceEffect.REFRESH_RADAR_TIMING,
         PreferenceManager.PREFERENCE_KEY_SCAN_CYCLES to ScanPreferenceEffect.LIVE_READ,
         PreferenceManager.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL to ScanPreferenceEffect.LIVE_READ,
         PreferenceManager.PREFERENCE_KEY_RADAR_SPEED_LEVEL to ScanPreferenceEffect.LIVE_READ,
@@ -67,10 +71,14 @@ internal object ScanPreferencePolicy {
             effects.remove(ScanPreferenceEffect.REFRESH_ITEM_TIMING)
             effects.remove(ScanPreferenceEffect.REFRESH_POINT_STRUCTURE)
             effects.remove(ScanPreferenceEffect.REFRESH_POINT_TIMING)
-            effects.remove(ScanPreferenceEffect.RESET_RADAR_ORIGIN)
+            effects.remove(ScanPreferenceEffect.REFRESH_RADAR_STRUCTURE)
+            effects.remove(ScanPreferenceEffect.REFRESH_RADAR_TIMING)
         } else {
             if (ScanPreferenceEffect.REFRESH_ITEM_STRUCTURE in effects) {
                 effects.remove(ScanPreferenceEffect.REFRESH_ITEM_TIMING)
+            }
+            if (ScanPreferenceEffect.REFRESH_RADAR_STRUCTURE in effects) {
+                effects.remove(ScanPreferenceEffect.REFRESH_RADAR_TIMING)
             }
             if (ScanPreferenceEffect.REFRESH_POINT_STRUCTURE in effects) {
                 effects.remove(ScanPreferenceEffect.REFRESH_POINT_TIMING)

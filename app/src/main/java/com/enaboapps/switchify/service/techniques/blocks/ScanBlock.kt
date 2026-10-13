@@ -1,6 +1,6 @@
-package com.enaboapps.switchify.service.techniques.pointscan.blocks
+package com.enaboapps.switchify.service.techniques.blocks
 
-data class PointScanBlock(
+data class ScanBlock(
     val position: Int,
     val row: Int,
     val column: Int,

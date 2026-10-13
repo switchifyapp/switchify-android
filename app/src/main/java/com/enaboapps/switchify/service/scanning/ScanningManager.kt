@@ -191,8 +191,10 @@ class ScanningManager(
         } else if (plan.contains(ScanPreferenceEffect.REFRESH_POINT_TIMING)) {
             activeScanMethod.refreshPointScanTiming()
         }
-        if (plan.contains(ScanPreferenceEffect.RESET_RADAR_ORIGIN)) {
-            activeScanMethod.refreshRadarOrigin()
+        if (plan.contains(ScanPreferenceEffect.REFRESH_RADAR_STRUCTURE)) {
+            activeScanMethod.refreshRadarStructure()
+        } else if (plan.contains(ScanPreferenceEffect.REFRESH_RADAR_TIMING)) {
+            activeScanMethod.refreshRadarTiming()
         }
     }
 

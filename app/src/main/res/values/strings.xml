@@ -448,6 +448,15 @@
     <string name="preference_summary_radar_starting_position">Choose where the radar line starts from</string>
     <string name="radar_position_top">Top</string>
     <string name="radar_position_bottom">Bottom</string>
+    <string name="section_title_radar_mode">Radar Mode</string>
+    <string name="picker_title_select_radar_mode">Select Radar Mode</string>
+    <string name="radar_mode_radar_only">Radar only</string>
+    <string name="radar_mode_grid_radar">Grid + radar</string>
+    <string name="radar_mode_desc_radar_only">Sweep the radar across the whole screen</string>
+    <string name="radar_mode_desc_grid_radar">Pick a grid block, then sweep the radar inside it</string>
+    <string name="preference_title_block_radar_speed">Grid scan speed</string>
+    <string name="preference_summary_block_radar_speed">Speed when scanning grid blocks</string>
+    <string name="feature_explanation_block_radar_speed">This is how fast scanning moves when you are selecting a block. Once you select a block, the radar speed will be used.</string>
 
     <!-- Settings Screen -->
     <string name="settings_tab_general">General</string>

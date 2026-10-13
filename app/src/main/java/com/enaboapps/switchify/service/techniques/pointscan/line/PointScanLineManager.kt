@@ -10,7 +10,7 @@ import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
-import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.techniques.blocks.ScanBlock
 import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -27,7 +27,7 @@ class PointScanLineManager(
     private var currentDirection: ScanDirection = ScanDirection.RIGHT
     private var currentX: Float = 0f
     private var currentY: Float = 0f
-    private var currentBlock: PointScanBlock? = null
+    private var currentBlock: ScanBlock? = null
     private val lineUI = LineUI(context)
     private var lastUpdateTime = 0L
 
@@ -232,7 +232,7 @@ class PointScanLineManager(
         lastUpdateTime = 0L
     }
 
-    fun setBlock(block: PointScanBlock?) {
+    fun setBlock(block: ScanBlock?) {
         currentBlock = block
         lineUI.setBlock(block)
         if (block != null) {
@@ -248,6 +248,6 @@ class PointScanLineManager(
 
     fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX.toInt(), currentY.toInt())
     fun getCurrentDirection(): ScanDirection = currentDirection
-    fun getCurrentBlock(): PointScanBlock? = currentBlock
+    fun getCurrentBlock(): ScanBlock? = currentBlock
     internal fun isAutoScanning(): Boolean = scanningScheduler.isScanning()
 }

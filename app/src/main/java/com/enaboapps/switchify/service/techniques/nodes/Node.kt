@@ -19,7 +19,7 @@ import com.enaboapps.switchify.service.scanning.tree.ScanNodeIdentity
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.nodes.scanners.ScanHighlightBounds
-import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.techniques.blocks.ScanBlock
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
 import com.enaboapps.switchify.service.window.overlay.OverlayTargets
@@ -155,22 +155,22 @@ class Node(
         }
 
         /**
-         * This function creates a node from a PointScanBlock
-         * @param cursorBlock The PointScanBlock to create the node from
+         * This function creates a node from a ScanBlock
+         * @param block The ScanBlock to create the node from
          * @return The node
          */
-        fun fromPointScanBlock(cursorBlock: PointScanBlock): Node {
+        fun fromScanBlock(block: ScanBlock): Node {
             val node = Node()
-            node.x = cursorBlock.left
-            node.y = cursorBlock.top
-            node.width = cursorBlock.width
-            node.height = cursorBlock.height
-            node.centerX = cursorBlock.left + (cursorBlock.width / 2)
-            node.centerY = cursorBlock.top + (cursorBlock.height / 2)
+            node.x = block.left
+            node.y = block.top
+            node.width = block.width
+            node.height = block.height
+            node.centerX = block.left + (block.width / 2)
+            node.centerY = block.top + (block.height / 2)
             node.overlayNodeBounds = OverlayNodeBounds.displayOnly(
                 Rect(node.x, node.y, node.x + node.width, node.y + node.height)
             )
-            node.contentDescription = "Block ${cursorBlock.position + 1}"
+            node.contentDescription = "Block ${block.position + 1}"
             return node
         }
 

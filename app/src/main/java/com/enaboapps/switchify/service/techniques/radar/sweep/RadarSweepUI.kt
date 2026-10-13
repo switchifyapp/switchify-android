@@ -1,8 +1,9 @@
-package com.enaboapps.switchify.service.techniques.radar
+package com.enaboapps.switchify.service.techniques.radar.sweep
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.FrameLayout
@@ -11,15 +12,23 @@ import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
+import com.enaboapps.switchify.service.techniques.blocks.BlockOutline
+import com.enaboapps.switchify.service.techniques.blocks.ScanBlock
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
+/**
+ * Draws the radar sweep line and the travelling circle. The sweep is confined to
+ * [RadarSweepGeometry.bounds], which is the whole screen in radar-only mode or the
+ * chosen block in grid + radar mode.
+ */
+class RadarSweepUI(private val context: Context) : AccessTechniqueUIBase() {
     private var radarLineContainer: FrameLayout? = null
     private var radarLine: RadarLineView? = null
     private var radarCircle: RelativeLayout? = null
+    private val blockOutline = BlockOutline(context, this)
 
     companion object {
         const val RADAR_CIRCLE_SIZE = 50
@@ -31,11 +40,11 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
     private val screenHeight: Int
         get() = ScreenUtils.getHeight(context)
 
-    fun showRadarLine(angle: Float) {
+    fun showRadarLine(angle: Float, geometry: RadarSweepGeometry) {
         if (radarLineContainer == null) {
             createRadarLine()
         }
-        updateRadarLine(angle)
+        radarLine?.update(angle, geometry)
     }
 
     fun showRadarCircle(x: Int, y: Int) {
@@ -44,6 +53,10 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
         } else {
             updateRadarCircle(x, y)
         }
+    }
+
+    fun setBlock(block: ScanBlock?) {
+        blockOutline.show(block)
     }
 
     private fun createRadarLine() {
@@ -69,10 +82,6 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
             background = drawable
         }
         updateRadarCircle(x, y)
-    }
-
-    private fun updateRadarLine(angle: Float) {
-        radarLine?.updateAngle(angle)
     }
 
     private fun updateRadarCircle(x: Int, y: Int) {
@@ -138,6 +147,7 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
         try {
             removeRadarLineSafely()
             removeRadarCircleSafely()
+            blockOutline.remove()
             super.hide()
         } catch (e: Exception) {
             // Force cleanup even if removal fails
@@ -149,6 +159,7 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
         radarLineContainer = null
         radarLine = null
         radarCircle = null
+        blockOutline.clear()
         super.hide()
     }
 
@@ -159,32 +170,35 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
             style = Paint.Style.STROKE
         }
         private var currentAngle = 0f
+        private var pivotX = 0f
+        private var pivotY = 0f
+        private val bounds = Rect()
 
         fun setColor(color: Int) {
             paint.color = color
             paint.alpha = (ScanVisualConstants.RADAR_ALPHA * 255).toInt()
         }
 
-        fun updateAngle(angle: Float) {
+        fun update(angle: Float, geometry: RadarSweepGeometry) {
             currentAngle = angle
+            pivotX = geometry.pivotX
+            pivotY = geometry.pivotY
+            bounds.set(geometry.bounds)
             invalidate()
         }
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-            // Windscreen wiper pivot point - configurable top or bottom
-            RadarSettings.init(context)
-            val pivotX = width / 2f
-            val pivotY =
-                if (RadarSettings.getStartingPosition() == RadarSettings.StartingPosition.TOP) {
-                    0f  // Top edge
-                } else {
-                    height.toFloat()  // Bottom edge
-                }
-            val maxLength = sqrt((width * width + height * height).toFloat())
+            if (bounds.isEmpty) return
+            val maxLength = sqrt(
+                (bounds.width() * bounds.width() + bounds.height() * bounds.height()).toFloat()
+            )
             val endX = pivotX + maxLength * cos(Math.toRadians(currentAngle.toDouble())).toFloat()
             val endY = pivotY + maxLength * sin(Math.toRadians(currentAngle.toDouble())).toFloat()
+            canvas.save()
+            canvas.clipRect(bounds)
             canvas.drawLine(pivotX, pivotY, endX, endY, paint)
+            canvas.restore()
         }
     }
 }

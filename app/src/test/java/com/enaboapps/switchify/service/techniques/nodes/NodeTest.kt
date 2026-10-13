@@ -1,6 +1,6 @@
 package com.enaboapps.switchify.service.techniques.nodes
 
-import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.techniques.blocks.ScanBlock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -41,8 +41,8 @@ class NodeTest {
     }
 
     private fun testNode(contentDescription: String): Node {
-        return Node.fromPointScanBlock(
-            PointScanBlock(
+        return Node.fromScanBlock(
+            ScanBlock(
                 position = 0,
                 row = 0,
                 column = 0,
