@@ -1,11 +1,11 @@
-package com.enaboapps.switchify.service.techniques.pointscan.blocks
+package com.enaboapps.switchify.service.techniques.blocks
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-class PointScanGridVisibilityTest {
+class BlockGridVisibilityTest {
     @Test
     fun deferredNodeSelectionRetainsGridDespitePreviouslyQueuedStopCallbacks() {
         val fixture = Fixture()
@@ -13,7 +13,7 @@ class PointScanGridVisibilityTest {
         fixture.drain()
         val original = fixture.grid
         fixture.queue.addLast {
-            fixture.visibility.holdForLinePhase()
+            fixture.visibility.holdForRefinePhase()
             fixture.visibility.hide()
             fixture.visibility.hide()
         }
@@ -22,7 +22,7 @@ class PointScanGridVisibilityTest {
         fixture.drain()
 
         assertEquals(original, fixture.grid)
-        assertEquals(PointScanGridPhase.LINE, fixture.phase)
+        assertEquals(BlockGridPhase.REFINING, fixture.phase)
         assertEquals(0, fixture.removals)
     }
 
@@ -38,7 +38,7 @@ class PointScanGridVisibilityTest {
         fixture.drain()
 
         assertNotNull(fixture.grid)
-        assertEquals(PointScanGridPhase.SCANNING, fixture.phase)
+        assertEquals(BlockGridPhase.SCANNING, fixture.phase)
         fixture.visibility.show()
         fixture.drain()
         assertNotNull(fixture.grid)
@@ -61,17 +61,17 @@ class PointScanGridVisibilityTest {
     }
 
     @Test
-    fun finalResetOverridesQueuedLinePhaseAndRemovesGrid() {
+    fun finalResetOverridesQueuedRefinePhaseAndRemovesGrid() {
         val fixture = Fixture()
         fixture.visibility.show()
         fixture.drain()
-        fixture.visibility.holdForLinePhase()
+        fixture.visibility.holdForRefinePhase()
         fixture.visibility.hide()
         fixture.visibility.reset()
         fixture.drain()
 
         assertNull(fixture.grid)
-        assertEquals(PointScanGridPhase.HIDDEN, fixture.phase)
+        assertEquals(BlockGridPhase.HIDDEN, fixture.phase)
         assertEquals(1, fixture.removals)
     }
 
@@ -100,11 +100,11 @@ class PointScanGridVisibilityTest {
     }
 
     @Test
-    fun nextBlockScanRestoresFullGridAfterLinePhase() {
+    fun nextBlockScanRestoresFullGridAfterRefinePhase() {
         val fixture = Fixture()
         fixture.visibility.show()
         fixture.drain()
-        fixture.visibility.holdForLinePhase()
+        fixture.visibility.holdForRefinePhase()
         fixture.visibility.hide()
         fixture.drain()
         val original = fixture.grid
@@ -112,18 +112,18 @@ class PointScanGridVisibilityTest {
         fixture.drain()
 
         assertEquals(original, fixture.grid)
-        assertEquals(PointScanGridPhase.SCANNING, fixture.phase)
+        assertEquals(BlockGridPhase.SCANNING, fixture.phase)
     }
 
     private class Fixture {
         val queue = ArrayDeque<() -> Unit>()
         var grid: Int? = null
-        var phase = PointScanGridPhase.HIDDEN
+        var phase = BlockGridPhase.HIDDEN
         var attachments = 0
         var removals = 0
-        val visibility = PointScanGridVisibility(queue::addLast) { next ->
+        val visibility = BlockGridVisibility(queue::addLast) { next ->
             phase = next
-            if (next == PointScanGridPhase.HIDDEN) {
+            if (next == BlockGridPhase.HIDDEN) {
                 if (grid != null) removals++
                 grid = null
             } else if (grid == null) {

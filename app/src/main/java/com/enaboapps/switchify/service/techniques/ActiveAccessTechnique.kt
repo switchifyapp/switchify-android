@@ -173,8 +173,12 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         pointScanManager?.refreshBlockTiming()
     }
 
-    internal fun refreshRadarOrigin() {
-        radarManager?.refreshOrigin()
+    internal fun refreshRadarStructure() {
+        radarManager?.refreshStructure()
+    }
+
+    internal fun refreshRadarTiming() {
+        radarManager?.refreshBlockTiming()
     }
 
     internal fun resetForScanModeChange() {

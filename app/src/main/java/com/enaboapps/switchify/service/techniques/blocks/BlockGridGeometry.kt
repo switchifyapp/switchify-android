@@ -1,7 +1,7 @@
-package com.enaboapps.switchify.service.techniques.pointscan.blocks
+package com.enaboapps.switchify.service.techniques.blocks
 
 /**
- * Single source of truth for where point-scan blocks sit on screen. The block
+ * Single source of truth for where scan blocks sit on screen. The block
  * manager builds its scan nodes from [blocks] and the grid view draws its
  * lines from [lineOffsets], so the highlight and the drawn grid always agree.
  *
@@ -9,12 +9,12 @@ package com.enaboapps.switchify.service.techniques.pointscan.blocks
  * a few unused pixels on the right and bottom edges rather than a wider last
  * block. The drawn grid covers exactly the block area, not the whole screen.
  */
-internal object PointScanGridGeometry {
+internal object BlockGridGeometry {
     fun blockWidth(screenWidth: Int, gridSize: Int): Int = screenWidth / gridSize
 
     fun blockHeight(screenHeight: Int, gridSize: Int): Int = screenHeight / gridSize
 
-    fun blocks(screenWidth: Int, screenHeight: Int, gridSize: Int): List<PointScanBlock> {
+    fun blocks(screenWidth: Int, screenHeight: Int, gridSize: Int): List<ScanBlock> {
         val blockWidth = blockWidth(screenWidth, gridSize)
         val blockHeight = blockHeight(screenHeight, gridSize)
         return List(gridSize * gridSize) { index ->
@@ -22,7 +22,7 @@ internal object PointScanGridGeometry {
             val column = index % gridSize
             val left = column * blockWidth
             val top = row * blockHeight
-            PointScanBlock(index, row, column, left, top, left + blockWidth, top + blockHeight)
+            ScanBlock(index, row, column, left, top, left + blockWidth, top + blockHeight)
         }
     }
 

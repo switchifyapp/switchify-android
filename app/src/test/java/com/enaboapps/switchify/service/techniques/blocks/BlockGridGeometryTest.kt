@@ -1,16 +1,16 @@
-package com.enaboapps.switchify.service.techniques.pointscan.blocks
+package com.enaboapps.switchify.service.techniques.blocks
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class PointScanGridGeometryTest {
+class BlockGridGeometryTest {
     private val supportedSizes = listOf(2, 3, 4, 5, 6)
 
     @Test
     fun blocksTileTheGridInReadingOrderWithoutGapsOrOverlap() {
         supportedSizes.forEach { size ->
-            val blocks = PointScanGridGeometry.blocks(1080, 2340, size)
+            val blocks = BlockGridGeometry.blocks(1080, 2340, size)
             assertEquals(size * size, blocks.size)
             blocks.forEachIndexed { index, block ->
                 assertEquals(index, block.position)
@@ -29,9 +29,9 @@ class PointScanGridGeometryTest {
     @Test
     fun gridLinesFallOnBlockEdges() {
         supportedSizes.forEach { size ->
-            val blocks = PointScanGridGeometry.blocks(1080, 2340, size)
-            val xs = PointScanGridGeometry.lineOffsets(1080, size)
-            val ys = PointScanGridGeometry.lineOffsets(2340, size)
+            val blocks = BlockGridGeometry.blocks(1080, 2340, size)
+            val xs = BlockGridGeometry.lineOffsets(1080, size)
+            val ys = BlockGridGeometry.lineOffsets(2340, size)
             assertEquals(size - 1, xs.size)
             assertEquals(size - 1, ys.size)
             assertEquals(blocks.filter { it.column > 0 }.map { it.left }.distinct(), xs)
@@ -41,10 +41,10 @@ class PointScanGridGeometryTest {
 
     @Test
     fun unevenScreensLeaveTheRemainderOutsideTheGrid() {
-        val blocks = PointScanGridGeometry.blocks(1000, 1000, 3)
+        val blocks = BlockGridGeometry.blocks(1000, 1000, 3)
         assertEquals(999, blocks.last().right)
         assertEquals(999, blocks.last().bottom)
         assertTrue(blocks.all { it.width == 333 && it.height == 333 })
-        assertEquals(999, PointScanGridGeometry.blockWidth(1000, 3) * 3)
+        assertEquals(999, BlockGridGeometry.blockWidth(1000, 3) * 3)
     }
 }

@@ -1,15 +1,14 @@
 package com.enaboapps.switchify.service.techniques.pointscan.line
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Rect
-import android.graphics.drawable.GradientDrawable
 import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
-import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.techniques.blocks.BlockOutline
+import com.enaboapps.switchify.service.techniques.blocks.ScanBlock
 import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -22,8 +21,8 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     // Scan lines
     private var xScanLine: RelativeLayout? = null
     private var yScanLine: RelativeLayout? = null
-    private var blockOutline: RelativeLayout? = null
-    private var currentBlock: PointScanBlock? = null
+    private val blockOutline = BlockOutline(context, this)
+    private var currentBlock: ScanBlock? = null
 
     private val cursorLinePx =
         ScreenUtils.dpToPx(context, ScanVisualConstants.CURSOR_LINE_DP)
@@ -36,63 +35,6 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
         return currentBlock?.let { block ->
             Rect(block.left, block.top, block.right, block.bottom)
         } ?: getScreenBounds()
-    }
-
-    private fun showBlockOutline() {
-        val bounds = getBounds()
-        if (currentBlock != null) {
-            if (blockOutline == null) {
-                blockOutline = RelativeLayout(context).apply {
-                    background = GradientDrawable().apply {
-                        setColor(Color.TRANSPARENT)
-                        cornerRadius = ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
-                        setStroke(
-                            cursorLinePx,
-                            ScanColorManager.getScanColorSetFromPreferences(context).primaryColor.toColorInt()
-                        )
-                    }
-                }
-                blockOutline?.let {
-                    super.addView(
-                        it,
-                        bounds.left,
-                        bounds.top,
-                        bounds.width(),
-                        bounds.height()
-                    )
-                    HighlightAnimations.fadeIn(it)
-                }
-            } else {
-                updateBlockOutline()
-            }
-        } else {
-            removeBlockOutline()
-        }
-    }
-
-    private fun updateBlockOutline() {
-        val bounds = getBounds()
-        blockOutline?.let {
-            super.updateView(it, bounds.left, bounds.top, bounds.width(), bounds.height())
-        }
-    }
-
-    private fun removeBlockOutline() {
-        removeBlockOutlineSafely()
-    }
-
-    private fun removeBlockOutlineSafely() {
-        blockOutline?.let { outline ->
-            try {
-                if (outline.parent != null) {
-                    super.removeView(outline)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                blockOutline = null
-            }
-        }
     }
 
     /**
@@ -232,7 +174,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
         try {
             removeXScanLineSafely()
             removeYScanLineSafely()
-            removeBlockOutlineSafely()
+            blockOutline.remove()
             setBlock(null)
             super.hide()
         } catch (e: Exception) {
@@ -244,7 +186,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     private fun forceCleanup() {
         xScanLine = null
         yScanLine = null
-        blockOutline = null
+        blockOutline.clear()
         currentBlock = null
         super.hide()
     }
@@ -254,7 +196,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      *
      * @param block The block to set, or null for screen dimensions.
      */
-    fun setBlock(block: PointScanBlock?) {
+    fun setBlock(block: ScanBlock?) {
         currentBlock = block
         // Update existing lines if they're visible
         xScanLine?.let { line ->
@@ -277,6 +219,6 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                 cursorLinePx
             )
         }
-        showBlockOutline()
+        blockOutline.show(block)
     }
-} 
+}

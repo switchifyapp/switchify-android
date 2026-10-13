@@ -6,8 +6,8 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
-import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
-import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlockManager
+import com.enaboapps.switchify.service.techniques.blocks.BlockManager
+import com.enaboapps.switchify.service.techniques.blocks.ScanBlock
 import com.enaboapps.switchify.service.techniques.pointscan.line.PointScanLineManager
 
 /**
@@ -16,7 +16,12 @@ import com.enaboapps.switchify.service.techniques.pointscan.line.PointScanLineMa
  * @param context The application context.
  */
 class PointScanManager(private val context: Context) : AccessTechniqueInterface {
-    private val blockManager = PointScanBlockManager(context, onBlockSelected = { setBlock(it) })
+    private val blockManager = BlockManager(
+        context,
+        gridSizeProvider = { PointScanSettings.getCursorBlockCount() },
+        scanRateProvider = { PointScanSettings.getCursorBlockScanRate() },
+        onBlockSelected = { setBlock(it) }
+    )
     private val lineManager = PointScanLineManager(context, onPointSelected = {
         handleFinalSelectionPoint(it.x.toInt(), it.y.toInt())
     })
@@ -37,7 +42,7 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
     }
 
     internal fun refreshBlockTiming() {
-        blockManager.getScanTree().setSpeed(PointScanSettings.getCursorBlockScanRate())
+        blockManager.refreshTiming()
     }
 
     /**
@@ -47,7 +52,7 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
      */
     private fun setBlock(position: Int) {
         val block = blockManager.getBlock(position)
-        blockManager.enterLinePhase()
+        blockManager.enterRefinePhase()
         lineManager.setBlock(block)
         lineManager.startAutoScanning()
     }
@@ -136,7 +141,7 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
      * Performs the selection action.
      */
     override fun performSelectionAction() {
-        blockManager.getScanTree().setSpeed(PointScanSettings.getCursorBlockScanRate())
+        blockManager.refreshTiming()
         getManager().performSelectionAction()
     }
 
@@ -196,5 +201,5 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
 
     fun getCurrentPosition(): Pair<Int, Int> = lineManager.getCurrentPosition()
     fun getCurrentDirection(): ScanDirection = lineManager.getCurrentDirection()
-    fun getCurrentBlock(): PointScanBlock? = lineManager.getCurrentBlock()
+    fun getCurrentBlock(): ScanBlock? = lineManager.getCurrentBlock()
 }

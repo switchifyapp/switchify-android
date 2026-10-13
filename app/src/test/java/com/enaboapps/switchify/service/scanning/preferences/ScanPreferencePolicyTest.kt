@@ -21,6 +21,9 @@ class ScanPreferencePolicyTest {
             PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
             PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
             PreferenceManager.PREFERENCE_KEY_RADAR_STARTING_POSITION,
+            PreferenceManager.PREFERENCE_KEY_RADAR_MODE,
+            PreferenceManager.PREFERENCE_KEY_RADAR_BLOCK_COUNT,
+            PreferenceManager.PREFERENCE_KEY_RADAR_BLOCK_SCAN_RATE,
             PreferenceManager.PREFERENCE_KEY_SCAN_CYCLES,
             PreferenceManager.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
             PreferenceManager.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
@@ -86,6 +89,6 @@ class ScanPreferencePolicyTest {
         assertTrue(plan.contains(ScanPreferenceEffect.RESET_SCAN_MODE))
         assertFalse(plan.contains(ScanPreferenceEffect.REFRESH_ITEM_STRUCTURE))
         assertFalse(plan.contains(ScanPreferenceEffect.REFRESH_POINT_STRUCTURE))
-        assertFalse(plan.contains(ScanPreferenceEffect.RESET_RADAR_ORIGIN))
+        assertFalse(plan.contains(ScanPreferenceEffect.REFRESH_RADAR_STRUCTURE))
     }
 }

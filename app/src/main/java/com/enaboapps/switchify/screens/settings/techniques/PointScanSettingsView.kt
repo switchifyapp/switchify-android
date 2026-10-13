@@ -5,20 +5,18 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.screens.settings.shared.BlockCountSection
 import com.enaboapps.switchify.screens.settings.shared.BlockPointScanSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.PrecisionPointScanSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.SinglePointScanSpeedStepper
 import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
-import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun PointScanSettingsView() {
@@ -28,7 +26,6 @@ fun PointScanSettingsView() {
         PointScanSettings.Modes.MODE_SINGLE,
         PointScanSettings.Modes.MODE_BLOCK
     )
-    PreferenceManager(context)
     var currentMode by remember { mutableStateOf(PointScanSettings.getMode()) }
 
     val setCursorMode = { mode: String ->
@@ -77,35 +74,9 @@ fun PointScanSettingsView() {
         enter = fadeIn(),
         exit = fadeOut()
     ) {
-        BlockSettingsView()
-    }
-}
-
-@Composable
-private fun BlockSettingsView() {
-    val context = LocalContext.current
-    var currentBlockCount by remember {
-        mutableIntStateOf(
-            PointScanSettings.getCursorBlockCount()
-        )
-    }
-    val blockCounts = listOf("2", "3", "4", "5", "6", "7", "8", "9", "10")
-    Section(titleResId = R.string.section_title_block_settings) {
-        Picker(
-            titleResId = R.string.preference_title_block_count,
-            selectedItem = currentBlockCount.toString(),
-            items = blockCounts,
-            onItemSelected = { item ->
-                currentBlockCount = item.toInt()
-                PointScanSettings.setCursorBlockCount(item.toInt())
-            },
-            itemToString = { it },
-            itemDescription = { value ->
-                Resources.getString(
-                    R.string.preference_summary_grid_size_dynamic,
-                    value
-                )
-            }
+        BlockCountSection(
+            initialBlockCount = PointScanSettings.getCursorBlockCount(),
+            onBlockCountChanged = { PointScanSettings.setCursorBlockCount(it) }
         )
     }
 }

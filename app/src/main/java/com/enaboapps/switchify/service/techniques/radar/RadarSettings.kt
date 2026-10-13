@@ -1,8 +1,10 @@
 package com.enaboapps.switchify.service.techniques.radar
 
 import android.content.Context
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
+import com.enaboapps.switchify.utils.Resources
 
 /**
  * Settings class for radar scanning technique
@@ -17,8 +19,68 @@ object RadarSettings {
         const val BOTTOM = "bottom"
     }
 
+    object Modes {
+        const val MODE_SINGLE = "single"
+        const val MODE_BLOCK = "block"
+    }
+
     fun init(context: Context) {
         preferenceManager = PreferenceManager(context)
+    }
+
+    fun getMode(): String {
+        val storedMode = preferenceManager?.getStringValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_MODE,
+            Modes.MODE_SINGLE
+        )
+        return if (storedMode == Modes.MODE_BLOCK) Modes.MODE_BLOCK else Modes.MODE_SINGLE
+    }
+
+    fun setMode(mode: String) {
+        preferenceManager?.setStringValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_MODE, mode)
+    }
+
+    fun isSingleMode(): Boolean = getMode() == Modes.MODE_SINGLE
+
+    fun isBlockMode(): Boolean = getMode() == Modes.MODE_BLOCK
+
+    fun getModeName(mode: String): String {
+        return when (mode) {
+            Modes.MODE_SINGLE -> Resources.getString(R.string.radar_mode_radar_only)
+            Modes.MODE_BLOCK -> Resources.getString(R.string.radar_mode_grid_radar)
+            else -> Resources.getString(R.string.unknown)
+        }
+    }
+
+    fun getModeDescription(mode: String): String {
+        return when (mode) {
+            Modes.MODE_SINGLE -> Resources.getString(R.string.radar_mode_desc_radar_only)
+            Modes.MODE_BLOCK -> Resources.getString(R.string.radar_mode_desc_grid_radar)
+            else -> Resources.getString(R.string.unknown)
+        }
+    }
+
+    fun getBlockScanRate(): Long {
+        return preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_BLOCK_SCAN_RATE, 1000L)
+            ?: 1000L
+    }
+
+    fun setBlockScanRate(rate: Long) {
+        preferenceManager?.setLongValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_BLOCK_SCAN_RATE, rate)
+    }
+
+    fun getBlockCount(): Int {
+        return preferenceManager?.getStringValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_BLOCK_COUNT,
+            "4"
+        )?.toIntOrNull() ?: 4
+    }
+
+    fun setBlockCount(count: Int) {
+        preferenceManager?.setStringValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_BLOCK_COUNT,
+            count.toString()
+        )
     }
 
     fun getSpeedLevel(): Int {

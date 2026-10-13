@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.techniques.pointscan.blocks
+package com.enaboapps.switchify.service.techniques.blocks
 
 import android.content.Context
 import android.graphics.Canvas
@@ -10,13 +10,13 @@ import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 /**
- * Draws the whole point-scan grid in one pass: hairline interior lines and a
+ * Draws the whole block grid in one pass: hairline interior lines and a
  * rounded outline around the block area, each with a light contrast halo so
  * the grid reads over both light and dark apps.
  *
  * Extends [RelativeLayout] only because the overlay base accepts view groups.
  */
-internal class PointScanGridView(context: Context) : RelativeLayout(context) {
+internal class BlockGridView(context: Context) : RelativeLayout(context) {
     var gridSize = 4
         set(value) {
             if (field == value) return
@@ -44,10 +44,10 @@ internal class PointScanGridView(context: Context) : RelativeLayout(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (gridSize <= 0 || width <= 0 || height <= 0) return
-        val right = PointScanGridGeometry.blockWidth(width, gridSize) * gridSize
-        val bottom = PointScanGridGeometry.blockHeight(height, gridSize) * gridSize
-        val xs = PointScanGridGeometry.lineOffsets(width, gridSize)
-        val ys = PointScanGridGeometry.lineOffsets(height, gridSize)
+        val right = BlockGridGeometry.blockWidth(width, gridSize) * gridSize
+        val bottom = BlockGridGeometry.blockHeight(height, gridSize) * gridSize
+        val xs = BlockGridGeometry.lineOffsets(width, gridSize)
+        val ys = BlockGridGeometry.lineOffsets(height, gridSize)
 
         // Halo first so the structural line sits on top of it.
         drawGrid(canvas, xs, ys, right, bottom, haloColor, linePx + 2 * haloPx)
