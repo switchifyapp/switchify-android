@@ -86,7 +86,6 @@ fun AddEditCameraSwitchScreen(
                     onClick = {
                         val blockReason = viewModel.saveBlockReason()
                         if (blockReason != null) {
-                            viewModel.showNameError.value = true
                             Toast.makeText(context, blockReason, Toast.LENGTH_SHORT).show()
                         } else viewModel.save(context) { success ->
                             scope.launch {
@@ -153,10 +152,8 @@ private fun MainContent(
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Switch Name
-        SwitchName(
-            name = viewModel.name,
-            showError = viewModel.showNameError.value,
+        SwitchNameHeader(
+            name = viewModel.name.value,
             onNameChange = { viewModel.updateName(it) }
         )
 

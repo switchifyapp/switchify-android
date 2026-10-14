@@ -15,9 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,7 +57,6 @@ import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.LoadingIndicator
 import com.enaboapps.switchify.components.Panel
-import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
 import kotlinx.coroutines.launch
@@ -93,7 +95,6 @@ fun AddEditExternalSwitchScreen(
     val hasUnsavedChanges by addEditExternalSwitchScreenModel.hasUnsavedChanges.observeAsState(false)
     val captured by addEditExternalSwitchScreenModel.switchCaptured.observeAsState()
     val showDeleteConfirmation = remember { mutableStateOf(false) }
-    var showNameError by rememberSaveable { mutableStateOf(false) }
 
     if (!captured!!) {
         BaseView(
@@ -138,10 +139,9 @@ fun AddEditExternalSwitchScreen(
                         enabled = shouldSave == true,
                         onClick = {
                             if (isValid != true) {
-                                showNameError = true
                                 Toast.makeText(
                                     context,
-                                    R.string.error_switch_name_required,
+                                    R.string.toast_switch_save_error,
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else addEditExternalSwitchScreenModel.save(context) { success ->
@@ -183,9 +183,8 @@ fun AddEditExternalSwitchScreen(
                     .fillMaxWidth()
                     .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                SwitchName(
-                    name = addEditExternalSwitchScreenModel.name,
-                    showError = showNameError,
+                SwitchNameHeader(
+                    name = addEditExternalSwitchScreenModel.name.value,
                     onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
                 )
                 Spacer(modifier = Modifier.padding(8.dp))
@@ -296,29 +295,84 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
 
 
 @Composable
-fun SwitchName(
-    name: String = "",
-    showError: Boolean = false,
+fun SwitchNameHeader(
+    name: String,
     onNameChange: (String) -> Unit
 ) {
-    var localName by remember { mutableStateOf(name) }
-    var edited by rememberSaveable { mutableStateOf(false) }
+    var showRenameDialog by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(name) {
-        localName = name
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.label_switch_name),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        IconButton(onClick = { showRenameDialog = true }) {
+            Icon(
+                imageVector = Icons.Rounded.Edit,
+                contentDescription = stringResource(R.string.rename_switch_description, name)
+            )
+        }
     }
 
-    TextArea(
-        value = localName,
-        onValueChange = {
-            localName = it
-            edited = true
-            onNameChange(it)
+    if (showRenameDialog) {
+        SwitchRenameDialog(
+            currentName = name,
+            onDismiss = { showRenameDialog = false },
+            onSave = {
+                onNameChange(it)
+                showRenameDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun SwitchRenameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var name by rememberSaveable { mutableStateOf(currentName) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.rename_switch_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.label_switch_name)) },
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(Dimens.spaceXs))
+                Text(
+                    text = stringResource(R.string.rename_switch_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
-        labelResId = R.string.label_switch_name,
-        placeholder = stringResource(R.string.placeholder_switch_name),
-        isError = (showError || edited) && localName.isBlank(),
-        supportingTextResId = R.string.error_switch_name_required
+        confirmButton = {
+            TextButton(onClick = { onSave(name) }) {
+                Text(stringResource(R.string.button_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) }
+        }
     )
 }
 

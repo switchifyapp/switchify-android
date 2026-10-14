@@ -11,6 +11,7 @@ import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.switches.SwitchNameGenerator
 
 class AddEditCameraSwitchScreenModel : ViewModel() {
 
@@ -18,7 +19,8 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         private const val TAG = "AddEditCameraSwitchScreenModel"
     }
 
-    var name = ""
+    private var customName: String? = null
+    val name = mutableStateOf("")
     val selectedGesture = mutableStateOf<CameraSwitchFacialGesture?>(
         CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE)
     )
@@ -26,7 +28,6 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     val isValid = mutableStateOf(false)
     val hasUnsavedChanges = mutableStateOf(false)
     val showDeleteConfirmation = mutableStateOf(false)
-    val showNameError = mutableStateOf(false)
 
     private lateinit var store: SwitchEventStore
     private var code: String? = null
@@ -40,7 +41,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         if (code != null) {
             val event = store.find(code, profileId)
             event?.let {
-                name = it.name
+                customName = it.name.takeIf { stored -> stored.isNotBlank() }
                 selectedGesture.value = CameraSwitchFacialGesture(it.code)
                 val allowed = SupportedActionsPolicy.supportedActionIds(context)
                 action.value =
@@ -49,22 +50,28 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                     )
             }
         } else {
-            name = ""
+            customName = null
         }
+        refreshName()
         validate()
     }
 
     fun updateName(newName: String) {
-        name = newName
+        customName = newName.trim().takeIf { it.isNotBlank() }
+        refreshName()
         hasUnsavedChanges.value = true
         validate()
     }
 
+    private fun refreshName() {
+        name.value = customName ?: SwitchNameGenerator.forGesture(selectedGesture.value)
+    }
+
     fun setGesture(gesture: CameraSwitchFacialGesture) {
         selectedGesture.value = gesture
+        refreshName()
         hasUnsavedChanges.value = true
         validate()
-
     }
 
     fun setAction(newAction: SwitchAction) {
@@ -75,7 +82,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
 
 
     private fun validate() {
-        isValid.value = name.isNotBlank() &&
+        isValid.value = name.value.isNotBlank() &&
                 selectedGesture.value != null &&
                 action.value != SwitchAction(SwitchAction.ACTION_NONE)
     }
@@ -87,7 +94,6 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
 
     @StringRes
     fun saveBlockReason(): Int? = when {
-        name.isBlank() -> R.string.error_switch_name_required
         action.value == SwitchAction(SwitchAction.ACTION_NONE) -> R.string.toast_switch_action_required
         gestureAlreadyAssigned() -> R.string.toast_camera_gesture_already_assigned
         else -> null
@@ -100,7 +106,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         }
         val event = SwitchEvent(
             type = SWITCH_EVENT_TYPE_CAMERA,
-            name = name.trim(),
+            name = name.value.trim(),
             code = selectedGesture.value?.id ?: "",
             pressAction = action.value,
             holdActions = emptyList()
@@ -139,20 +145,4 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
             }
         }
     }
-
-
-    private fun getGestureDisplayName(gestureId: String): String {
-        return when (gestureId) {
-            CameraSwitchFacialGesture.SMILE -> "Smile"
-            CameraSwitchFacialGesture.LEFT_WINK -> "Left Wink"
-            CameraSwitchFacialGesture.RIGHT_WINK -> "Right Wink"
-            CameraSwitchFacialGesture.BLINK -> "Blink"
-            CameraSwitchFacialGesture.HEAD_TURN_LEFT -> "Head Turn Left"
-            CameraSwitchFacialGesture.HEAD_TURN_RIGHT -> "Head Turn Right"
-            CameraSwitchFacialGesture.HEAD_TURN_UP -> "Head Turn Up"
-            CameraSwitchFacialGesture.HEAD_TURN_DOWN -> "Head Turn Down"
-            else -> "Face Gesture"
-        }
-    }
-
-} 
+}
