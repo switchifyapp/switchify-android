@@ -63,4 +63,4 @@ If you're contributing on behalf of an employer, confirm you have permission fir
 
 Switchify is built for users with disabilities. Treat that user community with the dignity it deserves, especially when discussing design decisions, accessibility trade-offs, or use cases. Lived experience matters; listen to it.
 
-This project adopts the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). Report violations to <owen@switchifyapp.com>.
+This project adopts the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). Report violations to <info@theswitchify.app>.
