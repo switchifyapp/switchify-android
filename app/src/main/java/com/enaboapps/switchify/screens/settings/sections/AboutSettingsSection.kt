@@ -50,8 +50,8 @@ fun AboutSection(
     val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
     val telemetryEnabled by settingsScreenModel.telemetryEnabled.observeAsState(false)
 
-    val websiteUrl = "https://switchifyapp.com"
-    val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
+    val websiteUrl = "https://www.theswitchify.app"
+    val privacyPolicyUrl = "https://www.theswitchify.app/privacy"
     val errorMessage = stringResource(R.string.error_no_app_to_open_link)
 
     val openUrl: (String) -> Unit = { url ->

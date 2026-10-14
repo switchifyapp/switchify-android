@@ -86,4 +86,4 @@ Copyright (C) 2024-2026 Owen McGirr. Released under the AGPL-3.0.
 ## Links
 
 - [Google Play Store](https://play.google.com/store/apps/details?id=com.enaboapps.switchify)
-- [switchifyapp.com](https://switchifyapp.com)
+- [theswitchify.app](https://www.theswitchify.app)
