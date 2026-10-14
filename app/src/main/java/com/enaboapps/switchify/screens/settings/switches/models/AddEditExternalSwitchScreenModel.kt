@@ -4,8 +4,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.KeyEvent
 import android.widget.Toast
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.lifecycle.MutableLiveData
@@ -22,6 +22,7 @@ import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_PR
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.switches.SwitchHoldPolicy
+import com.enaboapps.switchify.switches.SwitchNameGenerator
 import com.enaboapps.switchify.switches.profiles.SwitchProfileRepository
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -39,7 +40,9 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     private var isInitialized = false
     private var editing = false
 
-    var name = ""
+    private var autoName = ""
+    private var customName: String? = null
+    val name = mutableStateOf("")
 
     val switchCaptured = MutableLiveData(false)
     val shouldSave = MutableLiveData(false)
@@ -75,7 +78,9 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
                 }
             }
         } else {
-            name = ""
+            autoName = ""
+            customName = null
+            refreshName()
             pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
             longPressActions.value = emptyList()
             updateAllowLongPress(context)
@@ -88,7 +93,9 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         viewModelScope.launch {
             if (code != null) {
                 val event = store.find(code ?: "", profileId)
-                name = event?.name ?: ""
+                autoName = code?.toIntOrNull()?.let { SwitchNameGenerator.forKeyCode(it) } ?: ""
+                customName = event?.name?.takeIf { it.isNotBlank() }
+                refreshName()
                 val initialPress = event?.pressAction ?: SwitchAction(SwitchAction.ACTION_SELECT)
                 val allowed = SupportedActionsPolicy.supportedActionIds(context)
                 pressAction.value =
@@ -102,7 +109,9 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
                 shouldSave.value = true
                 switchCaptured.value = true
             } else {
-                name = ""
+                autoName = ""
+                customName = null
+                refreshName()
                 pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
                 longPressActions.value = emptyList()
                 updateAllowLongPress(context)
@@ -129,6 +138,8 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         }
 
         code = key.nativeKeyCode.toString()
+        autoName = SwitchNameGenerator.forKeyCode(key.nativeKeyCode)
+        refreshName()
         hasUnsavedChanges.value = true
         validateIfInitialized()
         shouldSave.value = true
@@ -189,10 +200,15 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         validateIfInitialized()
     }
 
-    fun updateName(name: String) {
-        this.name = name
+    fun updateName(newName: String) {
+        customName = newName.trim().takeIf { it.isNotBlank() }
+        refreshName()
         hasUnsavedChanges.value = true
         validateIfInitialized()
+    }
+
+    private fun refreshName() {
+        name.value = customName ?: autoName
     }
 
     private fun updateAllowLongPress(context: Context) {
@@ -213,7 +229,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     private fun buildSwitchEvent(): SwitchEvent {
         return SwitchEvent(
             type = SWITCH_EVENT_TYPE_EXTERNAL,
-            name = name.trim(),
+            name = name.value.trim(),
             code = code ?: "",
             pressAction = pressAction.value ?: SwitchAction(SwitchAction.ACTION_SELECT),
             holdActions = longPressActions.value ?: emptyList()
@@ -246,47 +262,4 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
             completion(success)
         }
     }
-
-
-    private fun getKeyName(keyCode: Int): String {
-        return when (keyCode) {
-            KeyEvent.KEYCODE_SPACE -> "Space"
-            KeyEvent.KEYCODE_ENTER -> "Enter"
-            KeyEvent.KEYCODE_TAB -> "Tab"
-            KeyEvent.KEYCODE_DPAD_UP -> "Up Arrow"
-            KeyEvent.KEYCODE_DPAD_DOWN -> "Down Arrow"
-            KeyEvent.KEYCODE_DPAD_LEFT -> "Left Arrow"
-            KeyEvent.KEYCODE_DPAD_RIGHT -> "Right Arrow"
-            KeyEvent.KEYCODE_BACK -> "Back"
-            KeyEvent.KEYCODE_ESCAPE -> "Escape"
-            KeyEvent.KEYCODE_A -> "A"
-            KeyEvent.KEYCODE_B -> "B"
-            KeyEvent.KEYCODE_C -> "C"
-            KeyEvent.KEYCODE_D -> "D"
-            KeyEvent.KEYCODE_E -> "E"
-            KeyEvent.KEYCODE_F -> "F"
-            KeyEvent.KEYCODE_G -> "G"
-            KeyEvent.KEYCODE_H -> "H"
-            KeyEvent.KEYCODE_I -> "I"
-            KeyEvent.KEYCODE_J -> "J"
-            KeyEvent.KEYCODE_K -> "K"
-            KeyEvent.KEYCODE_L -> "L"
-            KeyEvent.KEYCODE_M -> "M"
-            KeyEvent.KEYCODE_N -> "N"
-            KeyEvent.KEYCODE_O -> "O"
-            KeyEvent.KEYCODE_P -> "P"
-            KeyEvent.KEYCODE_Q -> "Q"
-            KeyEvent.KEYCODE_R -> "R"
-            KeyEvent.KEYCODE_S -> "S"
-            KeyEvent.KEYCODE_T -> "T"
-            KeyEvent.KEYCODE_U -> "U"
-            KeyEvent.KEYCODE_V -> "V"
-            KeyEvent.KEYCODE_W -> "W"
-            KeyEvent.KEYCODE_X -> "X"
-            KeyEvent.KEYCODE_Y -> "Y"
-            KeyEvent.KEYCODE_Z -> "Z"
-            else -> "Key $keyCode"
-        }
-    }
-
 }
