@@ -373,7 +373,7 @@ private fun RemoteNameEditor(
 }
 
 private const val MAX_INPUT_CHARACTERS = 80
-private const val PRIVACY_POLICY_URL = "https://www.switchifyapp.com/privacy"
+private const val PRIVACY_POLICY_URL = "https://www.theswitchify.app/privacy"
 
 private fun remoteNameErrorText(error: PcRemoteNameError): Int = when (error) {
     PcRemoteNameError.Empty -> R.string.pc_settings_remote_name_error_empty

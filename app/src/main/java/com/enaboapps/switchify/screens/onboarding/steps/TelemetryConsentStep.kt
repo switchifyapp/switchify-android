@@ -34,7 +34,7 @@ fun TelemetryConsentStep(
     onChoice: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
-    val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
+    val privacyPolicyUrl = "https://www.theswitchify.app/privacy"
     val errorMessage = stringResource(R.string.error_no_app_to_open_link)
 
     Column(
