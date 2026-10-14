@@ -79,7 +79,7 @@ Switchify is licensed under the [GNU Affero General Public License v3.0](LICENSE
 
 In short: you are free to use, modify, and distribute Switchify, but any modifications or derivative works (including those made available over a network) must also be released under the AGPL-3.0 and include their full source code.
 
-Commercial licenses that exempt licensees from the AGPL copyleft obligations are available on request — contact <owen@switchifyapp.com> for details.
+Commercial licenses that exempt licensees from the AGPL copyleft obligations are available on request — contact <info@theswitchify.app> for details.
 
 Copyright (C) 2024-2026 Owen McGirr. Released under the AGPL-3.0.
 
