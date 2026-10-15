@@ -40,11 +40,12 @@ Switchify is an Android accessibility service app that helps users with mobility
 3. **Base Branch Selection**: Derive the release branch `vX.Y.Z` from the issue milestone, removing prerelease suffixes such as `-alpha.*`, `-beta.*`, or `-rc.*`. If `origin/vX.Y.Z` exists, use it as the work branch starting point and use the bare `vX.Y.Z` as the pull request base; otherwise use `main` for both
 4. **Branch Creation**: Create branch `feature/description-issue#` or `fix/description-issue#` from the selected starting point
 5. **Development**: Make changes following code standards
-6. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
-7. **Commit & Push**: Commit with proper format and push branch
-8. **Pull Request**: Create PR against the selected pull request base with a detailed description
-9. **User Approval**: Ask user if they want to merge (yes/no)
-10. **Proactive Communication**: Always ask yes/no for perceived next steps
+6. **Docs site**: Any change users can see (a feature, a setting, a menu item, a label, a behaviour) must update the docs site in `site/` in the same PR. It is served at https://android.theswitchify.app. Write for switch users and AT professionals in plain language, claim only what the app does, and build it with `cd site && npm ci && npm run build`
+7. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
+8. **Commit & Push**: Commit with proper format and push branch
+9. **Pull Request**: Create PR against the selected pull request base with a detailed description
+10. **User Approval**: Ask user if they want to merge (yes/no)
+11. **Proactive Communication**: Always ask yes/no for perceived next steps
 
 ### Branch & Issue Management
 - Create descriptive branch names: `feature/description-1234` or `fix/description-1234`
@@ -73,10 +74,11 @@ Brief descriptive title
 3. Normalize the issue milestone to `vX.Y.Z` by removing any prerelease suffix. If `origin/vX.Y.Z` exists, select it as the work branch starting point and select the bare `vX.Y.Z` as the pull request base; otherwise select `main` for both
 4. Create the feature or fix branch from the selected starting point
 5. Make changes following code standards
-6. Test compilation with `./gradlew compileDebugKotlin`
-7. Commit with proper format
-8. Push the branch and create the PR against the selected pull request base with a detailed description and test plan
-9. Ask user if they want to merge (yes/no)
+6. Update the docs site in `site/` for any user-visible change (see step 6 of the Required Workflow Process)
+7. Test compilation with `./gradlew compileDebugKotlin`
+8. Commit with proper format
+9. Push the branch and create the PR against the selected pull request base with a detailed description and test plan
+10. Ask user if they want to merge (yes/no)
 
 ### Testing Requirements
 - Always test compilation before committing

@@ -1,0 +1,41 @@
+/*
+  Switchify red, taken from the Android app's Material theme so the docs
+  match www.theswitchify.app:
+    primary (light) #D32F2F, container #FFDAD6, on container #410002
+    primary (dark)  #FFB4AB, container #93000A
+*/
+:root {
+  --sl-color-accent-low: #FFDAD6;
+  --sl-color-accent: #D32F2F;
+  --sl-color-accent-high: #93000A;
+  --sl-color-white: #1C1B1F;
+  --sl-color-gray-1: #2B2930;
+  --sl-color-gray-2: #49454F;
+  --sl-color-gray-3: #79747E;
+  --sl-color-gray-4: #CAC4D0;
+  --sl-color-gray-5: #E7E0EC;
+  --sl-color-gray-6: #F7F2FA;
+  --sl-color-gray-7: #FFFBFF;
+  --sl-color-black: #FFFBFF;
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent-low: #93000A;
+  --sl-color-accent: #FFB4AB;
+  --sl-color-accent-high: #FFDAD6;
+  --sl-color-white: #E6E1E5;
+  --sl-color-gray-1: #E6E1E5;
+  --sl-color-gray-2: #CAC4D0;
+  --sl-color-gray-3: #938F99;
+  --sl-color-gray-4: #49454F;
+  --sl-color-gray-5: #322F37;
+  --sl-color-gray-6: #242328;
+  --sl-color-gray-7: #1C1B1F;
+  --sl-color-black: #1C1B1F;
+}
+
+/* Keep a visible focus ring for switch and keyboard users. */
+:focus-visible {
+  outline: 3px solid var(--sl-color-accent);
+  outline-offset: 3px;
+}
