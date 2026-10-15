@@ -44,8 +44,8 @@ Links to the website, the privacy policy and feedback, and the **Share diagnosti
 
 **Pause Switchify** (from the menu, or a switch set to that action) stops Switchify reacting to your switches so you can use them with another app, for example a communication app with its own switch scanning. Under **Settings → Behaviour → Pause Settings**:
 
-- **Pause Timeout**: how long before Switchify resumes by itself, from 30 seconds to 5 minutes. The default is 30 seconds. Switchify resumes once no switch has been pressed for that long.
-- **Hold to Unpause Duration**: hold any switch for 0.5 to 5 seconds during a pause to resume straight away.
+- **Pause Timeout**: how long before Switchify resumes by itself, 30 seconds or 1, 2, 3, 4 or 5 minutes. The default is 30 seconds. Switchify resumes once no switch has been pressed for that long.
+- **Hold to Unpause Duration**: hold any switch for 0.5, 1, 2, 3 or 5 seconds during a pause to resume straight away.
 
 ## Usage statistics
 

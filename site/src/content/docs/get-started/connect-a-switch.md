@@ -23,7 +23,7 @@ Each key can belong to only one switch.
 2. Choose a facial gesture: **Smile**, **Left Wink**, **Right Wink**, **Blink**, **Pucker**, **Head Turn Left**, **Head Turn Right**, **Head Turn Up** or **Head Turn Down**. Each gesture can be used by one switch.
 3. Choose a press action and save.
 
-Camera switches need good lighting. Under **Settings → Camera Settings** you can **test gestures** live and set how long each expression must be held before it counts:
+Camera switches need good lighting. Under **Settings → Camera Settings** you can **test gestures** live and set how long each expression must be held before it counts. Head turns trigger as soon as they are seen and have no hold time or sensitivity setting:
 
 | Gesture | Hold time |
 | --- | --- |
@@ -54,7 +54,7 @@ Which actions are offered depends on the scan mode. The action picker shows **Re
 
 ## Long press actions
 
-A switch can also run different actions depending on how long you hold it. Turn on **Enable Switch Hold** under **Settings → Switch Hold** and set the **Switch Hold Time** (0.1 to 10 seconds). Then edit a saved switch and add **Long Press Actions**. Actions execute in sequence based on hold duration: while you hold, Switchify announces which action will run when you let go.
+A switch can also run different actions depending on how long you hold it. Turn on **Enable Switch Hold** under **Settings → Switch Hold** and set the **Switch Hold Time** (0.1 to 10 seconds). Then edit a saved switch and add **Long Press Actions**. Actions execute in sequence based on hold duration: while you hold, Switchify shows on screen which action will run when you let go.
 
 ## Switch stability
 
@@ -64,4 +64,4 @@ Under **Settings → Switch Stability**, **Ignore Repeat** ignores repeated pres
 
 **Settings → Switches → Switch Profiles** saves different external-switch and camera-gesture mappings as named profiles, for example one for a tray-mounted switch and one for camera gestures. Only the active profile controls Switchify, and you can edit another profile without changing your current controls.
 
-Before a profile becomes active, Switchify asks you to use its Select action within a few seconds, so you are never left without a working switch. You can also change profile from the **Switch profile** item in [the menu](/using/the-menu/). Profiles can be created, duplicated, renamed and deleted.
+Before a profile becomes active, Switchify asks you to use its Select action within 60 seconds, so you are never left without a working switch. You can also change profile from the **Switch profile** item in [the menu](/using/the-menu/). Profiles can be created, duplicated, renamed and deleted.

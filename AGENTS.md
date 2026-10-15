@@ -74,10 +74,11 @@ Brief descriptive title
 3. Normalize the issue milestone to `vX.Y.Z` by removing any prerelease suffix. If `origin/vX.Y.Z` exists, select it as the work branch starting point and select the bare `vX.Y.Z` as the pull request base; otherwise select `main` for both
 4. Create the feature or fix branch from the selected starting point
 5. Make changes following code standards
-6. Test compilation with `./gradlew compileDebugKotlin`
-7. Commit with proper format
-8. Push the branch and create the PR against the selected pull request base with a detailed description and test plan
-9. Ask user if they want to merge (yes/no)
+6. Update the docs site in `site/` for any user-visible change (see step 6 of the Required Workflow Process)
+7. Test compilation with `./gradlew compileDebugKotlin`
+8. Commit with proper format
+9. Push the branch and create the PR against the selected pull request base with a detailed description and test plan
+10. Ask user if they want to merge (yes/no)
 
 ### Testing Requirements
 - Always test compilation before committing

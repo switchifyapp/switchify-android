@@ -26,14 +26,14 @@ Point scan picks an exact spot with moving lines. Two modes:
 - **Line only.** A line moves across the screen; press to stop it. A second line then moves the other way; press again. Where they cross is your point.
 - **Grid + line.** The screen is first divided into a grid from 2 × 2 to 10 × 10. The blocks highlight in turn; pick one, then the lines run inside it.
 
-**Line speed** has 25 levels. **Grid scan speed** (0.1 to 5 seconds) applies while you are choosing a block. Both are auto scan settings.
+**Line speed** has five presets, from very slow to very fast. **Grid scan speed** (0.1 to 5 seconds) applies while you are choosing a block. Both are auto scan settings.
 
 ### Radar
 
 A line rotates round the screen like a windscreen wiper. Press to lock the angle. A circle then travels out along that line; press again to drop the point there. It reaches awkward corners and overlaid menus that item scan cannot.
 
 - **Radar only** sweeps the whole screen. **Grid + radar** picks a grid block first, then sweeps inside it.
-- **Radar speed** has 25 levels, with a separate grid scan speed.
+- **Radar speed** has five presets, from very slow to very fast, with a separate grid scan speed.
 - **Slow Down Then Select**: press once to slow the sweep, press again to select.
 - **Radar Starting Position**: Top, Bottom or Center.
 
@@ -60,7 +60,7 @@ Under **Manual Scan Settings**, **Move Repeat** keeps moving while you hold a Ne
 
 ## Speeds
 
-**Settings → Scanning → Scan Speeds** gathers the auto scan speeds in one place: line speed and grid scan speed for point scan, item scan speed, and radar speed with its grid scan speed.
+**Settings → Scanning → Scan Speeds** gathers the auto scan speeds in one place: point scan speed (shown as line speed and grid scan speed when a grid is used), item scan speed, and radar speed with its grid scan speed.
 
 ## What happens after you select
 

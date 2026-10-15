@@ -17,7 +17,7 @@ That is the free session limit. Turn the service off and on again in Android's a
 
 ## Camera switches do not trigger
 
-- Grant camera permission: the home screen shows **Enable camera** if a camera switch is configured but permission is missing. If you granted it in Android's app settings afterwards, restart the accessibility service.
+- Grant camera permission: the home screen shows **Enable camera** if a camera switch is configured but permission is missing.
 - Use good lighting and face the front camera. **Settings → Camera Settings → Test Gestures** shows whether a face is detected and which gestures register.
 - If a gesture triggers too easily or not at all, change its hold time on the **Timing Settings** tab.
 - If another app is using the camera, Switchify shows **Camera taken by external app** and resumes when the camera is free.

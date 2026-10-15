@@ -3,7 +3,7 @@ title: Switch Forwarding
 description: Send the presses and releases of your external switches straight to a paired computer, where a profile turns them into keys, mouse actions, Grid 3 input or Switchify PC scanning.
 ---
 
-Switch Forwarding sends the press and release of up to eight external switches connected to your Android device to the connected computer. While it runs, Switchify's own scanning is paused and your switches control the PC. Software on the computer sees them as if the switches were plugged in there.
+Switch Forwarding sends the press and release of up to eight external switches connected to your Android device to the connected computer. While it runs, Switchify's own scanning is paused and your switches control the PC. The profile on the computer turns each press into a key, a mouse action, or a Grid 3 or scanning action.
 
 Camera switches are not forwarded; only external switches are.
 
@@ -22,7 +22,7 @@ Profiles come from the computer. Switchify PC provides three kinds:
 | Kind | What it does |
 | --- | --- |
 | **Keyboard and mouse** | Each switch becomes a key, shortcut, mouse button, scroll or media action on the computer. Switchify PC's built-in *Generic keyboard* profile is one of these, and you can make your own there. |
-| **Grid 3** | Talks to Smartbox Grid 3 directly. Windows only. |
+| **Grid 3** | For Smartbox Grid 3. See the [Switchify PC docs](https://pc.theswitchify.app/android/switch-forwarding/) for what it supports. |
 | **Switchify PC scanning** | Your switches drive Switchify PC's own point scanning, menus and keyboard, using the scanning settings and switch assignments on the computer. Press Select to begin. |
 
 Profiles are created and edited in Switchify PC, not on the phone. See the [Switchify PC docs](https://pc.theswitchify.app/android/switch-forwarding/).

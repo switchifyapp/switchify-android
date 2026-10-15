@@ -13,7 +13,7 @@ Switchify does not run on iOS.
 
 ## Install
 
-Install [Switchify from Google Play](https://play.google.com/store/apps/details?id=com.enaboapps.switchify). Updates come through Google Play; when one has downloaded, the app shows a bar offering to install it.
+Install [Switchify from Google Play](https://play.google.com/store/apps/details?id=com.enaboapps.switchify). Updates come through Google Play; when one has downloaded, the app shows a bar and installs it by itself a couple of seconds later, which restarts Switchify. If you dismiss that, a later reminder lets you install when you choose.
 
 ## The setup steps
 
@@ -25,7 +25,7 @@ The first time Switchify opens it walks you through setup. You can go back a ste
 4. **Understanding scan modes.** Auto uses a single switch to scan and select. Manual uses several switches to move and select. You can change this later in Settings.
 5. **Set up your switches.** Add an external keyboard key, a Bluetooth switch, or a camera switch. You can skip this for now.
 6. **Enable the accessibility service.** See below.
-7. **Pro.** An optional step describing Pro. Choose *Maybe later* to continue.
+7. **Pro.** An optional step describing Pro. Choose *Maybe Later* to continue.
 8. **Practice.** Four boxes to activate with your switch. Needs the accessibility service to be on.
 
 ## Turn on the accessibility service
@@ -41,7 +41,6 @@ Back in Switchify, the home screen says **Switchify is on**. If it says **Switch
 | Accessibility service | During setup | To read the screen, scan it, and perform taps, swipes and other actions. |
 | Camera | When you add a camera switch, or from **Enable camera** on the home screen | To recognise facial gestures. Only used while a camera switch is active. |
 | Nearby devices (Android 12 and later) or Location (earlier versions) | When you set up PC control | To find and connect to computers over Bluetooth. On older Android versions, Location must also be turned on; Switchify does not use your location. |
-| Internet | Only for the AI model download | See [Pro and your account](/pro-and-account/). |
 
 ## The free session limit
 
