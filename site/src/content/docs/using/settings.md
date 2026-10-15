@@ -38,7 +38,7 @@ All of these are described on [Scanning](/using/scanning/).
 
 ## About
 
-Links to the website, the privacy policy and feedback, and the **Share diagnostic data** switch. See [Privacy](/privacy/).
+Links to the website, this user guide, the privacy policy and feedback, and the **Share diagnostic data** switch. See [Privacy](/privacy/).
 
 ## Pause
 

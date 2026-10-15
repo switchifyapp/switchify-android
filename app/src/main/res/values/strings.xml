@@ -558,6 +558,7 @@
 
     <!-- Button Labels -->
     <string name="button_website">Website</string>
+    <string name="button_user_guide">User guide</string>
     <string name="button_save">Save</string>
     <string name="button_delete">Delete</string>
     <string name="button_cancel">Cancel</string>
