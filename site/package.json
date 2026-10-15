@@ -1,0 +1,16 @@
+{
+  "name": "switchify-android-site",
+  "private": true,
+  "description": "Documentation site for Switchify on Android, served at https://android.theswitchify.app",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.6",
+    "astro": "^7.2.10"
+  }
+}
