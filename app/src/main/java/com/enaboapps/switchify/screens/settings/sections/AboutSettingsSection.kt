@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +52,7 @@ fun AboutSection(
     val telemetryEnabled by settingsScreenModel.telemetryEnabled.observeAsState(false)
 
     val websiteUrl = "https://www.theswitchify.app"
+    val userGuideUrl = "https://android.theswitchify.app"
     val privacyPolicyUrl = "https://www.theswitchify.app/privacy"
     val errorMessage = stringResource(R.string.error_no_app_to_open_link)
 
@@ -103,6 +105,12 @@ fun AboutSection(
                 titleResId = R.string.button_website,
                 leadingIcon = Icons.Rounded.Language,
                 onClick = { openUrl(websiteUrl) },
+                trailing = { ExternalLinkIcon() }
+            )
+            PanelListRow(
+                titleResId = R.string.button_user_guide,
+                leadingIcon = Icons.Rounded.MenuBook,
+                onClick = { openUrl(userGuideUrl) },
                 trailing = { ExternalLinkIcon() }
             )
             PanelListRow(
