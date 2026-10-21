@@ -28,11 +28,23 @@ The first time Switchify opens it walks you through setup. You can go back a ste
 7. **Pro.** An optional step describing Pro. Choose *Maybe Later* to continue.
 8. **Practice.** Four boxes to activate with your switch. Needs the accessibility service to be on.
 
+<div class="screenshots">
+<figure><img src="/screenshots/onboarding-welcome.webp" alt="The Set Up Switchify screen saying Welcome to Switchify, with an Are you new here? row and a Continue button" loading="lazy"><figcaption>Step 1: Welcome.</figcaption></figure>
+<figure><img src="/screenshots/onboarding-scan-modes.webp" alt="The Understanding Scan Modes step, with the scanning mode set to Auto and a demo of two items being highlighted in turn" loading="lazy"><figcaption>Step 4: Understanding scan modes.</figcaption></figure>
+<figure><img src="/screenshots/onboarding-switches.webp" alt="The Let's Set Up Your Switches step, listing External Keyboard, Bluetooth Switch and Camera Switch" loading="lazy"><figcaption>Step 5: Set up your switches.</figcaption></figure>
+<figure><img src="/screenshots/onboarding-accessibility.webp" alt="The Enable Accessibility Service step, explaining screen control, content reading and smart navigation" loading="lazy"><figcaption>Step 6: Enable the accessibility service.</figcaption></figure>
+</div>
+
 ## Turn on the accessibility service
 
 Switchify works as an Android accessibility service, so Android has to allow it. Choose **Enable Accessibility Service** in the app, or open **Settings → Accessibility → Switchify** on the device, and turn it on. Android explains that the service can read what is on screen and perform actions for you; that is how it scans and taps.
 
 Back in Switchify, the home screen says **Switchify is on**. If it says **Switchify is off**, tap it to go back to the system setting.
+
+<div class="screenshots">
+<figure><img src="/screenshots/home-off.webp" alt="Switchify's home screen saying Switchify is off, Tap to enable in system settings, with an Open settings button and cards for Settings, PC control and Send Feedback" loading="lazy"><figcaption>Before the service is turned on.</figcaption></figure>
+<figure><img src="/screenshots/home-on.webp" alt="Switchify's home screen saying Switchify is on, Active profile: Default, with cards for Settings and PC control" loading="lazy"><figcaption>Ready to use.</figcaption></figure>
+</div>
 
 ## Permissions
 

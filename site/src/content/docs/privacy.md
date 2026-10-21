@@ -7,6 +7,10 @@ description: Diagnostic data is off until you turn it on, what it contains, what
 
 Switchify does not send usage events or crash reports unless you turn on **Share diagnostic data**, either in the setup step or under **Settings → About → Privacy**. You can turn it off at any time.
 
+<div class="screenshots">
+<figure><img src="/screenshots/onboarding-diagnostics.webp" alt="The Help improve Switchify setup step explaining diagnostic data, stating that Switchify never sends the content of your screen, with Share diagnostic data and No thanks buttons" loading="lazy"><figcaption>The setup step. No thanks is the default.</figcaption></figure>
+</div>
+
 When it is on, Switchify sends usage events (which features you use) and crash reports so problems can be found and fixed. If you are signed in, the reports are linked to your account email. **Switchify never sends the content of your screen.**
 
 Sending feedback from the app also uses this channel, so **Send Feedback** only works while diagnostic data sharing is on. Feedback can include an email address if you want a reply.

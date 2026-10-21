@@ -7,6 +7,10 @@ Once a PC is [paired](/pc-control/pairing/) and connected, the **Remote** tab in
 
 If the computer does not report a compatible control profile, Switchify asks you to update Switchify PC and reconnect.
 
+<div class="screenshots">
+<figure><img src="/screenshots/pc-remote.webp" alt="The PC remote tab with the surface field set to Mouse and a message reading No saved PCs, Pair a PC before using remote controls, with a Find a PC button" loading="lazy"><figcaption>The Remote tab before a PC is paired.</figcaption></figure>
+</div>
+
 ## Mouse
 
 | Section | Buttons |

@@ -7,6 +7,11 @@ Switchify sees an **external switch** as a key press. Anything that sends a key 
 
 Switches live under **Settings → General → Switches**.
 
+<div class="screenshots">
+<figure><img src="/screenshots/switches.webp" alt="The Switches screen with a Switch Profiles row showing Active profile: Default, and rows for External Switches and Camera Switches" loading="lazy"><figcaption>Settings → Switches.</figcaption></figure>
+<figure><img src="/screenshots/external-switches.webp" alt="The External Switches list with three switches named Next, Previous and Select, each showing its press action, and an add button" loading="lazy"><figcaption>A manual scanning setup with three switches.</figcaption></figure>
+</div>
+
 ## Add an external switch
 
 1. Connect the switch. A USB switch needs to be plugged in and turned on; a Bluetooth switch needs to be paired with the device in Android's Bluetooth settings.
@@ -16,6 +21,11 @@ Switches live under **Settings → General → Switches**.
 5. Save. Long press actions can be set once the switch is saved.
 
 Each key can belong to only one switch.
+
+<div class="screenshots">
+<figure><img src="/screenshots/add-switch.webp" alt="The Add New Switch screen asking you to press the switch that you want to use, with advice for USB and Bluetooth switches" loading="lazy"><figcaption>Switchify waits for a press.</figcaption></figure>
+<figure><img src="/screenshots/edit-switch.webp" alt="The Edit Switch screen for a switch named Next, with the press action Move to Next Item, no long press actions, and Save and Delete buttons" loading="lazy"><figcaption>Name, press action and long press actions.</figcaption></figure>
+</div>
 
 ## Add a camera switch
 
@@ -33,6 +43,11 @@ Camera switches need good lighting. Under **Settings → Camera Settings** you c
 | Pucker | 0.1 to 3 seconds |
 
 If another app takes the camera, Switchify shows a message and the gestures resume when the camera is free again.
+
+<div class="screenshots">
+<figure><img src="/screenshots/add-camera-switch.webp" alt="The Add New Switch screen for a camera switch, with the facial gesture Smile and the action Select" loading="lazy"><figcaption>Adding a camera switch.</figcaption></figure>
+<figure><img src="/screenshots/camera-settings.webp" alt="The Camera Settings screen on its Test Gestures tab, listing Smile, Left Wink, Right Wink, Blink, Pucker and the four head turns, with the status No face detected" loading="lazy"><figcaption>Test gestures before you rely on them.</figcaption></figure>
+</div>
 
 ## Choose what a press does
 
@@ -65,3 +80,7 @@ Under **Settings → Switch Stability**, **Ignore Repeat** ignores repeated pres
 **Settings → Switches → Switch Profiles** saves different external-switch and camera-gesture mappings as named profiles, for example one for a tray-mounted switch and one for camera gestures. Only the active profile controls Switchify, and you can edit another profile without changing your current controls.
 
 Before a profile becomes active, Switchify asks you to use its Select action within 60 seconds, so you are never left without a working switch. You can also change profile from the **Switch profile** item in [the menu](/using/the-menu/). Profiles can be created, duplicated, renamed and deleted.
+
+<div class="screenshots">
+<figure><img src="/screenshots/switch-profiles.webp" alt="The Switch Profiles screen explaining how profiles work, with one profile named Default marked Active, containing three external switches and no camera gestures" loading="lazy"><figcaption>Switch Profiles.</figcaption></figure>
+</div>

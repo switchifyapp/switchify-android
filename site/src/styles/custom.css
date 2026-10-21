@@ -39,3 +39,27 @@
   outline: 3px solid var(--sl-color-accent);
   outline-offset: 3px;
 }
+
+/* Phone screenshots: keep them phone-sized and let them sit side by side. */
+.screenshots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.screenshots figure {
+  flex: 0 1 300px;
+  margin: 0;
+}
+.screenshots img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 1rem;
+  background: var(--sl-color-gray-6);
+}
+.screenshots figcaption {
+  margin-top: 0.5rem;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+}

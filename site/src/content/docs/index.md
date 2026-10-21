@@ -5,6 +5,11 @@ description: Switch access for Android. Scan the screen with one or more switche
 
 Switchify is an Android accessibility service. It lets you use a phone or tablet with one or more switches instead of, or alongside, the touchscreen. It scans the screen, you press a switch when the highlight reaches what you want, and Switchify taps, swipes, scrolls and types for you.
 
+<div class="screenshots">
+<figure><img src="/screenshots/item-scan.webp" alt="Android Settings with the Google row outlined in orange by Switchify's item scan highlight" loading="lazy"><figcaption>Item scan highlights one item at a time.</figcaption></figure>
+<figure><img src="/screenshots/menu.webp" alt="Switchify's main menu open over Android Settings, with Actions highlighted and a header reading Actions, Open actions for the selected item" loading="lazy"><figcaption>Select an item and the menu opens there.</figcaption></figure>
+</div>
+
 It needs Android 10 or later. It is open source under the AGPL-3.0, and the Android app is independent of [Switchify PC](https://pc.theswitchify.app): you can use either on its own.
 
 ## What you can do with a switch
