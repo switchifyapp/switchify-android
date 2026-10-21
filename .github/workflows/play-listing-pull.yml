@@ -1,0 +1,69 @@
+name: Play Listing Pull
+
+# Run by hand from the Actions tab. Downloads the live Play Store listing
+# (descriptions, screenshots, feature graphic) into fastlane/metadata/android
+# and opens a pull request with whatever changed. Use it once to seed the
+# folder and again whenever the listing is edited in the Play Console.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  pull-listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out main
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
+        with:
+          ruby-version: '3.3'
+
+      - name: Install fastlane
+        run: bundle install
+
+      - name: Write Play service account key
+        run: printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/play-service-account.json"
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+
+      - name: Download listing
+        run: bundle exec fastlane android pull_listing
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON_PATH: ${{ runner.temp }}/play-service-account.json
+
+      - name: Open pull request with changes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add -A fastlane/metadata Gemfile.lock
+          if git diff --cached --quiet; then
+            echo "Listing already matches the repo; nothing to do."
+            exit 0
+          fi
+          BRANCH="chore/play-listing-sync-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit \
+            -m "Sync Play Store listing from the Play Console" \
+            -m "- Pulled with fastlane supply by the Play Listing Pull workflow" \
+            -m "🤖 Auto-generated"
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Sync Play Store listing from the Play Console" \
+            --body "The Play Listing Pull workflow downloaded the live listing and found differences from \`fastlane/metadata/android\`. Review and merge so the repo stays the source of truth."
+
+      - name: Clean up key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/play-service-account.json"
