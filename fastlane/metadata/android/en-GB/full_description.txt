@@ -1,11 +1,29 @@
-Switchify helps people with limited mobility control their Android device using switches, face gestures, head movement and on-screen scanning. Choose the input method and scanning style that work for you, or combine them.
+Switchify helps people with limited mobility use an Android phone or tablet with one or more switches, camera gestures or on-screen scanning. It scans the screen, you press a switch when the highlight reaches what you want, and Switchify taps, swipes, scrolls and types for you.
 
-Use adaptive switches, Bluetooth buttons, keyboard inputs or your device’s camera. Smiles, blinks, winks, puckers and head movements can act as switches.
+WAYS TO PRESS
+Use adaptive switches, Bluetooth buttons or any key on an external keyboard. Or use the front camera: a smile, a blink, a left or right wink, a pucker or a head turn can act as a switch. Camera gesture recognition runs on your device.
 
-Move around the screen with item, point or radar scanning. Set scanning to run automatically, advance with a switch, or respond to directional input. Adjust the speed and highlight colours to make selections easier to follow.
+THREE WAYS TO REACH ANYTHING ON SCREEN
+• Item scan highlights the buttons, links and fields one by one
+• Point scan lands on an exact spot with moving lines
+• Radar sweeps a line around the screen
+Scanning can run by itself or move only when you press. Every speed, delay and highlight colour is adjustable.
 
-Open the Switchify menu to tap, long press, drag, swipe, pinch and scroll. You can also use Home, Back, Recents, Notifications and Quick Settings, control volume, scan the on-screen keyboard, launch favourite apps, and save custom gestures to replay later.
+ONE MENU FOR EVERYTHING
+Tap, double tap, tap and hold, drag, swipe, pinch and scroll. Go Home or Back, open recent apps, notifications and quick settings, control volume and media, lock the screen, take a screenshot and launch favourite apps. Record custom gestures and replay them later. Hide the menu items you do not use and reorder the rest.
 
-Options such as gesture lock, repeat actions and pause mode help you adapt Switchify to your routine.
+TYPE WITH YOUR SWITCH
+Switchify scans whatever on-screen keyboard you already use.
 
-Camera gesture recognition runs on your device. Switchify uses Android’s Accessibility Service API to control the device. Diagnostics are optional and require your consent.
+MADE TO FIT YOU
+Switch profiles, gesture lock, gesture repeat, pause mode and menu size options help you adapt Switchify to your routine.
+
+FREE AND PRO
+Every feature is in the free version. The accessibility service stops after one hour per session and can be restarted as often as you like. Pro removes that limit and unlocks the on-device AI features: Reply Drafter suggests replies to what is on screen, and Screen Highlights pulls out links, phone numbers, dates and addresses for you to copy. The AI model runs entirely on your device.
+
+YOUR ACCOUNT, YOUR DATA
+An account is optional. Sign in to sync your settings to another device. Diagnostic data is only sent if you turn it on, and Switchify never sends the content of your screen.
+
+Switchify uses Android's Accessibility Service API to read what is on screen and perform actions for you. It needs Android 10 or later and is open source under the AGPL-3.0.
+
+User guide: https://android.theswitchify.app
