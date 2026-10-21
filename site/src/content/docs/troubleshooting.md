@@ -11,6 +11,10 @@ description: The switch does nothing, the service stopped, camera switches, keyb
 - If Switchify is paused, nothing responds until the pause times out or you hold a switch for the hold-to-unpause time. See [Settings](/using/settings/#pause).
 - If a switch has long press actions, the action runs when you let go, not when you press.
 
+<div class="screenshots">
+<figure><img src="/screenshots/paused.webp" alt="A message at the bottom of the screen reading Switchify is paused. You can now use your switches with other apps. To resume, don't press any switches for 30 seconds" loading="lazy"><figcaption>If you see this, Switchify is paused, not broken.</figcaption></figure>
+</div>
+
 ## Switchify stopped after an hour
 
 That is the free session limit. Turn the service off and on again in Android's accessibility settings for a fresh hour, or see [Pro and your account](/pro-and-account/). A new session cannot start while the device is locked.

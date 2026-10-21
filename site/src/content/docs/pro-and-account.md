@@ -13,6 +13,10 @@ PC control, including Switch Forwarding, is free and works without Pro or an acc
 
 Pro removes the session limit, so the service runs until you turn it off. It also unlocks the on-device AI features below. Pro is bought inside the app on Google Play, as a subscription or a one-time lifetime purchase. The Account screen shows your subscription status. Prices are shown in the app and on [www.theswitchify.app/pricing](https://www.theswitchify.app/pricing).
 
+<div class="screenshots">
+<figure><img src="/screenshots/onboarding-pro.webp" alt="The Unlock Full Access setup step listing Unlimited service access, No trial time limits and Support continued development, with Learn More and Maybe Later buttons" loading="lazy"><figcaption>The Pro step during setup. Maybe Later keeps the free version.</figcaption></figure>
+</div>
+
 ## On-device AI features
 
 The **AI** submenu of [the menu](/using/the-menu/) has two Pro features. Both need Android 11 or later.

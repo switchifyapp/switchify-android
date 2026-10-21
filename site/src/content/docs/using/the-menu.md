@@ -5,6 +5,11 @@ description: Switchify's own scanning menu of actions, its submenus, how pages a
 
 When you select a point or an item, Switchify opens its menu there. The menu scans like everything else; press Select on the item you want. The highlighted item's name and a short description appear in a header above the grid, so long labels are never cut off.
 
+<div class="screenshots">
+<figure><img src="/screenshots/menu.webp" alt="The main menu over Android Settings: a grid of Back, Home, Tap, Gestures, Scroll, Favourite Apps, Gesture Patterns, Device, Switch profile, Settings, Media Control, AI and Pause Switchify, with Actions highlighted and a Close menu button" loading="lazy"><figcaption>The main menu, with the header describing the highlighted item.</figcaption></figure>
+<figure><img src="/screenshots/gestures-submenu.webp" alt="The Gestures submenu: Tap Gestures highlighted, then Swipe Gestures, Drag, Hold and Drag, Pinch Gestures, Finger Mode and Toggle Gesture Lock, with Previous menu and Close menu buttons" loading="lazy"><figcaption>The Gestures submenu.</figcaption></figure>
+</div>
+
 ## Main menu
 
 | Item | What it does |

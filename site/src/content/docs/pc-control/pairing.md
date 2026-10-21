@@ -20,6 +20,12 @@ Open **PC control** from Switchify's home screen. The first time, a three-step s
 2. **Choose what opens first**: the surface shown on the Remote tab when a PC connects (Mouse, Typing, Window or Forwarding). You can change this later in PC control's Settings.
 3. **Connect with Bluetooth**: Android asks to allow **Nearby devices**. On versions before Android 12 it asks for **Location** instead, and Location must be turned on; Switchify does not use your location.
 
+<div class="screenshots">
+<figure><img src="/screenshots/pc-meet.webp" alt="Step 1 of 3, Meet PC control: Control your computer from Switchify, listing what you can do, with a Get Switchify PC link and a Continue button" loading="lazy"><figcaption>Step 1: Meet PC control.</figcaption></figure>
+<figure><img src="/screenshots/pc-surfaces.webp" alt="Step 2 of 3: choose the surface shown first, with Mouse, Typing, Window and Forwarding options" loading="lazy"><figcaption>Step 2: Choose what opens first.</figcaption></figure>
+<figure><img src="/screenshots/pc-bluetooth.webp" alt="Step 3 of 3, Connect directly to a nearby PC, explaining the six-digit pairing code, with Allow Bluetooth and Not now buttons" loading="lazy"><figcaption>Step 3: Connect with Bluetooth.</figcaption></figure>
+</div>
+
 ## Pair
 
 1. On the **PCs** tab, choose **Find nearby PCs** and pick your computer. New computers show **Request access**.
@@ -42,6 +48,11 @@ In PC control's **Settings** tab:
 - **Connection diagnostics**: a log of connection events that stays on the device. Typed text and credentials are never recorded. You can copy, export or clear it.
 
 PC control settings are stored only on this device.
+
+<div class="screenshots">
+<figure><img src="/screenshots/pc-list.webp" alt="The PCs tab searching for computers, with Looking for PCs, a Connection diagnostics row, and tabs for PCs, Remote and Settings at the bottom" loading="lazy"><figcaption>The PCs tab while searching.</figcaption></figure>
+<figure><img src="/screenshots/pc-settings.webp" alt="The PC control Settings tab with Opening surface options and a Device name field" loading="lazy"><figcaption>PC control's Settings tab.</figcaption></figure>
+</div>
 
 ## Opening PC control quickly
 

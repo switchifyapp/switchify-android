@@ -5,6 +5,13 @@ description: A map of Switchify's Settings screen, its four tabs, and the pause,
 
 Open **Settings** from Switchify's home screen. It has four tabs, and remembers the one you were on.
 
+<div class="screenshots">
+<figure><img src="/screenshots/settings-general.webp" alt="The General tab of Settings with sections for Input, Account, Usage and On-device AI model" loading="lazy"><figcaption>General.</figcaption></figure>
+<figure><img src="/screenshots/settings-scanning.webp" alt="The Scanning tab of Settings with Access Techniques, Scanning Mode set to Manual, and a demo of the highlight moving between two items" loading="lazy"><figcaption>Scanning.</figcaption></figure>
+<figure><img src="/screenshots/settings-selection.webp" alt="The Selection tab of Settings with switches for Auto select, Directly select keyboard keys and Assisted selection" loading="lazy"><figcaption>Selection.</figcaption></figure>
+<figure><img src="/screenshots/settings-about.webp" alt="The About tab of Settings showing the Switchify logo, the version, a short description and links to the website, user guide and privacy policy" loading="lazy"><figcaption>About.</figcaption></figure>
+</div>
+
 ## General
 
 | Section | Contains |
@@ -46,6 +53,10 @@ Links to the website, this user guide, the privacy policy and feedback, and the 
 
 - **Pause Timeout**: how long before Switchify resumes by itself, 30 seconds or 1, 2, 3, 4 or 5 minutes. The default is 30 seconds. Switchify resumes once no switch has been pressed for that long.
 - **Hold to Unpause Duration**: hold any switch for 0.5, 1, 2, 3 or 5 seconds during a pause to resume straight away.
+
+<div class="screenshots">
+<figure><img src="/screenshots/paused.webp" alt="A message at the bottom of the screen reading Switchify is paused. You can now use your switches with other apps. To resume, don't press any switches for 30 seconds, with a progress bar" loading="lazy"><figcaption>The pause message and its countdown.</figcaption></figure>
+</div>
 
 ## Usage statistics
 
