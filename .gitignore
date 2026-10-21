@@ -84,3 +84,8 @@ sentry.properties
 # Local scratch data
 /tmp/
 .kotlin/
+
+# fastlane
+fastlane/report.xml
+fastlane/README.md
+play-service-account.json

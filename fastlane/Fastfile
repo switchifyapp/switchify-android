@@ -1,0 +1,50 @@
+default_platform(:android)
+
+platform :android do
+  desc "Download the live Play Store listing into fastlane/metadata/android"
+  lane :pull_listing do
+    download_from_play_store(
+      metadata_path: "fastlane/metadata/android"
+    )
+  end
+
+  desc "Upload the listing in fastlane/metadata/android without touching releases"
+  lane :push_listing do
+    upload_to_play_store(
+      metadata_path: "fastlane/metadata/android",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_changelogs: true
+    )
+  end
+
+  desc "Upload a signed AAB and the listing to one or more tracks (AAB_PATH, PLAY_TRACKS, RELEASE_NAME)"
+  lane :publish do
+    aab_path = ENV.fetch("AAB_PATH")
+    tracks = ENV.fetch("PLAY_TRACKS").split(",").map(&:strip)
+    release_name = ENV.fetch("RELEASE_NAME")
+
+    first_track = tracks.first
+    upload_to_play_store(
+      track: first_track,
+      aab: aab_path,
+      metadata_path: "fastlane/metadata/android",
+      version_name: release_name,
+      release_status: "completed"
+    )
+
+    tracks.drop(1).each do |track|
+      upload_to_play_store(
+        track: first_track,
+        track_promote_to: track,
+        track_promote_release_status: "completed",
+        skip_upload_aab: true,
+        skip_upload_apk: true,
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        skip_upload_changelogs: true
+      )
+    end
+  end
+end

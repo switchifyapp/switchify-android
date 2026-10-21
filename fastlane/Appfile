@@ -1,0 +1,2 @@
+json_key_file(ENV.fetch("PLAY_SERVICE_ACCOUNT_JSON_PATH", "play-service-account.json"))
+package_name("com.enaboapps.switchify")

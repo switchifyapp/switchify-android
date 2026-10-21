@@ -85,19 +85,32 @@ jobs:
           AI_MODEL_URL:             ${{ secrets.AI_MODEL_URL }}
         run: ./gradlew bundleRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8"
 
-      # Single upload that targets one or more Play tracks. The tracks are
-      # computed by Validate release channel so beta/alpha/rc builds cannot
-      # reach production if release metadata is set incorrectly.
-      - name: Upload to Play Store
-        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
         with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.enaboapps.switchify
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          tracks: ${{ steps.release-channel.outputs.play_tracks }}
-          status: completed
-          releaseName: ${{ github.event.release.tag_name }}
+          ruby-version: '3.3'
 
-      - name: Clean up keystore
+      - name: Install fastlane
+        run: bundle install
+
+      - name: Write Play service account key
+        run: printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/play-service-account.json"
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+
+      # One fastlane lane uploads the AAB and the store listing from
+      # fastlane/metadata/android to the first track, then promotes that
+      # release to any further tracks. The tracks are computed by Validate
+      # release channel so beta/alpha/rc builds cannot reach production if
+      # release metadata is set incorrectly.
+      - name: Upload to Play Store
+        run: bundle exec fastlane android publish
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON_PATH: ${{ runner.temp }}/play-service-account.json
+          AAB_PATH: app/build/outputs/bundle/release/app-release.aab
+          PLAY_TRACKS: ${{ steps.release-channel.outputs.play_tracks }}
+          RELEASE_NAME: ${{ github.event.release.tag_name }}
+
+      - name: Clean up keystore and key
         if: always()
-        run: rm -f "$RUNNER_TEMP/upload.jks"
+        run: rm -f "$RUNNER_TEMP/upload.jks" "$RUNNER_TEMP/play-service-account.json"
