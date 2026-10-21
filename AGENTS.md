@@ -41,11 +41,12 @@ Switchify is an Android accessibility service app that helps users with mobility
 4. **Branch Creation**: Create branch `feature/description-issue#` or `fix/description-issue#` from the selected starting point
 5. **Development**: Make changes following code standards
 6. **Docs site**: Any change users can see (a feature, a setting, a menu item, a label, a behaviour) must update the docs site in `site/` in the same PR. It is served at https://android.theswitchify.app. Write for switch users and AT professionals in plain language, claim only what the app does, and build it with `cd site && npm ci && npm run build`
-7. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
-8. **Commit & Push**: Commit with proper format and push branch
-9. **Pull Request**: Create PR against the selected pull request base with a detailed description
-10. **User Approval**: Ask user if they want to merge (yes/no)
-11. **Proactive Communication**: Always ask yes/no for perceived next steps
+7. **Play Store listing**: Any change that affects what the store says about the app (a headline feature, a removed feature, a screenshot that no longer matches) must update the listing in `fastlane/metadata/android/` in the same PR. The Play Release workflow pushes this folder with every release, so it is the source of truth; do not edit the listing in the Play Console. If the Console has been edited, run the Play Listing Pull workflow and merge its PR first. Keep the same plain language as the docs site and stay within Play limits (title 30 characters, short description 80, full description 4000)
+8. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
+9. **Commit & Push**: Commit with proper format and push branch
+10. **Pull Request**: Create PR against the selected pull request base with a detailed description
+11. **User Approval**: Ask user if they want to merge (yes/no)
+12. **Proactive Communication**: Always ask yes/no for perceived next steps
 
 ### Branch & Issue Management
 - Create descriptive branch names: `feature/description-1234` or `fix/description-1234`
@@ -75,10 +76,11 @@ Brief descriptive title
 4. Create the feature or fix branch from the selected starting point
 5. Make changes following code standards
 6. Update the docs site in `site/` for any user-visible change (see step 6 of the Required Workflow Process)
-7. Test compilation with `./gradlew compileDebugKotlin`
-8. Commit with proper format
-9. Push the branch and create the PR against the selected pull request base with a detailed description and test plan
-10. Ask user if they want to merge (yes/no)
+7. Update the Play Store listing in `fastlane/metadata/android/` for any change that affects what the store says (see step 7 of the Required Workflow Process)
+8. Test compilation with `./gradlew compileDebugKotlin`
+9. Commit with proper format
+10. Push the branch and create the PR against the selected pull request base with a detailed description and test plan
+11. Ask user if they want to merge (yes/no)
 
 ### Testing Requirements
 - Always test compilation before committing
@@ -170,7 +172,7 @@ Complete release process:
 4. HARD STOP if any issues are still open on the milestone; do not close the milestone, create a GitHub release, or continue release work until every milestone issue is closed
 5. Close current milestone in GitHub
 6. Create GitHub release with auto-generated release notes (tag auto-created)
-7. Watch the Play Release workflow run with `gh run watch` and do not close the terminal until it reports success — a failure here means the signed AAB never reached Google Play, so the GitHub release exists but no update rolls out to users. Investigate and rerun before walking away.
+7. Watch the Play Release workflow run with `gh run watch` and do not close the terminal until it reports success — a failure here means the signed AAB and the store listing never reached Google Play, so the GitHub release exists but no update rolls out to users. Investigate and rerun before walking away.
 
 ### Version Bumps
 - Update version in build.gradle.kts
