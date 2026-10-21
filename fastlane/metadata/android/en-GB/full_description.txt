@@ -1,0 +1,11 @@
+Switchify helps people with limited mobility control their Android device using switches, face gestures, head movement and on-screen scanning. Choose the input method and scanning style that work for you, or combine them.
+
+Use adaptive switches, Bluetooth buttons, keyboard inputs or your device’s camera. Smiles, blinks, winks, puckers and head movements can act as switches.
+
+Move around the screen with item, point or radar scanning. Set scanning to run automatically, advance with a switch, or respond to directional input. Adjust the speed and highlight colours to make selections easier to follow.
+
+Open the Switchify menu to tap, long press, drag, swipe, pinch and scroll. You can also use Home, Back, Recents, Notifications and Quick Settings, control volume, scan the on-screen keyboard, launch favourite apps, and save custom gestures to replay later.
+
+Options such as gesture lock, repeat actions and pause mode help you adapt Switchify to your routine.
+
+Camera gesture recognition runs on your device. Switchify uses Android’s Accessibility Service API to control the device. Diagnostics are optional and require your consent.
