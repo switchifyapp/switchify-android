@@ -18,7 +18,7 @@ It needs Android 10 or later. It is open source under the AGPL-3.0, and the Andr
 - **Open a menu of actions.** Tap, double tap, tap and hold, drag, swipe, pinch, scroll, Home, Back, recent apps, notifications, quick settings, volume, media, lock screen, screenshot, favourite apps and more. See [The menu](/using/the-menu/).
 - **Type.** Switchify scans whatever on-screen keyboard you already use. See [Keyboard](/using/keyboard/).
 - **Set the pace.** Auto scanning moves by itself; manual scanning moves only when you press. Every speed and delay is adjustable. See [Settings](/using/settings/).
-- **Control a Windows PC or Mac.** Pair with Switchify PC over Bluetooth and drive the computer's pointer, keyboard and windows from the phone, or forward your switches to it. See [Pair a PC](/pc-control/pairing/). Built-in PC control arrives with Switchify 3.1, which is still in testing and not yet on Google Play.
+- **Control a Windows PC or Mac.** Pair with Switchify PC over Bluetooth and drive the computer's pointer, keyboard and windows from the phone, or forward your switches to it. See [Pair a PC](/pc-control/pairing/).
 
 ## Ways to press
 
