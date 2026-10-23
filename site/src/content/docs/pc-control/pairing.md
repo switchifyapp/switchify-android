@@ -5,8 +5,6 @@ description: Connect Switchify to Switchify PC on a Windows PC or Mac over Bluet
 
 PC control is built into Switchify. Once paired with a computer running [Switchify PC](https://pc.theswitchify.app), you can drive its pointer, keyboard and windows from the phone, or forward your switches to it. It is free and needs neither Pro nor an account.
 
-Built-in PC control arrives with Switchify 3.1, which is still in testing and not yet on Google Play.
-
 ## What you need
 
 - Switchify PC installed and open on the computer, with Bluetooth on. The setup in Switchify links to the [downloads](https://github.com/switchifyapp/switchify-pc/releases).
