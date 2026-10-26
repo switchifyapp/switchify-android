@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.PortableWifiOff
@@ -136,7 +135,7 @@ fun PcRemoteScreen(
                 }
                 current.profile == null -> ProfileUnavailable(current.profileStatus)
                 activeHolder != null && activeHolder.desktopId == current.desktop.desktopId -> {
-                    ConnectedHeader(current)
+                    ProfileStatusAnnouncement(current)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS),
                         verticalAlignment = Alignment.CenterVertically
@@ -186,32 +185,19 @@ fun PcRemoteScreen(
 }
 
 @Composable
-private fun ConnectedHeader(connection: PcConnectionState.Connected) {
+private fun ProfileStatusAnnouncement(connection: PcConnectionState.Connected) {
     var previous by remember { mutableStateOf<PcProfileStatus?>(null) }
     var announcement by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(connection.profileStatus) {
         announcement = PcRemotePresentation.profileAnnouncement(connection.profileStatus, previous)
         previous = connection.profileStatus
     }
-    Column(
-        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = stringResource(R.string.pc_remote_connected_to, connection.desktop.displayName),
-                style = MaterialTheme.typography.titleSmall
-            )
-        }
-        announcement?.let { Text(text = stringResource(it), style = MaterialTheme.typography.bodySmall) }
+    announcement?.let {
+        Text(
+            text = stringResource(it),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+        )
     }
 }
 

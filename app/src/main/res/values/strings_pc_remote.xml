@@ -9,7 +9,6 @@
     <string name="pc_surface_field_open">open the list of remote surfaces</string>
     <string name="pc_surface_dialog_title">Remote surface</string>
 
-    <string name="pc_remote_connected_to">Connected · %1$s</string>
     <string name="pc_remote_retry">Retry</string>
     <string name="pc_remote_find_pc">Find a PC</string>
     <string name="pc_remote_choose_another_pc">Choose another PC</string>
