@@ -1352,7 +1352,6 @@
     <string name="pc_operation_failed_title">Something went wrong</string>
     <string name="pc_operation_failed_body">That action could not be completed. Try again.</string>
     <string name="pc_dismiss">Dismiss</string>
-    <string name="pc_forwarding_description">Forward your configured external switches from Switchify to the connected PC.</string>
     <string name="pc_forwarding_not_connected_title">No PC connected</string>
     <string name="pc_forwarding_not_connected_body">Connect to a paired PC to forward your switches.</string>
     <string name="pc_forwarding_open_pcs">Open PCs</string>
@@ -1375,13 +1374,6 @@
     <string name="pc_forwarding_kind_scanning">Switchify PC scanning</string>
     <string name="pc_forwarding_start">Start forwarding</string>
     <string name="pc_forwarding_stop">Stop forwarding</string>
-    <string name="pc_forwarding_switches_title">Switches</string>
-    <string name="pc_forwarding_unassigned">Unassigned</string>
-    <string name="pc_forwarding_switch_number">Switch %1$d</string>
-    <string name="pc_forwarding_pressed">pressed</string>
-    <string name="pc_forwarding_released">released</string>
-    <string name="pc_forwarding_output_pressed">%1$s · Pressed</string>
-    <string name="pc_forwarding_mapping_description">%1$s, %2$s, %3$s</string>
     <plurals name="pc_forwarding_overflow">
         <item quantity="one">%d additional switch is not forwarded. Only the first eight are supported.</item>
         <item quantity="other">%d additional switches are not forwarded. Only the first eight are supported.</item>

@@ -13,7 +13,7 @@ Camera switches are not forwarded; only external switches are.
 2. Open the **Forwarding** surface in PC control, or give a switch the **Open PC Switch Forwarding** or **Start PC Switch Forwarding** action.
 3. Choose a profile and choose **Start forwarding**.
 
-The surface lists your switches, which profile slot each is assigned to, and shows **Pressed** as you press. If you have more than eight external switches, only the first eight are forwarded and Switchify tells you how many are left out.
+While forwarding, the surface shows only the status and the **Stop forwarding** button. If you have more than eight external switches, only the first eight are forwarded and Switchify tells you how many are left out.
 
 ## Profiles
 

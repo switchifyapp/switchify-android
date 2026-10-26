@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.screens.pc
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +13,6 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -30,11 +28,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -50,7 +46,6 @@ import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcProfileStatus
 import com.enaboapps.switchify.pc.control.PcControlRequests
 import com.enaboapps.switchify.pc.forwarding.InAppSwitchBridge
-import com.enaboapps.switchify.pc.forwarding.PcForwardingMapping
 import com.enaboapps.switchify.pc.forwarding.PcForwardingMessage
 import com.enaboapps.switchify.pc.forwarding.PcForwardingPhase
 import com.enaboapps.switchify.pc.forwarding.PcForwardingPreferences
@@ -114,12 +109,6 @@ fun PcForwardingSurface(onOpenPcs: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
     ) {
-        Text(
-            text = stringResource(R.string.pc_forwarding_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
         when (val current = connection) {
             is PcConnectionState.Connected -> if (current.profile == null) {
                 InfoPanel(
@@ -238,17 +227,6 @@ private fun ForwardingBody(
         )
     }
 
-    if (state.phase == PcForwardingPhase.Active) {
-        Text(
-            text = stringResource(R.string.pc_forwarding_switches_title),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() }
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-            state.mappings.forEach { mapping -> MappingRow(mapping) }
-        }
-    }
-
     if (state.profiles.isNotEmpty()) {
         Text(
             text = stringResource(R.string.pc_forwarding_profiles_title),
@@ -293,39 +271,6 @@ private fun ProfileRow(profile: PcSwitchProfile, selected: Boolean, enabled: Boo
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun MappingRow(mapping: PcForwardingMapping) {
-    val scheme = MaterialTheme.colorScheme
-    val output = when {
-        mapping.outputLabel == null -> stringResource(R.string.pc_forwarding_unassigned)
-        mapping.outputLabel.isBlank() -> stringResource(R.string.pc_forwarding_switch_number, mapping.switchId)
-        else -> mapping.outputLabel
-    }
-    val status = stringResource(if (mapping.pressed) R.string.pc_forwarding_pressed else R.string.pc_forwarding_released)
-    val description = stringResource(R.string.pc_forwarding_mapping_description, mapping.name, output, status)
-    Surface(
-        color = if (mapping.pressed) scheme.primaryContainer else scheme.surfaceContainer,
-        contentColor = if (mapping.pressed) scheme.onPrimaryContainer else scheme.onSurface,
-        border = BorderStroke(if (mapping.pressed) 2.dp else 1.dp, if (mapping.pressed) scheme.primary else scheme.outlineVariant),
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) { contentDescription = description }
-    ) {
-        Row(
-            modifier = Modifier.padding(Dimens.spaceM),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = mapping.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text(
-                text = if (mapping.pressed) stringResource(R.string.pc_forwarding_output_pressed, output) else output,
-                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
