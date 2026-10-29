@@ -292,11 +292,13 @@ class GestureVisualManager(
     }
 
     private fun clearActiveLinearGestureVisuals() {
-        animatedGestureArrow.cancel()
-        pendingMultiFingerArrowRunnables.forEach(mainHandler::removeCallbacks)
-        pendingMultiFingerArrowRunnables.clear()
-        activeMultiFingerArrows.forEach(AnimatedGestureArrow::cancel)
-        activeMultiFingerArrows.clear()
+        onMainThread {
+            animatedGestureArrow.cancel()
+            pendingMultiFingerArrowRunnables.forEach(mainHandler::removeCallbacks)
+            pendingMultiFingerArrowRunnables.clear()
+            activeMultiFingerArrows.forEach(AnimatedGestureArrow::cancel)
+            activeMultiFingerArrows.clear()
+        }
     }
 
     /**
@@ -573,7 +575,7 @@ class GestureVisualManager(
      */
     private fun clearAllVisuals(clearLinearGestureVisuals: Boolean = true) {
         if (clearLinearGestureVisuals) {
-            linearGestureVisualThrottle.clear()
+            onMainThread { linearGestureVisualThrottle.clear() }
             clearActiveLinearGestureVisuals()
         }
         // Clear single finger visuals

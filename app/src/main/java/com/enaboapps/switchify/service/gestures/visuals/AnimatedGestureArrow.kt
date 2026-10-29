@@ -8,6 +8,7 @@ import android.graphics.PointF
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.animation.PathInterpolator
 import android.widget.RelativeLayout
@@ -54,7 +55,10 @@ class AnimatedGestureArrow(
         session.cleanupCoordinator = GestureVisualCleanupCoordinator(
             postDelayed = { runnable, delayMs -> mainHandler.postDelayed(runnable, delayMs) },
             removeCallbacks = mainHandler::removeCallbacks,
-            cleanup = { finish(session) }
+            cleanup = { finish(session) },
+            onCleanupFailed = { throwable ->
+                Log.w(TAG, "Linear gesture visual cleanup failed; retrying", throwable)
+            }
         )
         activeSession = session
         SwitchifyAccessibilityWindow.instance.addView(
@@ -97,7 +101,12 @@ class AnimatedGestureArrow(
     }
 
     fun cancel() {
-        activeSession?.cleanupCoordinator?.complete()
+        val session = activeSession ?: return
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            session.cleanupCoordinator.complete()
+        } else {
+            mainHandler.post { session.cleanupCoordinator.complete() }
+        }
     }
 
     private fun animatorDurationScale(): Float =
@@ -108,13 +117,17 @@ class AnimatedGestureArrow(
         }
 
     private fun finish(session: VisualSession) {
-        session.animator?.let { animation ->
-            animation.removeAllListeners()
-            if (animation.isStarted) animation.cancel()
-        }
         SwitchifyAccessibilityWindow.instance.removeView(session.container)
         if (activeSession === session) activeSession = null
-        session.onRemoved()
+        try {
+            session.animator?.let { animation ->
+                animation.removeAllListeners()
+                if (animation.isStarted) animation.cancel()
+            }
+        } finally {
+            session.animator = null
+            session.onRemoved()
+        }
     }
 
     private class VisualSession(
@@ -126,6 +139,7 @@ class AnimatedGestureArrow(
     }
 
     private companion object {
+        const val TAG = "AnimatedGestureArrow"
         const val STATIC_DWELL_MS = 280L
         const val CLEANUP_GRACE_MS = 250L
     }
