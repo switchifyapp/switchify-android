@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
@@ -66,6 +67,54 @@ class GestureVisualCleanupCoordinatorTest {
     }
 
     @Test
+    fun failedCleanupKeepsWatchdogAliveAndRetries() {
+        val scheduler = TestScheduler()
+        var attempts = 0
+        val failures = mutableListOf<Throwable>()
+        val coordinator = scheduler.createCoordinator(
+            onCleanupFailed = { failures.add(it) },
+            cleanup = {
+                attempts++
+                if (attempts == 1) throw IllegalStateException("animator off main thread")
+            }
+        )
+
+        coordinator.schedule(1_750L)
+        coordinator.complete()
+
+        assertEquals(1, attempts)
+        assertEquals(1, failures.size)
+        assertEquals(250L, scheduler.delayMs)
+        assertNotNull(scheduler.pending)
+
+        scheduler.runPending()
+
+        assertEquals(2, attempts)
+        assertNull(scheduler.pending)
+
+        coordinator.complete()
+        assertEquals(2, attempts)
+    }
+
+    @Test
+    fun persistentCleanupFailureGivesUpAfterRetries() {
+        val scheduler = TestScheduler()
+        var attempts = 0
+        val coordinator = scheduler.createCoordinator(
+            cleanup = {
+                attempts++
+                throw IllegalStateException("always fails")
+            }
+        )
+
+        coordinator.complete()
+        repeat(5) { scheduler.runPending() }
+
+        assertEquals(4, attempts)
+        assertNull(scheduler.pending)
+    }
+
+    @Test
     fun deadlineUsesSystemScaleAndGrace() {
         assertEquals(
             1_750L,
@@ -86,7 +135,10 @@ class GestureVisualCleanupCoordinatorTest {
         var lastPosted: Runnable? = null
         var delayMs = 0L
 
-        fun createCoordinator(cleanup: () -> Unit): GestureVisualCleanupCoordinator {
+        fun createCoordinator(
+            onCleanupFailed: (Throwable) -> Unit = {},
+            cleanup: () -> Unit
+        ): GestureVisualCleanupCoordinator {
             return GestureVisualCleanupCoordinator(
                 postDelayed = { runnable, delay ->
                     pending = runnable
@@ -96,12 +148,15 @@ class GestureVisualCleanupCoordinatorTest {
                 removeCallbacks = { runnable ->
                     if (pending === runnable) pending = null
                 },
-                cleanup = cleanup
+                cleanup = cleanup,
+                onCleanupFailed = onCleanupFailed
             )
         }
 
         fun runPending() {
-            pending?.run()
+            val runnable = pending ?: return
+            pending = null
+            runnable.run()
         }
     }
 }
