@@ -3,7 +3,13 @@ title: Settings
 description: A map of Switchify's Settings screen, its four tabs, and the pause, selection, menu and statistics options not covered elsewhere.
 ---
 
-Open **Settings** from Switchify's home screen. It has four tabs, and remembers the one you were on.
+Open **Settings** from Switchify's home screen. It has four tabs, and remembers the one you were on. If you are not sure where a setting lives, use **Search settings** at the top.
+
+## Search settings
+
+Choose **Search settings** above the tabs and type part of a setting's name, its description, or the screen it is on. For example, "pause" finds Pause Settings and the pause options inside it, and "speed" finds Scan Speeds. Results show the setting, its description, and the screen and section it belongs to.
+
+Choose a result to go straight to that screen. The matching setting is briefly highlighted so you can see where it is. Every setting in Switchify is searchable, and new settings are added to the search automatically.
 
 <div class="screenshots">
 <figure><img src="/screenshots/settings-general.webp" alt="The General tab of Settings with sections for Input, Account, Usage and On-device AI model" loading="lazy"><figcaption>General.</figcaption></figure>

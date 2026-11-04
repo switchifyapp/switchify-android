@@ -1400,4 +1400,8 @@
     <string name="pc_forwarding_message_selection_save_failed">Could not save the forwarding profile selection.</string>
     <string name="pc_forwarding_message_revoked">Switchify stopped forwarding. Start forwarding again.</string>
     <string name="pc_forwarding_message_left_screen">Forwarding stopped when you left this screen.</string>
+    <string name="settings_search_title">Search settings</string>
+    <string name="settings_search_placeholder">Type part of a setting’s name</string>
+    <string name="settings_search_hint">Search by a setting’s name, its description, or the screen it is on. Choose a result to go straight to it.</string>
+    <string name="settings_search_no_results">No settings match “%1$s”.</string>
 </resources>
