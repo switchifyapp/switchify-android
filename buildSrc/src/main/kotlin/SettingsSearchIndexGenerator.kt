@@ -31,10 +31,10 @@ object SettingsSearchIndexGenerator {
     private val callStart = Regex("""\b([A-Za-z_]\w*)\s*\(""")
     private val tabBranch = Regex("""\b(\d+)\s*->\s*([A-Z]\w*)\s*\(""")
     private val stringRef = Regex("""\bR\.string\.(\w+)""")
-    private val titleRef = Regex("""\btitleResId\s*=\s*R\.string\.(\w+)""")
+    private val titleRef = Regex("""(?<!va[lr]\s)\btitleResId\s*=\s*R\.string\.(\w+)""")
     private val functionStart = Regex("""\bfun\s+(?:<[^>]*>\s+)?(?:[\w.]+\.)?(\w+)\s*\(""")
     private val composableRoute =
-        Regex("""composable\(\s*(?:NavigationRoute\.(\w+)\.name|"\$\{NavigationRoute\.(\w+)\.name}[^"]*")""")
+        Regex("""composable\(\s*(?:route\s*=\s*)?(?:NavigationRoute\.(\w+)\.name|"\$\{NavigationRoute\.(\w+)\.name}[^"]*")""")
 
     fun generate(
         navGraph: File,

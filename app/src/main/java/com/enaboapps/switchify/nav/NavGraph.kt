@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
@@ -40,6 +41,7 @@ import com.enaboapps.switchify.screens.settings.scanning.AutoScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ManualScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ScanColorSelectionScreen
 import com.enaboapps.switchify.screens.settings.scanning.ScanSpeedsScreen
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.screens.settings.search.SettingsSearchScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditExternalSwitchScreen
@@ -74,6 +76,12 @@ fun NavGraph(navController: NavHostController) {
         dampingRatio = Spring.DampingRatioLowBouncy,
         stiffness = Spring.StiffnessMediumLow
     )
+
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            SettingsSearchHighlight.clearUnless(entry.destination.route)
+        }
+    }
 
     NavHost(
         navController,

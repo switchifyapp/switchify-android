@@ -31,6 +31,15 @@ class GeneratedSettingsSearchIndexTest {
     }
 
     @Test
+    fun tabbedSubScreensRecordTheTabOfEachRow() {
+        val techniques = entries.filter { it.route == NavigationRoute.AccessTechniqueSettings.name }
+
+        assertEquals(setOf(0, 1, 2), techniques.mapNotNull { it.tab }.toSet())
+        assertEquals(1, entries.single { it.titleResId == R.string.preference_title_radar_slow_down_then_select }.tab)
+        assertEquals(1, entries.single { it.titleResId == R.string.preference_title_smile_time }.tab)
+    }
+
+    @Test
     fun knownRowsResolveToTheirScreenAndSection() {
         val autoStart = entries.single { it.titleResId == R.string.preference_title_auto_start_scanning }
 

@@ -31,6 +31,7 @@ import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.nav.navigateIfResumed
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SelectionSettingsModel
 import com.enaboapps.switchify.screens.settings.models.AboutSettingsModel
@@ -58,7 +59,9 @@ fun SettingsScreen(navController: NavController) {
         val savedIndex =
             preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, 0)
         // Ensure the saved index is within valid range (0-3)
-        mutableIntStateOf(savedIndex.coerceIn(0, 3))
+        mutableIntStateOf(
+            SettingsSearchHighlight.initialTab(NavigationRoute.Settings.name, savedIndex.coerceIn(0, 3))
+        )
     }
 
     // Save tab selection when it changes

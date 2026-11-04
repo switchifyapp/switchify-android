@@ -12,20 +12,37 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import com.enaboapps.switchify.nav.NavigationRoute
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 
 object SettingsSearchHighlight {
-    var pendingTitleResId by mutableStateOf<Int?>(null)
+    data class Target(val route: String, val titleResId: Int)
+
+    var pending by mutableStateOf<Target?>(null)
         private set
 
-    fun request(titleResId: Int) {
-        pendingTitleResId = titleResId
+    fun request(entry: SettingsSearchEntry) {
+        pending = Target(entry.route, entry.titleResId)
     }
 
     fun clear() {
-        pendingTitleResId = null
+        pending = null
+    }
+
+    fun clearUnless(route: String?) {
+        val target = pending ?: return
+        if (route != target.route && route != NavigationRoute.SettingsSearch.name) pending = null
+    }
+
+    fun initialTab(route: String, default: Int): Int {
+        val target = pending?.takeIf { it.route == route } ?: return default
+        return GeneratedSettingsSearchIndex.entries
+            .firstOrNull { it.route == route && it.titleResId == target.titleResId }
+            ?.tab ?: default
     }
 }
 
@@ -37,15 +54,16 @@ fun Modifier.settingsSearchHighlight(titleResId: Int?): Modifier {
     if (titleResId == null) return this
     val requester = remember { BringIntoViewRequester() }
     var active by remember { mutableStateOf(false) }
-    val pending = SettingsSearchHighlight.pendingTitleResId
-    LaunchedEffect(pending) {
-        if (pending == titleResId) {
-            SettingsSearchHighlight.clear()
-            active = true
-            requester.bringIntoView()
-            delay(HIGHLIGHT_DURATION_MS)
-            active = false
-        }
+    LaunchedEffect(titleResId) {
+        snapshotFlow { SettingsSearchHighlight.pending?.titleResId == titleResId }
+            .filter { it }
+            .collect {
+                SettingsSearchHighlight.clear()
+                active = true
+                requester.bringIntoView()
+                delay(HIGHLIGHT_DURATION_MS)
+                active = false
+            }
     }
     val alpha by animateFloatAsState(
         targetValue = if (active) 1f else 0f,

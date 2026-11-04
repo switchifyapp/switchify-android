@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.screens.settings.search
 
-import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,25 +15,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.nav.navigateIfResumed
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -53,9 +49,6 @@ fun SettingsSearchScreen(navController: NavController) {
     }
     var query by rememberSaveable { mutableStateOf("") }
     val results = remember(query) { SettingsSearchRanker.rank(query, items) }
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     BaseView(
         titleResId = R.string.settings_search_title,
@@ -65,9 +58,7 @@ fun SettingsSearchScreen(navController: NavController) {
         SwitchifyTextField(
             value = query,
             onValueChange = { query = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
+            modifier = Modifier.fillMaxWidth(),
             placeholder = { Text(stringResource(R.string.settings_search_placeholder)) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Search),
@@ -82,7 +73,7 @@ fun SettingsSearchScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
             ) {
                 items(results, key = { "${it.entry.route}/${it.entry.tab}/${it.entry.titleResId}" }) { item ->
-                    SearchResultRow(item) { openResult(navController, context, item.entry) }
+                    SearchResultRow(item) { openResult(navController, item.entry) }
                 }
             }
         }
@@ -123,15 +114,14 @@ private fun SearchResultRow(item: SettingsSearchItem, onClick: () -> Unit) {
     }
 }
 
-private fun openResult(navController: NavController, context: Context, entry: SettingsSearchEntry) {
-    SettingsSearchHighlight.request(entry.titleResId)
+private fun openResult(navController: NavController, entry: SettingsSearchEntry) {
+    if (navController.currentDestination?.route != NavigationRoute.SettingsSearch.name) return
+    SettingsSearchHighlight.request(entry)
     if (entry.route == NavigationRoute.Settings.name) {
-        entry.tab?.let {
-            PreferenceManager(context).setIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, it)
-        }
         navController.popBackStack()
     } else {
-        navController.popBackStack()
-        navController.navigate(entry.route)
+        navController.navigateIfResumed(entry.route) {
+            popUpTo(NavigationRoute.SettingsSearch.name) { inclusive = true }
+        }
     }
 }
