@@ -47,12 +47,12 @@ import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PillTab
 import com.enaboapps.switchify.components.PillTabRow
-import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.accompanist.permissions.ExperimentalPermissionsApi

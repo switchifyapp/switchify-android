@@ -47,14 +47,14 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PillTab
 import com.enaboapps.switchify.components.PillTabRow
-import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.components.SwitchifyTextField
+import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 
 @Composable

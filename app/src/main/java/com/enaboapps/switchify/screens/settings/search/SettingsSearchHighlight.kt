@@ -20,13 +20,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 
 object SettingsSearchHighlight {
-    data class Target(val route: String, val titleResId: Int)
+    data class Target(val route: String, val tab: Int?, val titleResId: Int)
 
     var pending by mutableStateOf<Target?>(null)
         private set
 
     fun request(entry: SettingsSearchEntry) {
-        pending = Target(entry.route, entry.titleResId)
+        pending = Target(entry.route, entry.tab, entry.titleResId)
     }
 
     fun clear() {
@@ -38,12 +38,8 @@ object SettingsSearchHighlight {
         if (route != target.route && route != NavigationRoute.SettingsSearch.name) pending = null
     }
 
-    fun initialTab(route: String, default: Int): Int {
-        val target = pending?.takeIf { it.route == route } ?: return default
-        return GeneratedSettingsSearchIndex.entries
-            .firstOrNull { it.route == route && it.titleResId == target.titleResId }
-            ?.tab ?: default
-    }
+    fun initialTab(route: String, default: Int): Int =
+        pending?.takeIf { it.route == route }?.tab ?: default
 }
 
 private const val HIGHLIGHT_DURATION_MS = 2500L
