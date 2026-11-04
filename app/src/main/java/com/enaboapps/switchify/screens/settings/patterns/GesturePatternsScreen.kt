@@ -53,6 +53,8 @@ import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.components.SwitchifyTextField
+import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 
 @Composable
@@ -60,7 +62,9 @@ fun GesturePatternsScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: GesturePatternsViewModel = viewModel()
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember {
+        mutableIntStateOf(SettingsSearchHighlight.initialTab(NavigationRoute.GesturePatterns.name, 0))
+    }
     val tabTitles = listOf(
         stringResource(R.string.tab_gesture_patterns_list),
         stringResource(R.string.tab_gesture_patterns_settings)

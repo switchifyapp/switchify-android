@@ -1,7 +1,10 @@
 package com.enaboapps.switchify.screens.settings
 
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,11 +23,15 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.AnimatedTabContent
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.Panel
+import com.enaboapps.switchify.components.PanelListRow
 import com.enaboapps.switchify.components.PillTab
 import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.nav.navigateIfResumed
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SelectionSettingsModel
 import com.enaboapps.switchify.screens.settings.models.AboutSettingsModel
@@ -52,7 +59,9 @@ fun SettingsScreen(navController: NavController) {
         val savedIndex =
             preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, 0)
         // Ensure the saved index is within valid range (0-3)
-        mutableIntStateOf(savedIndex.coerceIn(0, 3))
+        mutableIntStateOf(
+            SettingsSearchHighlight.initialTab(NavigationRoute.Settings.name, savedIndex.coerceIn(0, 3))
+        )
     }
 
     // Save tab selection when it changes
@@ -69,6 +78,17 @@ fun SettingsScreen(navController: NavController) {
         padding = 0.dp,
         enableScroll = false
     ) {
+        Panel(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            PanelListRow(
+                onClick = { navController.navigateIfResumed(NavigationRoute.SettingsSearch.name) },
+                runtimeTitle = stringResource(R.string.settings_search_title),
+                leadingIcon = Icons.Default.Search
+            )
+        }
         PillTabRow(
             tabs = listOf(
                 PillTab(stringResource(R.string.settings_tab_general)),

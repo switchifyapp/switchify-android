@@ -133,6 +133,25 @@ val sentryDsn = providers.environmentVariable("SENTRY_DSN")
 
 androidComponents {
     onVariants(selector().all()) { variant ->
+        val settingsSearchIndex = tasks.register<GenerateSettingsSearchIndexTask>(
+            "generate${variant.name.replaceFirstChar { it.uppercase() }}SettingsSearchIndex"
+        ) {
+            val sourceDir = layout.projectDirectory.dir("src/main/java")
+            navGraph.set(sourceDir.file("com/enaboapps/switchify/nav/NavGraph.kt"))
+            screenSources.from(
+                fileTree(sourceDir.dir("com/enaboapps/switchify")) {
+                    include("screens/**/*.kt", "components/**/*.kt")
+                }
+            )
+            sourceRoot.set(sourceDir)
+            settingsPathPrefix.set("com/enaboapps/switchify/screens/settings/")
+            packageName.set("com.enaboapps.switchify")
+        }
+        variant.sources.kotlin?.addGeneratedSourceDirectory(
+            settingsSearchIndex,
+            GenerateSettingsSearchIndexTask::outputDir
+        )
+
         val requiresSentryDsn = variant.buildType == "release"
         checkNotNull(variant.buildConfigFields).put("SENTRY_DSN", sentryDsn.map { dsn ->
             check(!requiresSentryDsn || dsn.isNotBlank()) {

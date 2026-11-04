@@ -50,7 +50,9 @@ import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -100,7 +102,9 @@ private fun CameraSettingsContent(
 
     var previewView by remember { androidx.compose.runtime.mutableStateOf<PreviewView?>(null) }
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember {
+        mutableIntStateOf(SettingsSearchHighlight.initialTab(NavigationRoute.CameraSettings.name, 0))
+    }
     val tabTitles = listOf(
         stringResource(R.string.tab_test_gestures),
         stringResource(R.string.tab_timing_settings)

@@ -13,10 +13,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.screens.settings.search.settingsSearchHighlight
 
 @Composable
 fun PreferenceComponentBase(
@@ -37,6 +39,7 @@ fun PreferenceComponentBase(
     PreferenceRowScaffold(
         title = title,
         summary = summary,
+        modifier = Modifier.settingsSearchHighlight(titleResId),
         onClick = onClick,
         rowSemantics = rowSemantics,
         leadingContent = leadingIcon?.let {

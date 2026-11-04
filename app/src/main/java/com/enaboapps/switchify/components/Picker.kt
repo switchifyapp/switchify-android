@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.screens.settings.search.settingsSearchHighlight
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -73,6 +74,7 @@ fun <T> Picker(
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .background(triggerColor)
+            .settingsSearchHighlight(titleResId)
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,

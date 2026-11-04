@@ -16,10 +16,14 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PillTab
 import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.ScrollableView
+import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.screens.settings.search.SettingsSearchHighlight
 
 @Composable
 fun AccessTechniqueSettingsScreen(navController: NavController) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember {
+        mutableIntStateOf(SettingsSearchHighlight.initialTab(NavigationRoute.AccessTechniqueSettings.name, 0))
+    }
 
     BaseView(
         titleResId = R.string.screen_title_access_technique_settings,
@@ -40,11 +44,11 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        AnimatedTabContent(targetState = tabs.getOrNull(selectedTabIndex)) { currentTab ->
-            when (currentTab) {
-                R.string.settings_tab_point_scan -> PointScanSettingsTab()
-                R.string.settings_tab_radar -> RadarSettingsTab()
-                R.string.settings_tab_item_scan -> ItemScanSettingsTab()
+        AnimatedTabContent(targetState = selectedTabIndex) { tabIndex ->
+            when (tabIndex) {
+                0 -> PointScanSettingsTab()
+                1 -> RadarSettingsTab()
+                2 -> ItemScanSettingsTab()
             }
         }
     }

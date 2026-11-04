@@ -8,6 +8,7 @@ sealed class NavigationRoute(val name: String) {
     data object Authentication : NavigationRoute("Authentication")
     data object Account : NavigationRoute("Account")
     data object Settings : NavigationRoute("Settings")
+    data object SettingsSearch : NavigationRoute("SettingsSearch")
     data object SwitchHold : NavigationRoute("SwitchHold")
     data object SwitchStability : NavigationRoute("SwitchStability")
     data object AdvancedGestureSettings : NavigationRoute("AdvancedGestureSettings")
