@@ -19,7 +19,11 @@
     <!-- Home screen PC widget colours. Mirror LightColorScheme in Theme.kt. -->
     <color name="pc_widget_primary">#FFD32F2F</color>
     <color name="pc_widget_surface">#FFFFFBFF</color>
-    <color name="pc_widget_item">#FFE7E0EC</color>
+    <color name="pc_widget_item">#FFF3EDF7</color>
+    <color name="pc_widget_item_icon">#FFE7E0EC</color>
+    <color name="pc_widget_highlight">#FFFFDAD6</color>
+    <color name="pc_widget_on_highlight">#FF410002</color>
+    <color name="pc_widget_highlight_icon">#88FFFFFF</color>
     <color name="pc_widget_on_surface">#FF1C1B1F</color>
     <color name="pc_widget_on_surface_variant">#FF49454F</color>
     <color name="pc_widget_ripple">#1F1C1B1F</color>

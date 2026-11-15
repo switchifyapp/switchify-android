@@ -39,8 +39,9 @@ class PcWidgetItems(
     override fun getCount(): Int = pcs.size
 
     override fun getViewAt(position: Int): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.pc_widget_item)
-        val pc = pcs.getOrNull(position) ?: return views
+        val pc = pcs.getOrNull(position) ?: return RemoteViews(context.packageName, R.layout.pc_widget_item)
+        val layout = if (pc.isDefault) R.layout.pc_widget_item_default else R.layout.pc_widget_item
+        val views = RemoteViews(context.packageName, layout)
         views.setTextViewText(R.id.pc_widget_item_name, pc.saved.displayName)
         views.setTextViewText(R.id.pc_widget_item_detail, context.getString(pc.detail))
         views.setOnClickFillInIntent(
@@ -52,7 +53,7 @@ class PcWidgetItems(
 
     override fun getLoadingView(): RemoteViews? = null
 
-    override fun getViewTypeCount(): Int = 1
+    override fun getViewTypeCount(): Int = 2
 
     override fun getItemId(position: Int): Long = pcs.getOrNull(position)?.saved?.desktopId?.hashCode()?.toLong() ?: position.toLong()
 

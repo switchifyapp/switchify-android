@@ -54,7 +54,7 @@ PC control settings are stored only on this device.
 
 ## Opening PC control quickly
 
-- Add the **PC control** widget to your Android home screen. It opens PC control for your default or a chosen paired PC.
+- Add the **PC control** widget to your Android home screen. At its usual size it lists your paired PCs with the default PC highlighted at the top; tap one to open PC control for that PC. Make the widget one row tall and it shows big buttons for your default PC and the next one. Shrink it to a single square and it becomes one button for your default PC, or the PC you used last if you have not set a default.
 - Give a switch the **Open PC Mouse** action, or **Open PC Switch Forwarding** or **Start PC Switch Forwarding**. See [Connect a switch](/get-started/connect-a-switch/).
 
 ## If you used Switchify Remote
