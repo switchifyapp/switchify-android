@@ -6,11 +6,11 @@
     android:background="@drawable/pc_widget_button_background"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="6dp">
+    android:padding="4dp">
 
     <ImageView
-        android:layout_width="26dp"
-        android:layout_height="26dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_pc_widget_desktop"
         android:tint="@color/pc_widget_on_highlight" />
@@ -19,7 +19,7 @@
         android:id="@+id/pc_widget_first_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"

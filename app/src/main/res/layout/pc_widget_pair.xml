@@ -15,7 +15,7 @@
         android:background="@drawable/pc_widget_highlight_background"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="4dp">
+        android:padding="2dp">
 
         <ImageView
             android:layout_width="22dp"
@@ -28,7 +28,7 @@
             android:id="@+id/pc_widget_first_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
@@ -46,7 +46,7 @@
         android:background="@drawable/pc_widget_item_background"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="4dp">
+        android:padding="2dp">
 
         <ImageView
             android:layout_width="22dp"
@@ -59,7 +59,7 @@
             android:id="@+id/pc_widget_second_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"

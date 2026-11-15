@@ -74,7 +74,7 @@ class PcWidgetProvider : AppWidgetProvider() {
         private suspend fun update(context: Context, manager: AppWidgetManager, ids: IntArray) {
             if (ids.isEmpty()) return
             val pairings = PcConnectionGraph.getInstance(context).pairings
-            val pcs = withTimeoutOrNull(LOAD_TIMEOUT_MS) { PcWidgetPc.load(pairings) } ?: emptyList()
+            val pcs = withTimeoutOrNull(LOAD_TIMEOUT_MS) { PcWidgetPc.load(pairings) } ?: return
             ids.forEach { manager.updateAppWidget(it, views(context, manager, it, pcs)) }
             manager.notifyAppWidgetViewDataChanged(ids, R.id.pc_widget_list)
         }
@@ -167,8 +167,8 @@ class PcWidgetProvider : AppWidgetProvider() {
 }
 
 enum class PcWidgetLayout(val minWidthDp: Float, val minHeightDp: Float) {
-    OnePc(40f, 40f),
-    TwoPcs(130f, 40f),
+    OnePc(56f, 56f),
+    TwoPcs(130f, 56f),
     AllPcs(110f, 100f);
 
     companion object {

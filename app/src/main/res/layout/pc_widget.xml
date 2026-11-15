@@ -10,7 +10,7 @@
     <LinearLayout
         android:id="@+id/pc_widget_header"
         android:layout_width="match_parent"
-        android:layout_height="32dp"
+        android:layout_height="28dp"
         android:contentDescription="@string/pc_widget_open"
         android:gravity="center_vertical"
         android:orientation="horizontal"
