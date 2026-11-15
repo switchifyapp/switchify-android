@@ -74,8 +74,10 @@
     <string name="pc_widget_label">PC control</string>
     <string name="pc_widget_description">Open PC control for one of your paired PCs.</string>
     <string name="pc_widget_empty">No paired PCs yet. Tap to set up PC control.</string>
-    <string name="pc_widget_default">Default PC</string>
-    <string name="pc_widget_windows">Windows PC</string>
+    <string name="pc_widget_default">Default</string>
+    <string name="pc_widget_windows">Windows</string>
     <string name="pc_widget_mac">Mac</string>
-    <string name="pc_widget_paired">Paired PC</string>
+    <string name="pc_widget_paired">Paired</string>
+    <string name="pc_widget_open">Open PC control</string>
+    <string name="pc_widget_set_up">Set up</string>
 </resources>
