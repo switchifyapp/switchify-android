@@ -3,7 +3,7 @@ title: Switch Forwarding
 description: Send the presses and releases of your external switches straight to a paired computer, where a profile turns them into keys, mouse actions, Grid 3 input or Switchify PC scanning.
 ---
 
-Switch Forwarding sends the press and release of up to eight external switches connected to your Android device to the connected computer. While it runs, Switchify's own scanning is paused and your switches control the PC. The profile on the computer turns each press into a key, a mouse action, or a Grid 3 or scanning action.
+Switch Forwarding sends the press and release of up to eight external switches connected to your Android device to the connected computer. When it starts, Switchify's own scanning stops and the highlight is cleared, and your switches control the PC. The profile on the computer turns each press into a key, a mouse action, or a Grid 3 or scanning action.
 
 Camera switches are not forwarded; only external switches are.
 
@@ -31,3 +31,4 @@ Profiles are created and edited in Switchify PC, not on the phone. See the [Swit
 
 - Choose **Stop forwarding**, or hold any forwarded switch for the **hold-to-stop** time: 3, 5 or 8 seconds, set in PC control's Settings. The default is 5 seconds. With the Switchify PC scanning profile, shorter holds run the computer's own hold actions.
 - Forwarding also stops by itself after 60 seconds without any switch activity, when you leave the Forwarding surface, when the connection is lost, when your switch configuration changes, or when scanning on the PC is stopped (for example with its Escape key). Start again after a stop.
+- Scanning on the phone stays stopped after forwarding ends. Press a switch to start it again.

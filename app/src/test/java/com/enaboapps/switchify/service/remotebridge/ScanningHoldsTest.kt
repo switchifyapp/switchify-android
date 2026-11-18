@@ -24,14 +24,22 @@ class ScanningHoldsTest {
         assertTrue(holds.isHeld())
     }
 
-    @Test fun applyPausesOnFirstHoldAndResumesOnLastRelease() {
+    @Test fun applyStopsScanningWhenForwardingStartsAndResumesOnLastRelease() {
         val holds = ScanningHolds()
         val target = FakeScanningHoldTarget()
         holds.apply(ScanningHold.Forwarding, true, target)
         holds.apply(ScanningHold.PcRepeat, true, target)
         holds.apply(ScanningHold.Forwarding, false, target)
         holds.apply(ScanningHold.PcRepeat, false, target)
-        assertEquals(listOf("pause", "resume"), target.calls)
+        assertEquals(listOf("stop", "resume"), target.calls)
+    }
+
+    @Test fun applyStopsScanningWhenForwardingStartsOverAnExistingHold() {
+        val holds = ScanningHolds()
+        val target = FakeScanningHoldTarget()
+        holds.apply(ScanningHold.PcRepeat, true, target)
+        holds.apply(ScanningHold.Forwarding, true, target)
+        assertEquals(listOf("pause", "stop"), target.calls)
     }
 
     @Test fun applyLeavesTheUsersPauseInPlace() {
