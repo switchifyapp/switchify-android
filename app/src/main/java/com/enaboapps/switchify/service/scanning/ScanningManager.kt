@@ -356,6 +356,14 @@ class ScanningManager(
     }
 
     /**
+     * Stops scanning and clears the highlight for the current scanning state.
+     */
+    fun stopScanning() {
+        moveRepeatManager?.stop()
+        currentScanMethod.stopScanningAndReset()
+    }
+
+    /**
      * Resumes the scanning process for the current scanning state.
      */
     fun resumeScanning() {

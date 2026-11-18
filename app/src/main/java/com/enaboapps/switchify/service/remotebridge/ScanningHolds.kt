@@ -7,6 +7,7 @@ enum class ScanningHold {
 
 interface ScanningHoldTarget {
     fun pauseScanning()
+    fun stopScanning()
     fun resumeScanning()
     fun isPausedByUser(): Boolean
 }
@@ -24,11 +25,12 @@ class ScanningHolds {
     }
 
     fun apply(hold: ScanningHold, held: Boolean, target: ScanningHoldTarget?) {
-        val nowHeld = update(hold, held) ?: return
+        val nowHeld = update(hold, held)
         val scanning = target ?: return
         when {
-            nowHeld -> scanning.pauseScanning()
-            !scanning.isPausedByUser() -> scanning.resumeScanning()
+            held && hold == ScanningHold.Forwarding -> scanning.stopScanning()
+            nowHeld == true -> scanning.pauseScanning()
+            nowHeld == false && !scanning.isPausedByUser() -> scanning.resumeScanning()
         }
     }
 

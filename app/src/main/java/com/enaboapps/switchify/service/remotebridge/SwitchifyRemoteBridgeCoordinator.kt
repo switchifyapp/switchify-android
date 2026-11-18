@@ -168,6 +168,7 @@ object SwitchifyRemoteBridgeCoordinator {
         val scanningManager = ServiceCore.getScanningManager() ?: return null
         return object : ScanningHoldTarget {
             override fun pauseScanning() = scanningManager.pauseScanning()
+            override fun stopScanning() = scanningManager.stopScanning()
             override fun resumeScanning() = scanningManager.resumeScanning()
             override fun isPausedByUser() = ServiceCore.getPauseManager().isPaused
         }

@@ -13,6 +13,7 @@ class FakeScanningHoldTarget(var pausedByUser: Boolean = false) : ScanningHoldTa
     val calls = mutableListOf<String>()
 
     override fun pauseScanning() { calls += "pause" }
+    override fun stopScanning() { calls += "stop" }
     override fun resumeScanning() { calls += "resume" }
     override fun isPausedByUser() = pausedByUser
 }
@@ -52,15 +53,15 @@ class ScanningHoldCoordinatorTest {
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1, true))
         SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.PcRepeat, true)
         runMainLooper()
-        assertEquals(listOf("pause"), target.calls)
+        assertEquals(listOf("stop"), target.calls)
 
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(1, false))
         runMainLooper()
-        assertEquals(listOf("pause"), target.calls)
+        assertEquals(listOf("stop"), target.calls)
 
         SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.PcRepeat, false)
         runMainLooper()
-        assertEquals(listOf("pause", "resume"), target.calls)
+        assertEquals(listOf("stop", "resume"), target.calls)
     }
 
     @Test fun releasingHoldsDoesNotResumeOverTheUsersOwnPause() {
@@ -75,7 +76,7 @@ class ScanningHoldCoordinatorTest {
         SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.Forwarding, true)
         SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.Forwarding, false)
         runMainLooper()
-        assertEquals(listOf("pause", "pause", "resume"), target.calls)
+        assertEquals(listOf("pause", "stop", "resume"), target.calls)
     }
 
     @Test fun holdsTrackedWithoutAScanningManagerStillGateResume() {
@@ -105,7 +106,7 @@ class ScanningHoldCoordinatorTest {
         runMainLooper()
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(2, false))
         runMainLooper()
-        assertEquals(listOf("pause", "pause", "resume"), target.calls)
+        assertEquals(listOf("pause", "stop", "resume"), target.calls)
     }
 
     @Test fun holdPostedBeforeDetachIsDroppedAfterIt() {
@@ -117,7 +118,7 @@ class ScanningHoldCoordinatorTest {
         SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.Forwarding, true)
         SwitchifyRemoteBridgeCoordinator.setScanningHeld(ScanningHold.Forwarding, false)
         runMainLooper()
-        assertEquals(listOf("pause", "resume"), target.calls)
+        assertEquals(listOf("stop", "resume"), target.calls)
     }
 
     @Test fun pcRepeatHookHoldsScanningWhileArmedAndReportsSwitchAvailability() {
@@ -175,9 +176,9 @@ class ScanningHoldCoordinatorTest {
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(5, true))
         handle.release()
         runMainLooper()
-        assertEquals(listOf("pause"), target.calls)
+        assertEquals(listOf("pause", "stop"), target.calls)
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(5, false))
         runMainLooper()
-        assertEquals(listOf("pause", "resume"), target.calls)
+        assertEquals(listOf("pause", "stop", "resume"), target.calls)
     }
 }
