@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out released tag
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Checkout the exact tag the release was published from so
           # `gitVersionCode = rev-list --count HEAD` matches what was tagged.
@@ -56,13 +56,13 @@ jobs:
           echo "play_tracks=internal,production" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: jetbrains
           java-version: '21'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Decode upload keystore
         run: |
@@ -86,7 +86,7 @@ jobs:
         run: ./gradlew bundleRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8"
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
+        uses: ruby/setup-ruby@20eb24b0d509e2b9ed9b6d42ddfeb992915e0564 # v1.341.0
         with:
           ruby-version: '3.3'
 
