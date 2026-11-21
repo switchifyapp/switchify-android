@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -13,6 +15,8 @@ import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.MainActivity
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailabilityLight
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
@@ -26,17 +30,24 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 object TipNotifications {
     private const val TAG = "TipNotifications"
     private const val TOPIC = "tips"
     private const val CHANNEL_ID = "tips"
-    private const val FIREBASE_TIMEOUT_SECONDS = 30L
+    private const val TOPIC_TIMEOUT_SECONDS = 30L
+    private const val REMOVAL_TIMEOUT_SECONDS = 120L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val registrationMutex = Mutex()
+    private val retryOnNetworkRegistered = AtomicBoolean(false)
 
-    fun isAvailable(): Boolean {
+    fun isAvailable(context: Context): Boolean {
+        return isConfigured() && hasPlayServices(context.applicationContext)
+    }
+
+    private fun isConfigured(): Boolean {
         return listOf(
             BuildConfig.FIREBASE_APP_ID,
             BuildConfig.FIREBASE_API_KEY,
@@ -45,12 +56,19 @@ object TipNotifications {
         ).none { it.isBlank() }
     }
 
+    private fun hasPlayServices(context: Context): Boolean {
+        return runCatching {
+            GoogleApiAvailabilityLight.getInstance()
+                .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
+        }.getOrDefault(false)
+    }
+
     fun init(context: Context) {
         reconcileRegistration(context.applicationContext)
     }
 
     fun isEnabled(context: Context): Boolean {
-        return isAvailable() && TipPreferences(context).enabled
+        return isAvailable(context) && TipPreferences(context).enabled
     }
 
     fun setEnabled(context: Context, enabled: Boolean) {
@@ -61,7 +79,7 @@ object TipNotifications {
     fun onNewToken(context: Context) {
         TipPreferences(context).apply {
             registrationMayExist = true
-            subscribed = false
+            subscribedAtMillis = 0L
         }
         reconcileRegistration(context.applicationContext)
     }
@@ -119,40 +137,58 @@ object TipNotifications {
     private fun notificationId(tip: TipMessage): Int = (tip.id ?: tip.title).hashCode()
 
     private fun reconcileRegistration(context: Context) {
-        if (!isAvailable()) return
-        val preferences = TipPreferences(context)
-        if (!preferences.enabled && !preferences.registrationMayExist) return
+        if (!isConfigured()) return
+        val reconciler = TipRegistrationReconciler(TipPreferences(context), BuildConfig.VERSION_CODE)
+        if (!reconciler.needsWork()) return
         scope.launch {
             registrationMutex.withLock {
                 try {
-                    if (preferences.enabled) subscribe(context, preferences)
-                    else removeRegistration(context, preferences)
+                    if (reconciler.needsWork() && ensureFirebase(context)) {
+                        reconciler.reconcile(FirebaseRegistrationClient)
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "Tip registration is not up to date yet", e)
+                    retryWhenNetworkReturns(context)
                 }
             }
         }
     }
 
-    private fun subscribe(context: Context, preferences: TipPreferences) {
-        if (preferences.subscribed || !ensureFirebase(context)) return
-        preferences.registrationMayExist = true
-        await(FirebaseMessaging.getInstance().subscribeToTopic(TOPIC))
-        preferences.subscribed = true
+    private fun retryWhenNetworkReturns(context: Context) {
+        if (!retryOnNetworkRegistered.compareAndSet(false, true)) return
+        try {
+            context.getSystemService(ConnectivityManager::class.java)
+                .registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) {
+                        reconcileRegistration(context)
+                    }
+                })
+        } catch (e: Exception) {
+            retryOnNetworkRegistered.set(false)
+            Log.w(TAG, "Could not watch for the network to retry tip registration", e)
+        }
     }
 
-    private fun removeRegistration(context: Context, preferences: TipPreferences) {
-        if (!preferences.registrationMayExist || !ensureFirebase(context)) return
-        preferences.subscribed = false
-        val messaging = FirebaseMessaging.getInstance()
-        await(messaging.unsubscribeFromTopic(TOPIC))
-        await(messaging.deleteToken())
-        await(FirebaseInstallations.getInstance().delete())
-        preferences.registrationMayExist = false
-    }
+    private object FirebaseRegistrationClient : TipRegistrationClient {
+        override fun subscribe() {
+            await(FirebaseMessaging.getInstance().subscribeToTopic(TOPIC), TOPIC_TIMEOUT_SECONDS)
+        }
 
-    private fun <T> await(task: Task<T>): T {
-        return Tasks.await(task, FIREBASE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        override fun unsubscribe() {
+            await(FirebaseMessaging.getInstance().unsubscribeFromTopic(TOPIC), TOPIC_TIMEOUT_SECONDS)
+        }
+
+        override fun deleteToken() {
+            await(FirebaseMessaging.getInstance().deleteToken(), REMOVAL_TIMEOUT_SECONDS)
+        }
+
+        override fun deleteInstallation() {
+            await(FirebaseInstallations.getInstance().delete(), REMOVAL_TIMEOUT_SECONDS)
+        }
+
+        private fun <T> await(task: Task<T>, timeoutSeconds: Long): T {
+            return Tasks.await(task, timeoutSeconds, TimeUnit.SECONDS)
+        }
     }
 
     private fun ensureFirebase(context: Context): Boolean {

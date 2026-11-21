@@ -9,6 +9,7 @@ class TipMessagingService : FirebaseMessagingService() {
         val preferences = TipPreferences(this)
         if (!preferences.enabled) return
         val tip = TipMessage.from(message.data) ?: return
+        if (!TipNotifications.canPostNotifications(this)) return
         if (tip.id != null && !preferences.markShown(tip.id)) return
         TipNotifications.show(this, tip)
     }

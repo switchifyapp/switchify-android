@@ -40,7 +40,9 @@ class TipMessageTest {
         listOf(
             "https://theswitchify.app",
             "https://www.theswitchify.app/privacy",
-            "https://ANDROID.theswitchify.app/using/scanning/#radar"
+            "https://ANDROID.theswitchify.app/using/scanning/#radar",
+            "https://android.theswitchify.app/pc-control/pairing/?from=tip&x=1#step-2",
+            "https://a-b.c1.theswitchify.app/a_b/c.d~e/%20f+g"
         ).forEach { url ->
             val tip = TipMessage.from(mapOf("title" to "Title", "body" to "Body", "url" to url))
             assertEquals(url, tip?.url)

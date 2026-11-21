@@ -1,0 +1,159 @@
+package com.enaboapps.switchify.tips
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.IOException
+
+class TipRegistrationReconcilerTest {
+
+    private class FakeState : TipRegistrationState {
+        override var enabled = false
+        override var registrationMayExist = false
+        override var subscribedAtMillis = 0L
+        override var subscribedVersionCode = 0
+    }
+
+    private class FakeClient : TipRegistrationClient {
+        val calls = mutableListOf<String>()
+        val failing = mutableSetOf<String>()
+
+        private fun call(name: String) {
+            calls += name
+            if (name in failing) throw IOException("$name failed")
+        }
+
+        override fun subscribe() = call("subscribe")
+        override fun unsubscribe() = call("unsubscribe")
+        override fun deleteToken() = call("deleteToken")
+        override fun deleteInstallation() = call("deleteInstallation")
+    }
+
+    private val state = FakeState()
+    private val client = FakeClient()
+    private var now = 1_000_000L
+    private var versionCode = 10
+
+    private fun reconciler() = TipRegistrationReconciler(state, versionCode) { now }
+
+    @Test
+    fun doesNothingBeforeAnyOptIn() {
+        assertFalse(reconciler().needsWork())
+
+        reconciler().reconcile(client)
+
+        assertTrue(client.calls.isEmpty())
+        assertFalse(state.registrationMayExist)
+    }
+
+    @Test
+    fun subscribesOnceAfterOptIn() {
+        state.enabled = true
+        assertTrue(reconciler().needsWork())
+
+        reconciler().reconcile(client)
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("subscribe"), client.calls)
+        assertTrue(state.registrationMayExist)
+        assertFalse(reconciler().needsWork())
+    }
+
+    @Test
+    fun subscribesAgainAfterAWeekOrAnAppUpdate() {
+        state.enabled = true
+        reconciler().reconcile(client)
+
+        now += TipRegistrationReconciler.REFRESH_INTERVAL_MILLIS - 1
+        assertFalse(reconciler().needsWork())
+        now += 1
+        assertTrue(reconciler().needsWork())
+        reconciler().reconcile(client)
+        assertFalse(reconciler().needsWork())
+
+        versionCode = 11
+        assertTrue(reconciler().needsWork())
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("subscribe", "subscribe", "subscribe"), client.calls)
+    }
+
+    @Test
+    fun aFailedSubscribeIsRetriedAndRememberedAsAPossibleRegistration() {
+        state.enabled = true
+        client.failing += "subscribe"
+
+        assertThrows(IOException::class.java) { reconciler().reconcile(client) }
+
+        assertTrue(state.registrationMayExist)
+        assertTrue(reconciler().needsWork())
+
+        client.failing.clear()
+        reconciler().reconcile(client)
+        assertFalse(reconciler().needsWork())
+    }
+
+    @Test
+    fun optingOutRemovesTheSubscriptionTokenAndInstallationInOrder() {
+        state.enabled = true
+        reconciler().reconcile(client)
+        client.calls.clear()
+
+        state.enabled = false
+        assertTrue(reconciler().needsWork())
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("unsubscribe", "deleteToken", "deleteInstallation"), client.calls)
+        assertFalse(state.registrationMayExist)
+        assertFalse(reconciler().needsWork())
+    }
+
+    @Test
+    fun aFailedUnsubscribeDoesNotBlockDeletion() {
+        state.registrationMayExist = true
+        client.failing += "unsubscribe"
+
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("unsubscribe", "deleteToken", "deleteInstallation"), client.calls)
+        assertFalse(state.registrationMayExist)
+    }
+
+    @Test
+    fun aFailedDeletionKeepsRemovalPendingUntilItSucceeds() {
+        state.registrationMayExist = true
+
+        listOf("deleteToken", "deleteInstallation").forEach { step ->
+            client.failing.clear()
+            client.failing += step
+            assertThrows(IOException::class.java) { reconciler().reconcile(client) }
+            assertTrue(state.registrationMayExist)
+            assertTrue(reconciler().needsWork())
+        }
+
+        client.failing.clear()
+        reconciler().reconcile(client)
+        assertFalse(state.registrationMayExist)
+    }
+
+    @Test
+    fun optingBackInAfterAPendingRemovalSubscribesAgain() {
+        state.enabled = true
+        reconciler().reconcile(client)
+        state.enabled = false
+        client.failing += "deleteToken"
+        assertThrows(IOException::class.java) { reconciler().reconcile(client) }
+        client.failing.clear()
+        client.calls.clear()
+
+        state.enabled = true
+        assertTrue(reconciler().needsWork())
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("subscribe"), client.calls)
+        assertTrue(state.registrationMayExist)
+        assertFalse(reconciler().needsWork())
+    }
+}

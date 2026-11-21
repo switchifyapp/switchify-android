@@ -162,7 +162,7 @@ fun AboutSection(
             }
         }
 
-        if (TipNotifications.isAvailable()) {
+        if (TipNotifications.isAvailable(context)) {
             Section(titleResId = R.string.settings_section_notifications) {
                 key(tipNotificationsDeniedCount) {
                     PreferenceSwitch(
