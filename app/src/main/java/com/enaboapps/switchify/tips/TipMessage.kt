@@ -13,6 +13,7 @@ data class TipMessage(
         private const val KEY_TITLE = "title"
         private const val KEY_BODY = "body"
         private const val KEY_URL = "url"
+        private const val ALLOWED_DOMAIN = "theswitchify.app"
 
         fun from(data: Map<String, String>): TipMessage? {
             val title = data[KEY_TITLE]?.trim().orEmpty()
@@ -28,7 +29,10 @@ data class TipMessage(
 
         internal fun isAllowedUrl(url: String): Boolean {
             val uri = runCatching { URI(url) }.getOrNull() ?: return false
-            return uri.scheme.equals("https", ignoreCase = true) && !uri.host.isNullOrBlank()
+            val host = uri.host?.lowercase() ?: return false
+            return uri.scheme.equals("https", ignoreCase = true) &&
+                    uri.userInfo == null &&
+                    (host == ALLOWED_DOMAIN || host.endsWith(".$ALLOWED_DOMAIN"))
         }
     }
 }

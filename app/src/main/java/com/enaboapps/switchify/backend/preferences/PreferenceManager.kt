@@ -61,7 +61,6 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_MENU_SIZE_SCALE = "menu_size_scale"
         const val PREFERENCE_KEY_SETTINGS_TAB = "settings_tab"
         const val PREFERENCE_KEY_TELEMETRY_ENABLED = "telemetry_enabled"
-        const val PREFERENCE_KEY_TIP_NOTIFICATIONS_ENABLED = "tip_notifications_enabled"
         const val PREFERENCE_KEY_DEVICE_ID = "device_id"
         const val PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH = "overlay_service_epoch"
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
@@ -110,7 +109,6 @@ class PreferenceManager(context: Context) {
             PREFERENCE_KEY_SETUP_COMPLETE,
             PREFERENCE_KEY_REVIEW_LAST_SHOWN,
             PREFERENCE_KEY_TELEMETRY_ENABLED,
-            PREFERENCE_KEY_TIP_NOTIFICATIONS_ENABLED,
             PREFERENCE_KEY_DEVICE_ID,
             PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH,
             PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
@@ -197,14 +195,6 @@ class PreferenceManager(context: Context) {
      */
     fun isTelemetryEnabled(): Boolean {
         return getBooleanValue(PREFERENCE_KEY_TELEMETRY_ENABLED, false)
-    }
-
-    fun setTipNotificationsEnabled(enabled: Boolean) {
-        setBooleanValue(PREFERENCE_KEY_TIP_NOTIFICATIONS_ENABLED, enabled)
-    }
-
-    fun isTipNotificationsEnabled(): Boolean {
-        return getBooleanValue(PREFERENCE_KEY_TIP_NOTIFICATIONS_ENABLED, false)
     }
 
     fun setIntegerValue(key: String, value: Int) {

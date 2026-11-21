@@ -19,7 +19,9 @@ Sending feedback from the app also uses this channel, so **Send Feedback** only 
 
 Switchify can show a notification now and then with a short tip for using the app. This is off until you turn on **Tips** under **Settings → About → Notifications**. On Android 13 and later, Android asks you to allow notifications the first time.
 
-Tips are the same for everyone and are not linked to your account, so you do not need to be signed in. To receive them, your device registers with Google's Firebase Cloud Messaging service, which gives the device a messaging ID. Turning **Tips** off removes that registration. A tip can include a link, which opens when you select the notification.
+Tips are the same for everyone and are not linked to your account, so you do not need to be signed in. To receive them, your device registers with Google's Firebase Cloud Messaging service, which gives the device a messaging ID. Turning **Tips** off removes that registration the next time the device is online, and any tip that arrives in between is not shown. The setting is not included in backups, so a new or restored device starts with **Tips** off.
+
+Tips arrive quietly, without a sound. A tip can include a link to a page on a Switchify website, which opens when you select the notification.
 
 ## What the accessibility service sees
 

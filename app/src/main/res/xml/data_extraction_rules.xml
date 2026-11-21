@@ -7,6 +7,10 @@
    PC pairing metadata, the PC device ID and Keystore-encrypted pairing tokens
    must stay on this device, as must the plain-text PC pairing stores left by
    versions before 3.1.0.
+   The tips opt-in and the Firebase registration belong to one device: a
+   restored device must be opted in again and must not reuse another
+   device's Firebase installation. The installation file name is derived
+   from the Firebase app ID of the official build.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -26,6 +30,14 @@
         <exclude domain="device_sharedpref" path="switchify_pc_pairings.xml" />
         <exclude domain="sharedpref" path="pc_switch_forwarding_profiles.xml" />
         <exclude domain="device_sharedpref" path="pc_switch_forwarding_profiles.xml" />
+        <exclude domain="sharedpref" path="tip_notifications.xml" />
+        <exclude domain="device_sharedpref" path="tip_notifications.xml" />
+        <exclude domain="sharedpref" path="com.google.android.gms.appid.xml" />
+        <exclude domain="device_sharedpref" path="com.google.android.gms.appid.xml" />
+        <exclude domain="sharedpref" path="com.google.firebase.messaging.xml" />
+        <exclude domain="device_sharedpref" path="com.google.firebase.messaging.xml" />
+        <exclude domain="file" path="PersistedInstallation.W0RFRkFVTFRd+MToyODk5NTQ4NTI0NTk6YW5kcm9pZDpiZDc1ZTAzMjRlOGEwNmJjZDU0YjJl.json" />
+        <exclude domain="device_file" path="PersistedInstallation.W0RFRkFVTFRd+MToyODk5NTQ4NTI0NTk6YW5kcm9pZDpiZDc1ZTAzMjRlOGEwNmJjZDU0YjJl.json" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="com.enaboapps.switchify_preferences.xml" />
@@ -44,5 +56,13 @@
         <exclude domain="device_sharedpref" path="switchify_pc_pairings.xml" />
         <exclude domain="sharedpref" path="pc_switch_forwarding_profiles.xml" />
         <exclude domain="device_sharedpref" path="pc_switch_forwarding_profiles.xml" />
+        <exclude domain="sharedpref" path="tip_notifications.xml" />
+        <exclude domain="device_sharedpref" path="tip_notifications.xml" />
+        <exclude domain="sharedpref" path="com.google.android.gms.appid.xml" />
+        <exclude domain="device_sharedpref" path="com.google.android.gms.appid.xml" />
+        <exclude domain="sharedpref" path="com.google.firebase.messaging.xml" />
+        <exclude domain="device_sharedpref" path="com.google.firebase.messaging.xml" />
+        <exclude domain="file" path="PersistedInstallation.W0RFRkFVTFRd+MToyODk5NTQ4NTI0NTk6YW5kcm9pZDpiZDc1ZTAzMjRlOGEwNmJjZDU0YjJl.json" />
+        <exclude domain="device_file" path="PersistedInstallation.W0RFRkFVTFRd+MToyODk5NTQ4NTI0NTk6YW5kcm9pZDpiZDc1ZTAzMjRlOGEwNmJjZDU0YjJl.json" />
     </device-transfer>
 </data-extraction-rules>

@@ -36,9 +36,26 @@ class TipMessageTest {
     }
 
     @Test
-    fun dropsLinksThatAreNotHttps() {
+    fun keepsHttpsLinksToSwitchifySites() {
+        listOf(
+            "https://theswitchify.app",
+            "https://www.theswitchify.app/privacy",
+            "https://ANDROID.theswitchify.app/using/scanning/#radar"
+        ).forEach { url ->
+            val tip = TipMessage.from(mapOf("title" to "Title", "body" to "Body", "url" to url))
+            assertEquals(url, tip?.url)
+        }
+    }
+
+    @Test
+    fun dropsLinksThatAreNotHttpsOrNotSwitchifySites() {
         listOf(
             "http://android.theswitchify.app",
+            "https://example.com/",
+            "https://eviltheswitchify.app/",
+            "https://theswitchify.app.example.com/",
+            "https://theswitchify.app@example.com/",
+            "https://example.com/?next=theswitchify.app",
             "intent://scan/#Intent;scheme=zxing;end",
             "file:///sdcard/secret",
             "switchify://pc-control",
@@ -56,5 +73,18 @@ class TipMessageTest {
         val tip = TipMessage.from(mapOf("tip_id" to " ", "title" to "Title", "body" to "Body"))
 
         assertNull(tip?.id)
+    }
+
+    @Test
+    fun remembersEachTipOnceAndForgetsTheOldest() {
+        assertEquals(listOf("a", "b"), TipPreferences.rememberShown(listOf("a"), "b"))
+        assertNull(TipPreferences.rememberShown(listOf("a", "b"), "a"))
+
+        val full = (1..50).map { it.toString() }
+        val updated = TipPreferences.rememberShown(full, "51")
+
+        assertEquals(50, updated?.size)
+        assertEquals("2", updated?.first())
+        assertEquals("51", updated?.last())
     }
 }

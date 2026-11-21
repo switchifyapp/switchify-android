@@ -12,18 +12,29 @@ import androidx.core.net.toUri
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.MainActivity
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.TimeUnit
 
 object TipNotifications {
     private const val TAG = "TipNotifications"
     private const val TOPIC = "tips"
     private const val CHANNEL_ID = "tips"
+    private const val FIREBASE_TIMEOUT_SECONDS = 30L
 
-    private val lock = Any()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val registrationMutex = Mutex()
 
     fun isAvailable(): Boolean {
         return listOf(
@@ -35,25 +46,24 @@ object TipNotifications {
     }
 
     fun init(context: Context) {
-        val appContext = context.applicationContext
-        if (!ensureFirebase(appContext)) return
-        if (!PreferenceManager(appContext).isTipNotificationsEnabled()) return
-        if (!canPostNotifications(appContext)) return
-        subscribe()
+        reconcileRegistration(context.applicationContext)
     }
 
     fun isEnabled(context: Context): Boolean {
-        val appContext = context.applicationContext
-        return isAvailable() &&
-                PreferenceManager(appContext).isTipNotificationsEnabled() &&
-                canPostNotifications(appContext)
+        return isAvailable() && TipPreferences(context).enabled
     }
 
     fun setEnabled(context: Context, enabled: Boolean) {
-        val appContext = context.applicationContext
-        PreferenceManager(appContext).setTipNotificationsEnabled(enabled)
-        if (!ensureFirebase(appContext)) return
-        if (enabled) subscribe() else unsubscribe(appContext)
+        TipPreferences(context).enabled = enabled
+        reconcileRegistration(context.applicationContext)
+    }
+
+    fun onNewToken(context: Context) {
+        TipPreferences(context).apply {
+            registrationMayExist = true
+            subscribed = false
+        }
+        reconcileRegistration(context.applicationContext)
     }
 
     fun canPostNotifications(context: Context): Boolean {
@@ -68,7 +78,7 @@ object TipNotifications {
             NotificationChannel(
                 CHANNEL_ID,
                 appContext.getString(R.string.tips_notification_channel_name),
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = appContext.getString(R.string.tips_notification_channel_description)
             }
@@ -79,7 +89,7 @@ object TipNotifications {
             .setContentText(tip.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(tip.body))
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .setContentIntent(contentIntent(appContext, tip))
             .build()
@@ -91,9 +101,13 @@ object TipNotifications {
     }
 
     private fun contentIntent(context: Context, tip: TipMessage): PendingIntent {
-        val intent = tip.url?.let { Intent(Intent.ACTION_VIEW, it.toUri()) }
-            ?: Intent(context, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val intent = tip.url
+            ?.let { Intent(Intent.ACTION_VIEW, it.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+            ?: Intent(context, MainActivity::class.java).addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
         return PendingIntent.getActivity(
             context,
             notificationId(tip),
@@ -104,47 +118,64 @@ object TipNotifications {
 
     private fun notificationId(tip: TipMessage): Int = (tip.id ?: tip.title).hashCode()
 
-    private fun ensureFirebase(context: Context): Boolean {
-        if (!isAvailable()) return false
-        return synchronized(lock) {
-            try {
-                if (!DeviceLockObserver.isUserUnlocked(context)) {
-                    false
-                } else {
-                    if (FirebaseApp.getApps(context).isEmpty()) {
-                        FirebaseApp.initializeApp(
-                            context,
-                            FirebaseOptions.Builder()
-                                .setApplicationId(BuildConfig.FIREBASE_APP_ID)
-                                .setApiKey(BuildConfig.FIREBASE_API_KEY)
-                                .setProjectId(BuildConfig.FIREBASE_PROJECT_ID)
-                                .setGcmSenderId(BuildConfig.FIREBASE_SENDER_ID)
-                                .build()
-                        )
-                    }
-                    true
+    private fun reconcileRegistration(context: Context) {
+        if (!isAvailable()) return
+        val preferences = TipPreferences(context)
+        if (!preferences.enabled && !preferences.registrationMayExist) return
+        scope.launch {
+            registrationMutex.withLock {
+                try {
+                    if (preferences.enabled) subscribe(context, preferences)
+                    else removeRegistration(context, preferences)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Tip registration is not up to date yet", e)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialise Firebase", e)
-                false
             }
         }
     }
 
-    private fun subscribe() {
-        FirebaseMessaging.getInstance().subscribeToTopic(TOPIC).addOnFailureListener { e ->
-            Log.w(TAG, "Failed to subscribe to tips", e)
-        }
+    private fun subscribe(context: Context, preferences: TipPreferences) {
+        if (preferences.subscribed || !ensureFirebase(context)) return
+        preferences.registrationMayExist = true
+        await(FirebaseMessaging.getInstance().subscribeToTopic(TOPIC))
+        preferences.subscribed = true
     }
 
-    private fun unsubscribe(context: Context) {
+    private fun removeRegistration(context: Context, preferences: TipPreferences) {
+        if (!preferences.registrationMayExist || !ensureFirebase(context)) return
+        preferences.subscribed = false
         val messaging = FirebaseMessaging.getInstance()
-        messaging.unsubscribeFromTopic(TOPIC).addOnCompleteListener {
-            if (!PreferenceManager(context).isTipNotificationsEnabled()) {
-                messaging.deleteToken().addOnFailureListener { e ->
-                    Log.w(TAG, "Failed to delete the messaging registration", e)
+        await(messaging.unsubscribeFromTopic(TOPIC))
+        await(messaging.deleteToken())
+        await(FirebaseInstallations.getInstance().delete())
+        preferences.registrationMayExist = false
+    }
+
+    private fun <T> await(task: Task<T>): T {
+        return Tasks.await(task, FIREBASE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    }
+
+    private fun ensureFirebase(context: Context): Boolean {
+        return try {
+            if (!DeviceLockObserver.isUserUnlocked(context)) {
+                false
+            } else {
+                if (FirebaseApp.getApps(context).isEmpty()) {
+                    FirebaseApp.initializeApp(
+                        context,
+                        FirebaseOptions.Builder()
+                            .setApplicationId(BuildConfig.FIREBASE_APP_ID)
+                            .setApiKey(BuildConfig.FIREBASE_API_KEY)
+                            .setProjectId(BuildConfig.FIREBASE_PROJECT_ID)
+                            .setGcmSenderId(BuildConfig.FIREBASE_SENDER_ID)
+                            .build()
+                    )
                 }
+                true
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialise Firebase", e)
+            false
         }
     }
 }
