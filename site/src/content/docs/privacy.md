@@ -1,6 +1,6 @@
 ---
 title: Privacy
-description: Diagnostic data is off until you turn it on, what it contains, what stays on the device, and where the full privacy policy is.
+description: Diagnostic data and tip notifications are off until you turn them on, what they involve, what stays on the device, and where the full privacy policy is.
 ---
 
 ## Diagnostic data is opt-in
@@ -14,6 +14,14 @@ Switchify does not send usage events or crash reports unless you turn on **Share
 When it is on, Switchify sends usage events (which features you use) and crash reports so problems can be found and fixed. If you are signed in, the reports are linked to your account email. **Switchify never sends the content of your screen.**
 
 Sending feedback from the app also uses this channel, so **Send Feedback** only works while diagnostic data sharing is on. Feedback can include an email address if you want a reply.
+
+## Tip notifications are opt-in
+
+Switchify can show a notification now and then with a short tip for using the app. This is off until you turn on **Tips** under **Settings → About → Notifications**. On Android 13 and later, Android asks you to allow notifications the first time. Tips need Google Play services, so the switch does not appear on devices without them.
+
+Tips are the same for everyone and are not linked to your account, so you do not need to be signed in. To receive them, your device registers with Google's Firebase Cloud Messaging service, which gives the device a messaging ID. Turning **Tips** off stops tips straight away and removes that registration. If the device is offline at the time, Switchify removes it the next time it is running with the device back online. The setting is not included in backups, so a new or restored device starts with **Tips** off.
+
+Tips arrive quietly, without a sound. A tip can include a link to a page on a Switchify website, which opens when you select the notification.
 
 ## What the accessibility service sees
 

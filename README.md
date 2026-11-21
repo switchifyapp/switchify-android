@@ -45,6 +45,16 @@ sentry.dsn=<ask_for_dsn>
 
 All of these keys are required — the build fails with a `Missing config` error if any are absent. CI builds read the same values from `REVENUECAT_PUBLIC_KEY`, `TIMBERLOGS_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GOOGLE_WEB_CLIENT_ID`, and `SENTRY_DSN` environment variables. Release CI additionally needs `SENTRY_AUTH_TOKEN` so the Sentry Gradle plugin can upload ProGuard mappings and source context.
 
+Tip notifications use Firebase Cloud Messaging and are optional in debug builds. Without the four values below the app builds and runs, and the **Tips** switch is hidden. Release builds fail without them. CI reads them from `FIREBASE_APP_ID`, `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, and `FIREBASE_SENDER_ID`.
+
+```properties
+# Firebase project settings (obtain from project owner)
+firebase.appId=<ask_for_app_id>
+firebase.apiKey=<ask_for_key>
+firebase.projectId=<ask_for_project_id>
+firebase.senderId=<ask_for_sender_id>
+```
+
 ### 3. Build and run
 ```bash
 ./gradlew build

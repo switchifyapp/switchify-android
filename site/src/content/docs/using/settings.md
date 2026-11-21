@@ -51,7 +51,7 @@ All of these are described on [Scanning](/using/scanning/).
 
 ## About
 
-Links to the website, this user guide, the privacy policy and feedback, and the **Share diagnostic data** switch. See [Privacy](/privacy/).
+Links to the website, this user guide, the privacy policy and feedback, the **Tips** switch for occasional tip notifications, and the **Share diagnostic data** switch. Both switches are off until you turn them on. See [Privacy](/privacy/).
 
 ## Pause
 

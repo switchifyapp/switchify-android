@@ -7,6 +7,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.enaboapps.switchify.pc.storage.LegacyPcDataCleanup
 import com.enaboapps.switchify.service.stats.StatsCollector
+import com.enaboapps.switchify.tips.TipNotifications
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 import com.enaboapps.switchify.utils.SentryReporter
@@ -34,6 +35,8 @@ class SwitchifyApplication : Application() {
         Logger.init(this)
 
         SentryReporter.init(this)
+
+        TipNotifications.init(this)
 
         // Initialize stats collector
         StatsCollector.getInstance().initialize(this)
