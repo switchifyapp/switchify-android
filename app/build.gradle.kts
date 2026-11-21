@@ -125,11 +125,20 @@ android {
     }
 }
 
-val sentryLocalConfig = Properties()
-val sentryLocalConfigFile = rootProject.file("local.properties")
-if (sentryLocalConfigFile.exists()) sentryLocalConfigFile.inputStream().use(sentryLocalConfig::load)
+val releaseOnlyLocalConfig = Properties()
+val releaseOnlyLocalConfigFile = rootProject.file("local.properties")
+if (releaseOnlyLocalConfigFile.exists()) releaseOnlyLocalConfigFile.inputStream().use(releaseOnlyLocalConfig::load)
 val sentryDsn = providers.environmentVariable("SENTRY_DSN")
-    .orElse(sentryLocalConfig.getProperty("sentry.dsn", ""))
+    .orElse(releaseOnlyLocalConfig.getProperty("sentry.dsn", ""))
+val firebaseConfig = mapOf(
+    "FIREBASE_APP_ID" to "firebase.appId",
+    "FIREBASE_API_KEY" to "firebase.apiKey",
+    "FIREBASE_PROJECT_ID" to "firebase.projectId",
+    "FIREBASE_SENDER_ID" to "firebase.senderId"
+).mapValues { (envVar, propKey) ->
+    propKey to providers.environmentVariable(envVar)
+        .orElse(releaseOnlyLocalConfig.getProperty(propKey, ""))
+}
 
 androidComponents {
     onVariants(selector().all()) { variant ->
@@ -152,13 +161,22 @@ androidComponents {
             GenerateSettingsSearchIndexTask::outputDir
         )
 
-        val requiresSentryDsn = variant.buildType == "release"
+        val isReleaseBuild = variant.buildType == "release"
         checkNotNull(variant.buildConfigFields).put("SENTRY_DSN", sentryDsn.map { dsn ->
-            check(!requiresSentryDsn || dsn.isNotBlank()) {
+            check(!isReleaseBuild || dsn.isNotBlank()) {
                 "Missing config: set SENTRY_DSN env var or 'sentry.dsn' in local.properties for release builds"
             }
             BuildConfigField("String", "\"$dsn\"", null)
         })
+        firebaseConfig.forEach { (envVar, config) ->
+            val (propKey, provider) = config
+            checkNotNull(variant.buildConfigFields).put(envVar, provider.map { value ->
+                check(!isReleaseBuild || value.isNotBlank()) {
+                    "Missing config: set $envVar env var or '$propKey' in local.properties for release builds"
+                }
+                BuildConfigField("String", "\"$value\"", null)
+            })
+        }
     }
 }
 
@@ -221,6 +239,7 @@ dependencies {
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.sentry.android)
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.json)

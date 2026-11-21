@@ -30,6 +30,7 @@ json = "20260814"
 mlkit-genai = "1.0.0-beta5"
 sentry = "8.65.0"
 sentry-gradle = "6.27.0"
+firebase-messaging = "26.0.2"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
@@ -74,6 +75,7 @@ reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.r
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines-test" }
 json = { group = "org.json", name = "json", version.ref = "json" }
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebase-messaging" }
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
