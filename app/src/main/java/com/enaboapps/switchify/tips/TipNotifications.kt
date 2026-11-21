@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 object TipNotifications {
@@ -41,12 +40,16 @@ object TipNotifications {
     private const val CHANNEL_ID = "tips"
     private const val TOPIC_TIMEOUT_SECONDS = 30L
     private const val REMOVAL_TIMEOUT_SECONDS = 120L
+    private const val FIRST_RETRY_DELAY_MILLIS = 60_000L
+    private const val MAX_RETRY_DELAY_MILLIS = 6L * 60 * 60 * 1000
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val registrationMutex = Mutex()
     private val retryOnNetworkRegistered = AtomicBoolean(false)
-    private val refreshLock = Any()
+    private val followUpLock = Any()
     private var refreshJob: Job? = null
+    private var retryJob: Job? = null
+    private var failedAttempts = 0
 
     fun isAvailable(context: Context): Boolean {
         return isConfigured() && hasPlayServices(context.applicationContext)
@@ -159,25 +162,48 @@ object TipNotifications {
             registrationMutex.withLock {
                 try {
                     if (reconciler.needsWork() && ensureFirebase(context)) {
-                        reconciler.reconcile(FirebaseRegistrationClient)
+                        reconciler.reconcile(FirebaseRegistrationClient { reconcileRegistration(context) })
                     }
+                    cancelRetry()
                     scheduleRefresh(context, reconciler)
                 } catch (e: Exception) {
                     Log.w(TAG, "Tip registration is not up to date yet", e)
                     retryWhenNetworkReturns(context)
+                    scheduleRetry(context)
                 }
             }
         }
     }
 
     private fun scheduleRefresh(context: Context, reconciler: TipRegistrationReconciler) {
-        synchronized(refreshLock) {
+        synchronized(followUpLock) {
             refreshJob?.cancel()
             val wait = reconciler.millisUntilRefresh() ?: return
             refreshJob = scope.launch {
                 delay(wait)
                 reconcileRegistration(context)
             }
+        }
+    }
+
+    private fun scheduleRetry(context: Context) {
+        synchronized(followUpLock) {
+            retryJob?.cancel()
+            val wait = (FIRST_RETRY_DELAY_MILLIS shl failedAttempts.coerceAtMost(16))
+                .coerceAtMost(MAX_RETRY_DELAY_MILLIS)
+            failedAttempts++
+            retryJob = scope.launch {
+                delay(wait)
+                reconcileRegistration(context)
+            }
+        }
+    }
+
+    private fun cancelRetry() {
+        synchronized(followUpLock) {
+            retryJob?.cancel()
+            retryJob = null
+            failedAttempts = 0
         }
     }
 
@@ -196,67 +222,52 @@ object TipNotifications {
         }
     }
 
-    private object FirebaseRegistrationClient : TipRegistrationClient {
-        private const val SUBSCRIBE = "subscribe"
-        private const val UNSUBSCRIBE = "unsubscribe"
-
-        private var topicOperation: Pair<String, Task<Void>>? = null
-        private var tokenDeletion: Task<Void>? = null
-        private var installationDeletion: Task<Void>? = null
+    private class FirebaseRegistrationClient(
+        private val onLateCompletion: () -> Unit
+    ) : TipRegistrationClient {
 
         override fun finishPendingDeletion() {
-            tokenDeletion?.let { settle("deleteToken", it, REMOVAL_TIMEOUT_SECONDS) }
-            installationDeletion?.let { settle("deleteInstallation", it, REMOVAL_TIMEOUT_SECONDS) }
+            operations.settle(DELETE_TOKEN, REMOVAL_TIMEOUT_SECONDS, onLateCompletion)
+            operations.settle(DELETE_INSTALLATION, REMOVAL_TIMEOUT_SECONDS, onLateCompletion)
         }
 
         override fun subscribe() {
-            awaitTopic(SUBSCRIBE) { FirebaseMessaging.getInstance().subscribeToTopic(TOPIC) }
+            operations.forget(UNSUBSCRIBE)
+            operations.run(SUBSCRIBE, TOPIC_TIMEOUT_SECONDS, onLateCompletion) {
+                FirebaseMessaging.getInstance().subscribeToTopic(TOPIC)
+            }
         }
 
         override fun unsubscribe() {
-            awaitTopic(UNSUBSCRIBE) { FirebaseMessaging.getInstance().unsubscribeFromTopic(TOPIC) }
+            operations.forget(SUBSCRIBE)
+            operations.run(UNSUBSCRIBE, TOPIC_TIMEOUT_SECONDS, onLateCompletion) {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(TOPIC)
+            }
         }
 
         override fun deleteToken() {
-            topicOperation?.let { (name, task) ->
-                if (!task.isComplete) throw TipOperationPendingException(name)
+            operations.run(DELETE_TOKEN, REMOVAL_TIMEOUT_SECONDS, onLateCompletion) {
+                FirebaseMessaging.getInstance().deleteToken()
             }
-            val task = tokenDeletion?.takeUnless { it.isComplete }
-                ?: FirebaseMessaging.getInstance().deleteToken().also { tokenDeletion = it }
-            await("deleteToken", task, REMOVAL_TIMEOUT_SECONDS)
         }
 
         override fun deleteInstallation() {
-            val task = installationDeletion?.takeUnless { it.isComplete }
-                ?: FirebaseInstallations.getInstance().delete().also { installationDeletion = it }
-            await("deleteInstallation", task, REMOVAL_TIMEOUT_SECONDS)
-        }
-
-        private fun awaitTopic(name: String, start: () -> Task<Void>) {
-            val task = topicOperation
-                ?.takeIf { (pendingName, pending) -> pendingName == name && !pending.isComplete }
-                ?.second
-                ?: start().also { topicOperation = name to it }
-            await(name, task, TOPIC_TIMEOUT_SECONDS)
-        }
-
-        private fun settle(name: String, task: Task<Void>, timeoutSeconds: Long) {
-            if (task.isComplete) return
-            try {
-                await(name, task, timeoutSeconds)
-            } catch (e: TipOperationPendingException) {
-                throw e
-            } catch (e: Exception) {
-                Unit
+            operations.run(DELETE_INSTALLATION, REMOVAL_TIMEOUT_SECONDS, onLateCompletion) {
+                FirebaseInstallations.getInstance().delete()
             }
         }
 
-        private fun await(name: String, task: Task<Void>, timeoutSeconds: Long) {
-            try {
-                Tasks.await(task, timeoutSeconds, TimeUnit.SECONDS)
-            } catch (e: TimeoutException) {
-                throw TipOperationPendingException(name)
-            }
+        companion object {
+            private const val SUBSCRIBE = "subscribe"
+            private const val UNSUBSCRIBE = "unsubscribe"
+            private const val DELETE_TOKEN = "deleteToken"
+            private const val DELETE_INSTALLATION = "deleteInstallation"
+
+            private val operations = TrackedOperations<Task<Void>>(
+                isComplete = { it.isComplete },
+                await = { task, timeoutSeconds -> Tasks.await(task, timeoutSeconds, TimeUnit.SECONDS) },
+                onLateCompletion = { task, callback -> task.addOnCompleteListener { callback() } }
+            )
         }
     }
 
