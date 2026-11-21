@@ -7,7 +7,11 @@ interface TipRegistrationState {
     var subscribedVersionCode: Int
 }
 
+class TipOperationPendingException(operation: String) :
+    Exception("$operation has not finished yet")
+
 interface TipRegistrationClient {
+    fun finishPendingDeletion()
     fun subscribe()
     fun unsubscribe()
     fun deleteToken()
@@ -30,6 +34,7 @@ class TipRegistrationReconciler(
 
     private fun subscribe(client: TipRegistrationClient) {
         if (isSubscriptionFresh()) return
+        client.finishPendingDeletion()
         state.registrationMayExist = true
         client.subscribe()
         state.subscribedAtMillis = now()
@@ -39,10 +44,21 @@ class TipRegistrationReconciler(
     private fun removeRegistration(client: TipRegistrationClient) {
         if (!state.registrationMayExist) return
         state.subscribedAtMillis = 0L
-        runCatching { client.unsubscribe() }
+        try {
+            client.unsubscribe()
+        } catch (e: TipOperationPendingException) {
+            throw e
+        } catch (e: Exception) {
+            Unit
+        }
         client.deleteToken()
         client.deleteInstallation()
         state.registrationMayExist = false
+    }
+
+    fun millisUntilRefresh(): Long? {
+        if (!state.enabled || !isSubscriptionFresh()) return null
+        return REFRESH_INTERVAL_MILLIS - (now() - state.subscribedAtMillis)
     }
 
     private fun isSubscriptionFresh(): Boolean {

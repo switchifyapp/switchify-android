@@ -25,11 +25,14 @@ import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 object TipNotifications {
@@ -42,6 +45,8 @@ object TipNotifications {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val registrationMutex = Mutex()
     private val retryOnNetworkRegistered = AtomicBoolean(false)
+    private val refreshLock = Any()
+    private var refreshJob: Job? = null
 
     fun isAvailable(context: Context): Boolean {
         return isConfigured() && hasPlayServices(context.applicationContext)
@@ -88,9 +93,16 @@ object TipNotifications {
         return NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
+    fun canShowTips(context: Context): Boolean {
+        val notificationManager = NotificationManagerCompat.from(context)
+        val channel = notificationManager.getNotificationChannel(CHANNEL_ID)
+        return notificationManager.areNotificationsEnabled() &&
+                channel?.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
     fun show(context: Context, tip: TipMessage) {
         val appContext = context.applicationContext
-        if (!canPostNotifications(appContext)) return
+        if (!canShowTips(appContext)) return
         val notificationManager = NotificationManagerCompat.from(appContext)
         notificationManager.createNotificationChannel(
             NotificationChannel(
@@ -139,17 +151,32 @@ object TipNotifications {
     private fun reconcileRegistration(context: Context) {
         if (!isConfigured()) return
         val reconciler = TipRegistrationReconciler(TipPreferences(context), BuildConfig.VERSION_CODE)
-        if (!reconciler.needsWork()) return
+        if (!reconciler.needsWork()) {
+            scheduleRefresh(context, reconciler)
+            return
+        }
         scope.launch {
             registrationMutex.withLock {
                 try {
                     if (reconciler.needsWork() && ensureFirebase(context)) {
                         reconciler.reconcile(FirebaseRegistrationClient)
                     }
+                    scheduleRefresh(context, reconciler)
                 } catch (e: Exception) {
                     Log.w(TAG, "Tip registration is not up to date yet", e)
                     retryWhenNetworkReturns(context)
                 }
+            }
+        }
+    }
+
+    private fun scheduleRefresh(context: Context, reconciler: TipRegistrationReconciler) {
+        synchronized(refreshLock) {
+            refreshJob?.cancel()
+            val wait = reconciler.millisUntilRefresh() ?: return
+            refreshJob = scope.launch {
+                delay(wait)
+                reconcileRegistration(context)
             }
         }
     }
@@ -170,24 +197,66 @@ object TipNotifications {
     }
 
     private object FirebaseRegistrationClient : TipRegistrationClient {
+        private const val SUBSCRIBE = "subscribe"
+        private const val UNSUBSCRIBE = "unsubscribe"
+
+        private var topicOperation: Pair<String, Task<Void>>? = null
+        private var tokenDeletion: Task<Void>? = null
+        private var installationDeletion: Task<Void>? = null
+
+        override fun finishPendingDeletion() {
+            tokenDeletion?.let { settle("deleteToken", it, REMOVAL_TIMEOUT_SECONDS) }
+            installationDeletion?.let { settle("deleteInstallation", it, REMOVAL_TIMEOUT_SECONDS) }
+        }
+
         override fun subscribe() {
-            await(FirebaseMessaging.getInstance().subscribeToTopic(TOPIC), TOPIC_TIMEOUT_SECONDS)
+            awaitTopic(SUBSCRIBE) { FirebaseMessaging.getInstance().subscribeToTopic(TOPIC) }
         }
 
         override fun unsubscribe() {
-            await(FirebaseMessaging.getInstance().unsubscribeFromTopic(TOPIC), TOPIC_TIMEOUT_SECONDS)
+            awaitTopic(UNSUBSCRIBE) { FirebaseMessaging.getInstance().unsubscribeFromTopic(TOPIC) }
         }
 
         override fun deleteToken() {
-            await(FirebaseMessaging.getInstance().deleteToken(), REMOVAL_TIMEOUT_SECONDS)
+            topicOperation?.let { (name, task) ->
+                if (!task.isComplete) throw TipOperationPendingException(name)
+            }
+            val task = tokenDeletion?.takeUnless { it.isComplete }
+                ?: FirebaseMessaging.getInstance().deleteToken().also { tokenDeletion = it }
+            await("deleteToken", task, REMOVAL_TIMEOUT_SECONDS)
         }
 
         override fun deleteInstallation() {
-            await(FirebaseInstallations.getInstance().delete(), REMOVAL_TIMEOUT_SECONDS)
+            val task = installationDeletion?.takeUnless { it.isComplete }
+                ?: FirebaseInstallations.getInstance().delete().also { installationDeletion = it }
+            await("deleteInstallation", task, REMOVAL_TIMEOUT_SECONDS)
         }
 
-        private fun <T> await(task: Task<T>, timeoutSeconds: Long): T {
-            return Tasks.await(task, timeoutSeconds, TimeUnit.SECONDS)
+        private fun awaitTopic(name: String, start: () -> Task<Void>) {
+            val task = topicOperation
+                ?.takeIf { (pendingName, pending) -> pendingName == name && !pending.isComplete }
+                ?.second
+                ?: start().also { topicOperation = name to it }
+            await(name, task, TOPIC_TIMEOUT_SECONDS)
+        }
+
+        private fun settle(name: String, task: Task<Void>, timeoutSeconds: Long) {
+            if (task.isComplete) return
+            try {
+                await(name, task, timeoutSeconds)
+            } catch (e: TipOperationPendingException) {
+                throw e
+            } catch (e: Exception) {
+                Unit
+            }
+        }
+
+        private fun await(name: String, task: Task<Void>, timeoutSeconds: Long) {
+            try {
+                Tasks.await(task, timeoutSeconds, TimeUnit.SECONDS)
+            } catch (e: TimeoutException) {
+                throw TipOperationPendingException(name)
+            }
         }
     }
 

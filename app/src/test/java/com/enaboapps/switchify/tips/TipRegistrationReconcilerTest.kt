@@ -19,10 +19,18 @@ class TipRegistrationReconcilerTest {
     private class FakeClient : TipRegistrationClient {
         val calls = mutableListOf<String>()
         val failing = mutableSetOf<String>()
+        val pending = mutableSetOf<String>()
 
         private fun call(name: String) {
             calls += name
+            if (name in pending) throw TipOperationPendingException(name)
             if (name in failing) throw IOException("$name failed")
+        }
+
+        override fun finishPendingDeletion() {
+            listOf("deleteToken", "deleteInstallation").firstOrNull { it in pending }?.let {
+                throw TipOperationPendingException(it)
+            }
         }
 
         override fun subscribe() = call("subscribe")
@@ -155,5 +163,59 @@ class TipRegistrationReconcilerTest {
         assertEquals(listOf("subscribe"), client.calls)
         assertTrue(state.registrationMayExist)
         assertFalse(reconciler().needsWork())
+    }
+
+    @Test
+    fun anUnsubscribeStillInFlightHoldsBackDeletionUntilItSettles() {
+        state.registrationMayExist = true
+        client.pending += "unsubscribe"
+
+        assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
+
+        assertEquals(listOf("unsubscribe"), client.calls)
+        assertTrue(state.registrationMayExist)
+
+        client.pending.clear()
+        client.calls.clear()
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("unsubscribe", "deleteToken", "deleteInstallation"), client.calls)
+        assertFalse(state.registrationMayExist)
+    }
+
+    @Test
+    fun aDeletionStillInFlightHoldsBackANewSubscription() {
+        state.registrationMayExist = true
+        client.pending += "deleteToken"
+        assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
+        client.calls.clear()
+
+        state.enabled = true
+        assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
+
+        assertTrue(client.calls.isEmpty())
+        assertTrue(reconciler().needsWork())
+
+        client.pending.clear()
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("subscribe"), client.calls)
+        assertFalse(reconciler().needsWork())
+    }
+
+    @Test
+    fun reportsHowLongUntilTheNextRefreshOnlyWhileSubscribed() {
+        assertEquals(null, reconciler().millisUntilRefresh())
+
+        state.enabled = true
+        assertEquals(null, reconciler().millisUntilRefresh())
+        reconciler().reconcile(client)
+        assertEquals(TipRegistrationReconciler.REFRESH_INTERVAL_MILLIS, reconciler().millisUntilRefresh())
+
+        now += 1_000
+        assertEquals(TipRegistrationReconciler.REFRESH_INTERVAL_MILLIS - 1_000, reconciler().millisUntilRefresh())
+
+        state.enabled = false
+        assertEquals(null, reconciler().millisUntilRefresh())
     }
 }
