@@ -18,20 +18,30 @@ class TipRegistrationReconcilerTest {
     }
 
     private class FakeClient : TipRegistrationClient {
-        val calls = mutableListOf<String>()
+        val allCalls = mutableListOf<String>()
+        val calls get() = allCalls.filter { it != "finishPendingDeletion" }
         val failing = mutableSetOf<String>()
         val pending = mutableSetOf<String>()
 
+        private val inFlight = mutableSetOf<String>()
+
         private fun call(name: String) {
-            calls += name
-            if (name in pending) throw TipOperationPendingException(name)
+            allCalls += name
+            if (name in pending) {
+                inFlight += name
+                throw TipOperationPendingException(name)
+            }
+            inFlight -= name
             if (name in failing) throw IOException("$name failed")
         }
 
         override fun finishPendingDeletion() {
-            listOf("deleteToken", "deleteInstallation").firstOrNull { it in pending }?.let {
+            allCalls += "finishPendingDeletion"
+            val deletions = listOf("deleteToken", "deleteInstallation")
+            deletions.firstOrNull { it in inFlight && it in pending }?.let {
                 throw TipOperationPendingException(it)
             }
+            inFlight -= deletions.toSet()
         }
 
         override fun subscribe() = call("subscribe")
@@ -108,7 +118,7 @@ class TipRegistrationReconcilerTest {
     fun optingOutRemovesTheSubscriptionTokenAndInstallationInOrder() {
         state.enabled = true
         reconciler().reconcile(client)
-        client.calls.clear()
+        client.allCalls.clear()
 
         state.enabled = false
         assertTrue(reconciler().needsWork())
@@ -155,7 +165,7 @@ class TipRegistrationReconcilerTest {
         client.failing += "deleteToken"
         assertThrows(IOException::class.java) { reconciler().reconcile(client) }
         client.failing.clear()
-        client.calls.clear()
+        client.allCalls.clear()
 
         state.enabled = true
         assertTrue(reconciler().needsWork())
@@ -177,7 +187,7 @@ class TipRegistrationReconcilerTest {
         assertTrue(state.registrationMayExist)
 
         client.pending.clear()
-        client.calls.clear()
+        client.allCalls.clear()
         reconciler().reconcile(client)
 
         assertEquals(listOf("unsubscribe", "deleteToken", "deleteInstallation"), client.calls)
@@ -189,7 +199,7 @@ class TipRegistrationReconcilerTest {
         state.registrationMayExist = true
         client.pending += "deleteToken"
         assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
-        client.calls.clear()
+        client.allCalls.clear()
 
         state.enabled = true
         assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
@@ -226,13 +236,13 @@ class TipRegistrationReconcilerTest {
             state.enabled = true
             reconciler().reconcile(client)
             state.enabled = false
-            client.calls.clear()
+            client.allCalls.clear()
             client.pending += step
             assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
             assertTrue(state.registrationMayExist)
 
             client.pending.clear()
-            client.calls.clear()
+            client.allCalls.clear()
             reconciler().reconcile(client)
 
             assertFalse("unsubscribe ran again after $step", "unsubscribe" in client.calls)
@@ -256,9 +266,45 @@ class TipRegistrationReconcilerTest {
         assertEquals(TipRegistrationReconciler.REMOVAL_NOT_STARTED, state.removalStep)
 
         state.enabled = false
-        client.calls.clear()
+        client.allCalls.clear()
         reconciler().reconcile(client)
 
         assertEquals(listOf("unsubscribe", "deleteToken", "deleteInstallation"), client.calls)
+    }
+
+    @Test
+    fun aRemovalThatStartsOverFirstSettlesEarlierDeletions() {
+        state.registrationMayExist = true
+
+        reconciler().reconcile(client)
+
+        assertEquals(
+            listOf("finishPendingDeletion", "unsubscribe", "deleteToken", "deleteInstallation"),
+            client.allCalls
+        )
+    }
+
+    @Test
+    fun aRemovalDoesNotStartOverWhileAnEarlierDeletionIsStillInFlight() {
+        state.registrationMayExist = true
+        client.pending += "deleteInstallation"
+        assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
+        state.removalStep = TipRegistrationReconciler.REMOVAL_NOT_STARTED
+        client.allCalls.clear()
+
+        assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
+
+        assertTrue(client.calls.isEmpty())
+        assertTrue(state.registrationMayExist)
+    }
+
+    @Test
+    fun aResumedRemovalDoesNotDiscardTheDeletionItIsWaitingFor() {
+        state.registrationMayExist = true
+        state.removalStep = TipRegistrationReconciler.REMOVAL_TOKEN_DELETED
+
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("deleteInstallation"), client.allCalls)
     }
 }

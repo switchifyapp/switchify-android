@@ -81,7 +81,7 @@ object TipNotifications {
 
     fun setEnabled(context: Context, enabled: Boolean) {
         TipPreferences(context).enabled = enabled
-        reconcileRegistration(context.applicationContext)
+        reconcileRegistration(context.applicationContext, afterSettingChange = true)
     }
 
     fun onNewToken(context: Context) {
@@ -152,10 +152,10 @@ object TipNotifications {
 
     private fun notificationId(tip: TipMessage): Int = (tip.id ?: tip.title).hashCode()
 
-    private fun reconcileRegistration(context: Context) {
+    private fun reconcileRegistration(context: Context, afterSettingChange: Boolean = false) {
         if (!isConfigured()) return
         val reconciler = TipRegistrationReconciler(TipPreferences(context), BuildConfig.VERSION_CODE)
-        if (!reconciler.needsWork()) {
+        if (!afterSettingChange && !reconciler.needsWork()) {
             scheduleRefresh(context, reconciler)
             return
         }

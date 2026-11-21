@@ -116,14 +116,16 @@ class TrackedOperationsTest {
     }
 
     @Test
-    fun aForgottenOperationNoLongerHoldsAListenerSlot() {
+    fun aForgottenOperationIsNoLongerWatched() {
         assertThrows(TipOperationPendingException::class.java) { run("subscribe") }
+        val operation = started.single()
         operations.forget("subscribe")
 
-        assertThrows(TipOperationPendingException::class.java) { run("subscribe") }
+        assertThrows(TipOperationPendingException::class.java) {
+            operations.run("subscribe", 30, { lateCompletions++ }) { operation }
+        }
 
-        assertEquals(2, started.size)
-        assertEquals(1, started[1].lateCallbacks.size)
+        assertEquals(2, operation.lateCallbacks.size)
     }
 
     @Test

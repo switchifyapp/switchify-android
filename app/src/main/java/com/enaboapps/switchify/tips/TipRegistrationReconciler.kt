@@ -47,6 +47,7 @@ class TipRegistrationReconciler(
         if (!state.registrationMayExist) return
         state.subscribedAtMillis = 0L
         if (state.removalStep < REMOVAL_UNSUBSCRIBED) {
+            client.finishPendingDeletion()
             try {
                 client.unsubscribe()
             } catch (e: TipOperationPendingException) {
