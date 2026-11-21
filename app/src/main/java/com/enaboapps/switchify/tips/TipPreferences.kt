@@ -26,6 +26,10 @@ class TipPreferences(context: Context) : TipRegistrationState {
         get() = preferences.getInt(KEY_SUBSCRIBED_VERSION, 0)
         set(value) = preferences.edit { putInt(KEY_SUBSCRIBED_VERSION, value) }
 
+    override var removalStep: Int
+        get() = preferences.getInt(KEY_REMOVAL_STEP, TipRegistrationReconciler.REMOVAL_NOT_STARTED)
+        set(value) = preferences.edit { putInt(KEY_REMOVAL_STEP, value) }
+
     fun markShown(tipId: String): Boolean {
         val shown = preferences.getString(KEY_SHOWN_IDS, null).orEmpty()
             .split(SEPARATOR)
@@ -41,6 +45,7 @@ class TipPreferences(context: Context) : TipRegistrationState {
         private const val KEY_REGISTRATION_MAY_EXIST = "registration_may_exist"
         private const val KEY_SUBSCRIBED_AT = "subscribed_at"
         private const val KEY_SUBSCRIBED_VERSION = "subscribed_version"
+        private const val KEY_REMOVAL_STEP = "removal_step"
         private const val KEY_SHOWN_IDS = "shown_ids"
         private const val SEPARATOR = "\n"
         private const val MAX_SHOWN_IDS = 50

@@ -5,6 +5,7 @@ interface TipRegistrationState {
     var registrationMayExist: Boolean
     var subscribedAtMillis: Long
     var subscribedVersionCode: Int
+    var removalStep: Int
 }
 
 class TipOperationPendingException(operation: String) :
@@ -35,6 +36,7 @@ class TipRegistrationReconciler(
     private fun subscribe(client: TipRegistrationClient) {
         if (isSubscriptionFresh()) return
         client.finishPendingDeletion()
+        state.removalStep = REMOVAL_NOT_STARTED
         state.registrationMayExist = true
         client.subscribe()
         state.subscribedAtMillis = now()
@@ -44,16 +46,23 @@ class TipRegistrationReconciler(
     private fun removeRegistration(client: TipRegistrationClient) {
         if (!state.registrationMayExist) return
         state.subscribedAtMillis = 0L
-        try {
-            client.unsubscribe()
-        } catch (e: TipOperationPendingException) {
-            throw e
-        } catch (e: Exception) {
-            Unit
+        if (state.removalStep < REMOVAL_UNSUBSCRIBED) {
+            try {
+                client.unsubscribe()
+            } catch (e: TipOperationPendingException) {
+                throw e
+            } catch (e: Exception) {
+                Unit
+            }
+            state.removalStep = REMOVAL_UNSUBSCRIBED
         }
-        client.deleteToken()
+        if (state.removalStep < REMOVAL_TOKEN_DELETED) {
+            client.deleteToken()
+            state.removalStep = REMOVAL_TOKEN_DELETED
+        }
         client.deleteInstallation()
         state.registrationMayExist = false
+        state.removalStep = REMOVAL_NOT_STARTED
     }
 
     fun millisUntilRefresh(): Long? {
@@ -70,5 +79,8 @@ class TipRegistrationReconciler(
 
     companion object {
         const val REFRESH_INTERVAL_MILLIS = 7L * 24 * 60 * 60 * 1000
+        const val REMOVAL_NOT_STARTED = 0
+        const val REMOVAL_UNSUBSCRIBED = 1
+        const val REMOVAL_TOKEN_DELETED = 2
     }
 }

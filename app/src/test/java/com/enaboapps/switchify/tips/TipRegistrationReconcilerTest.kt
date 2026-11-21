@@ -14,6 +14,7 @@ class TipRegistrationReconcilerTest {
         override var registrationMayExist = false
         override var subscribedAtMillis = 0L
         override var subscribedVersionCode = 0
+        override var removalStep = 0
     }
 
     private class FakeClient : TipRegistrationClient {
@@ -217,5 +218,47 @@ class TipRegistrationReconcilerTest {
 
         state.enabled = false
         assertEquals(null, reconciler().millisUntilRefresh())
+    }
+
+    @Test
+    fun aDeletionThatFinishesLateResumesWithoutUnsubscribingAgain() {
+        listOf("deleteToken", "deleteInstallation").forEach { step ->
+            state.enabled = true
+            reconciler().reconcile(client)
+            state.enabled = false
+            client.calls.clear()
+            client.pending += step
+            assertThrows(TipOperationPendingException::class.java) { reconciler().reconcile(client) }
+            assertTrue(state.registrationMayExist)
+
+            client.pending.clear()
+            client.calls.clear()
+            reconciler().reconcile(client)
+
+            assertFalse("unsubscribe ran again after $step", "unsubscribe" in client.calls)
+            assertEquals(step, client.calls.first())
+            assertEquals("deleteInstallation", client.calls.last())
+            assertFalse(state.registrationMayExist)
+            assertEquals(TipRegistrationReconciler.REMOVAL_NOT_STARTED, state.removalStep)
+        }
+    }
+
+    @Test
+    fun optingBackInStartsTheNextRemovalFromTheBeginning() {
+        state.registrationMayExist = true
+        client.failing += "deleteInstallation"
+        assertThrows(IOException::class.java) { reconciler().reconcile(client) }
+        assertEquals(TipRegistrationReconciler.REMOVAL_TOKEN_DELETED, state.removalStep)
+        client.failing.clear()
+
+        state.enabled = true
+        reconciler().reconcile(client)
+        assertEquals(TipRegistrationReconciler.REMOVAL_NOT_STARTED, state.removalStep)
+
+        state.enabled = false
+        client.calls.clear()
+        reconciler().reconcile(client)
+
+        assertEquals(listOf("unsubscribe", "deleteToken", "deleteInstallation"), client.calls)
     }
 }

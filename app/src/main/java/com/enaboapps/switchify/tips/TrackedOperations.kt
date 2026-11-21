@@ -3,7 +3,6 @@ package com.enaboapps.switchify.tips
 import java.util.concurrent.TimeoutException
 
 class TrackedOperations<T : Any>(
-    private val isComplete: (T) -> Boolean,
     private val await: (T, Long) -> Unit,
     private val onLateCompletion: (T, () -> Unit) -> Unit
 ) {
@@ -17,12 +16,11 @@ class TrackedOperations<T : Any>(
         } catch (e: TimeoutException) {
             if (watched.add(operation)) onLateCompletion(operation, lateCompletion)
             throw TipOperationPendingException(name)
-        } finally {
-            if (isComplete(operation)) {
-                tracked.remove(name, operation)
-                watched.remove(operation)
-            }
+        } catch (e: Exception) {
+            release(name, operation)
+            throw e
         }
+        release(name, operation)
     }
 
     fun settle(name: String, timeoutSeconds: Long, lateCompletion: () -> Unit) {
@@ -37,6 +35,11 @@ class TrackedOperations<T : Any>(
     }
 
     fun forget(name: String) {
-        tracked.remove(name)
+        tracked.remove(name)?.let { watched.remove(it) }
+    }
+
+    private fun release(name: String, operation: T) {
+        tracked.remove(name, operation)
+        watched.remove(operation)
     }
 }

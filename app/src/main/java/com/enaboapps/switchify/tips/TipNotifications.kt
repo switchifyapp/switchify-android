@@ -88,6 +88,7 @@ object TipNotifications {
         TipPreferences(context).apply {
             registrationMayExist = true
             subscribedAtMillis = 0L
+            removalStep = TipRegistrationReconciler.REMOVAL_NOT_STARTED
         }
         reconcileRegistration(context.applicationContext)
     }
@@ -264,7 +265,6 @@ object TipNotifications {
             private const val DELETE_INSTALLATION = "deleteInstallation"
 
             private val operations = TrackedOperations<Task<Void>>(
-                isComplete = { it.isComplete },
                 await = { task, timeoutSeconds -> Tasks.await(task, timeoutSeconds, TimeUnit.SECONDS) },
                 onLateCompletion = { task, callback -> task.addOnCompleteListener { callback() } }
             )

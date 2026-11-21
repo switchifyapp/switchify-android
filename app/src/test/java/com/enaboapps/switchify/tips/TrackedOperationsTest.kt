@@ -11,12 +11,13 @@ class TrackedOperationsTest {
     private class FakeOperation {
         var complete = false
         var failure: Exception? = null
-        var lateCallback: (() -> Unit)? = null
+        val lateCallbacks = mutableListOf<() -> Unit>()
+        var completesWhileTimingOut = false
 
         fun finish(error: Exception? = null) {
             complete = true
             failure = error
-            lateCallback?.invoke()
+            lateCallbacks.forEach { it() }
         }
     }
 
@@ -24,12 +25,14 @@ class TrackedOperationsTest {
     private var lateCompletions = 0
 
     private val operations = TrackedOperations<FakeOperation>(
-        isComplete = { it.complete },
         await = { operation, _ ->
-            if (!operation.complete) throw TimeoutException()
+            if (!operation.complete) {
+                if (operation.completesWhileTimingOut) operation.complete = true
+                throw TimeoutException()
+            }
             operation.failure?.let { throw it }
         },
-        onLateCompletion = { operation, callback -> operation.lateCallback = callback }
+        onLateCompletion = { operation, callback -> operation.lateCallbacks += callback }
     )
 
     private fun run(name: String, completeOnStart: Boolean = false) {
@@ -89,9 +92,38 @@ class TrackedOperationsTest {
             assertThrows(TipOperationPendingException::class.java) { run("unsubscribe") }
         }
 
+        assertEquals(1, started.single().lateCallbacks.size)
+
         started.single().finish()
 
         assertEquals(1, lateCompletions)
+    }
+
+    @Test
+    fun anOperationThatCompletesJustAsItsWaitTimesOutIsKeptForTheNextAttempt() {
+        assertThrows(TipOperationPendingException::class.java) {
+            operations.run("unsubscribe", 30, { lateCompletions++ }) {
+                FakeOperation().also {
+                    it.completesWhileTimingOut = true
+                    started += it
+                }
+            }
+        }
+
+        run("unsubscribe")
+
+        assertEquals(1, started.size)
+    }
+
+    @Test
+    fun aForgottenOperationNoLongerHoldsAListenerSlot() {
+        assertThrows(TipOperationPendingException::class.java) { run("subscribe") }
+        operations.forget("subscribe")
+
+        assertThrows(TipOperationPendingException::class.java) { run("subscribe") }
+
+        assertEquals(2, started.size)
+        assertEquals(1, started[1].lateCallbacks.size)
     }
 
     @Test
