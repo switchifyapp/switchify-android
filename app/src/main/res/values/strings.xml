@@ -960,10 +960,15 @@
     <string name="settings_section_notifications">Notifications</string>
     <string name="settings_title_tip_notifications">Tips</string>
     <string name="settings_summary_tip_notifications">Get an occasional notification with a tip for using Switchify.</string>
-    <string name="settings_explanation_tip_notifications">When enabled, Switchify shows a notification now and then with a short tip. Tips are the same for everyone and are not linked to your account. To receive them, this device registers with Google\'s Firebase Cloud Messaging service. Turning this off stops tips straight away and removes that registration. If the device is offline, it is removed once Switchify is running and back online. A tip can link to a page on a Switchify website.</string>
+    <string name="settings_explanation_tip_notifications">When enabled, Switchify shows a notification now and then with a short tip. Tips are the same for everyone and are not linked to your account. To receive them, this device registers with Google\'s Firebase Cloud Messaging service. Turning this off stops tips straight away and removes that registration. If the device is offline, it is removed once Switchify is running and back online. Selecting a tip opens it in Switchify. A tip can link to a page on a Switchify website.</string>
     <string name="tips_notifications_blocked">Notifications are turned off for Switchify. Turn them on in Android settings, then try again.</string>
     <string name="tips_notification_channel_name">Tips</string>
     <string name="tips_notification_channel_description">Short tips for using Switchify</string>
+    <string name="screen_title_tip">Tip</string>
+    <string name="tip_learn_more">Learn more</string>
+    <string name="tip_turn_off_hint">You can turn tips off under Settings → About → Notifications.</string>
+    <string name="tip_unavailable_title">This tip is no longer available</string>
+    <string name="tip_unavailable_description">Switchify keeps the last few tips it has shown on this device, and removes them when Tips is turned off.</string>
 
     <!-- Gesture Names -->
     <string name="gesture_smile">Smile</string>

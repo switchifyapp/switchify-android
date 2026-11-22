@@ -39,6 +39,16 @@ class TipPreferences(context: Context) : TipRegistrationState {
         return true
     }
 
+    fun rememberTip(tip: TipMessage) {
+        preferences.edit { putString(KEY_TIPS, TipStore.remember(preferences.getString(KEY_TIPS, null), tip)) }
+    }
+
+    fun tip(key: String): TipMessage? = TipStore.find(preferences.getString(KEY_TIPS, null), key)
+
+    fun forgetTips() {
+        preferences.edit { remove(KEY_TIPS) }
+    }
+
     companion object {
         const val FILE_NAME = "tip_notifications"
         private const val KEY_ENABLED = "enabled"
@@ -47,6 +57,7 @@ class TipPreferences(context: Context) : TipRegistrationState {
         private const val KEY_SUBSCRIBED_VERSION = "subscribed_version"
         private const val KEY_REMOVAL_STEP = "removal_step"
         private const val KEY_SHOWN_IDS = "shown_ids"
+        private const val KEY_TIPS = "tips"
         private const val SEPARATOR = "\n"
         private const val MAX_SHOWN_IDS = 50
 

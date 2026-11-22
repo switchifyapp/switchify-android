@@ -45,4 +45,5 @@ sealed class NavigationRoute(val name: String) {
     data object GemmaTerms : NavigationRoute("GemmaTerms")
     data object PcControl : NavigationRoute("PcControl")
     data object PcDiagnostics : NavigationRoute("PcDiagnostics")
+    data object Tip : NavigationRoute("Tip")
 }
