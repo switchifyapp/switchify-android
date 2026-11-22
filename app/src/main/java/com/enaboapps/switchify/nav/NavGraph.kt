@@ -29,6 +29,7 @@ import com.enaboapps.switchify.screens.pc.ObservePcControlActivity
 import com.enaboapps.switchify.screens.pc.PcControlScreen
 import com.enaboapps.switchify.screens.pc.PcDiagnosticsScreen
 import com.enaboapps.switchify.screens.pc.pcControlViewModel
+import com.enaboapps.switchify.screens.tips.TipScreen
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
@@ -260,6 +261,11 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.GemmaTerms.name) {
             GemmaTermsScreen(navController)
+        }
+        composable("${NavigationRoute.Tip.name}/{tipKey}") {
+            it.arguments?.getString("tipKey")?.let { tipKey ->
+                TipScreen(navController, tipKey)
+            }
         }
         composable(NavigationRoute.PcControl.name) {
             PcControlScreen(navController)

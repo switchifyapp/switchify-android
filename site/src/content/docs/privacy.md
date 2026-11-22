@@ -21,7 +21,7 @@ Switchify can show a notification now and then with a short tip for using the ap
 
 Tips are the same for everyone and are not linked to your account, so you do not need to be signed in. To receive them, your device registers with Google's Firebase Cloud Messaging service, which gives the device a messaging ID. Turning **Tips** off stops tips straight away and removes that registration. If the device is offline at the time, Switchify removes it the next time it is running with the device back online. The setting is not included in backups, so a new or restored device starts with **Tips** off.
 
-Tips arrive quietly, without a sound. A tip can include a link to a page on a Switchify website, which opens when you select the notification.
+Tips arrive quietly, without a sound. Selecting a tip opens it in Switchify on a **Tip** screen that shows its full text. A tip can include a link to a page on a Switchify website; the screen then has a **Learn more** button that opens it. Switchify keeps the last 10 tips it has shown on the device so they can be opened later. Turning **Tips** off removes them, along with any tip notifications still showing.
 
 ## What the accessibility service sees
 

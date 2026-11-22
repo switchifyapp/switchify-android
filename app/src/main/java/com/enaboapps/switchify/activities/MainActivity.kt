@@ -19,6 +19,7 @@ import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.pc.control.PcControlLink
 import com.enaboapps.switchify.pc.control.PcControlRequests
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.tips.TipNotifications
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import com.revenuecat.purchases.Purchases
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var fileManager: FileManager
     private var openPcControl by mutableStateOf(false)
+    private var openTipKey by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +41,10 @@ class MainActivity : ComponentActivity() {
 
         Logger.log(LogEvent.AppLaunched)
 
-        if (savedInstanceState == null) handlePcControlLink(intent)
+        if (savedInstanceState == null) {
+            handlePcControlLink(intent)
+            handleTip(intent)
+        }
 
         setContent {
             val navController = rememberNavController()
@@ -55,6 +60,12 @@ class MainActivity : ComponentActivity() {
                 }
                 openPcControl = false
             }
+
+            LaunchedEffect(openTipKey) {
+                val tipKey = openTipKey ?: return@LaunchedEffect
+                navController.navigate("${NavigationRoute.Tip.name}/$tipKey") { launchSingleTop = true }
+                openTipKey = null
+            }
         }
     }
 
@@ -62,6 +73,11 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handlePcControlLink(intent)
+        handleTip(intent)
+    }
+
+    private fun handleTip(intent: Intent?) {
+        TipNotifications.tipKey(intent)?.let { openTipKey = it }
     }
 
     private fun handlePcControlLink(intent: Intent?) {

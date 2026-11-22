@@ -10,7 +10,6 @@ import android.net.Network
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.net.toUri
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.MainActivity
@@ -38,6 +37,8 @@ object TipNotifications {
     private const val TAG = "TipNotifications"
     private const val TOPIC = "tips"
     private const val CHANNEL_ID = "tips"
+    private const val ACTION_OPEN_TIP = "com.enaboapps.switchify.action.OPEN_TIP"
+    private const val EXTRA_TIP_KEY = "tip_key"
     private const val TOPIC_TIMEOUT_SECONDS = 30L
     private const val REMOVAL_TIMEOUT_SECONDS = 120L
     private const val FIRST_RETRY_DELAY_MILLIS = 60_000L
@@ -81,6 +82,7 @@ object TipNotifications {
 
     fun setEnabled(context: Context, enabled: Boolean) {
         TipPreferences(context).enabled = enabled
+        if (!enabled) forgetTips(context.applicationContext)
         reconcileRegistration(context.applicationContext, afterSettingChange = true)
     }
 
@@ -91,6 +93,22 @@ object TipNotifications {
             removalStep = TipRegistrationReconciler.REMOVAL_NOT_STARTED
         }
         reconcileRegistration(context.applicationContext)
+    }
+
+    fun tipKey(intent: Intent?): String? {
+        if (intent?.action != ACTION_OPEN_TIP) return null
+        if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return null
+        return intent.getStringExtra(EXTRA_TIP_KEY)?.takeIf(TipStore::isKey)
+    }
+
+    private fun forgetTips(context: Context) {
+        TipPreferences(context).forgetTips()
+        runCatching {
+            val manager = context.getSystemService(NotificationManager::class.java)
+            manager.activeNotifications
+                .filter { it.notification.channelId == CHANNEL_ID }
+                .forEach { manager.cancel(it.id) }
+        }
     }
 
     fun canPostNotifications(context: Context): Boolean {
@@ -135,9 +153,10 @@ object TipNotifications {
     }
 
     private fun contentIntent(context: Context, tip: TipMessage): PendingIntent {
-        val intent = tip.url
-            ?.let { Intent(Intent.ACTION_VIEW, it.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-            ?: Intent(context, MainActivity::class.java).addFlags(
+        val intent = Intent(context, MainActivity::class.java)
+            .setAction(ACTION_OPEN_TIP)
+            .putExtra(EXTRA_TIP_KEY, TipStore.key(tip))
+            .addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or
                         Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -150,7 +169,7 @@ object TipNotifications {
         )
     }
 
-    private fun notificationId(tip: TipMessage): Int = (tip.id ?: tip.title).hashCode()
+    private fun notificationId(tip: TipMessage): Int = TipStore.key(tip).toInt()
 
     private fun reconcileRegistration(context: Context, afterSettingChange: Boolean = false) {
         if (!isConfigured()) return
