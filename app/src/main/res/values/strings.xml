@@ -243,7 +243,6 @@
     <string name="favourite_apps_title">Favourite Apps</string>
     <string name="favourite_apps_summary">Choose apps for quick access from the menu</string>
     <string name="favourite_apps_add">Add App</string>
-    <string name="favourite_apps_search_hint">Search apps</string>
     <string name="favourite_apps_empty">No favourite apps added yet. Tap + to add apps.</string>
     <string name="favourite_apps_picker_title">Select Apps</string>
     <string name="system_quick_settings">Quick Settings</string>

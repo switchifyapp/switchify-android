@@ -21,7 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.navigation.NavController
@@ -35,15 +35,15 @@ import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun SettingsSearchScreen(navController: NavController) {
-    val context = LocalContext.current
-    val items = remember {
+    val resources = LocalResources.current
+    val items = remember(resources) {
         GeneratedSettingsSearchIndex.entries.map { entry ->
             SettingsSearchItem(
                 entry = entry,
-                title = context.getString(entry.titleResId),
-                summary = entry.summaryResId?.let(context::getString),
-                explanation = entry.explanationResId?.let(context::getString),
-                path = listOfNotNull(entry.screenTitleResId, entry.sectionTitleResId).map(context::getString)
+                title = resources.getString(entry.titleResId),
+                summary = entry.summaryResId?.let(resources::getString),
+                explanation = entry.explanationResId?.let(resources::getString),
+                path = listOfNotNull(entry.screenTitleResId, entry.sectionTitleResId).map(resources::getString)
             )
         }
     }
