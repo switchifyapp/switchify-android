@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.techniques.nodes.scanners
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
@@ -14,6 +15,8 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.widget.RelativeLayout
+import androidx.core.graphics.withSave
+import androidx.core.graphics.withTranslation
 import com.enaboapps.switchify.service.scanning.ScanHighlightDrawable
 import com.enaboapps.switchify.service.scanning.ScanInterval
 import com.enaboapps.switchify.service.scanning.ScanVisualConstants
@@ -32,6 +35,7 @@ import kotlin.math.roundToInt
  * does not change between frames (cutout, ring outline, path length) is
  * rebuilt only when the bounds or spotlight flag change.
  */
+@SuppressLint("ViewConstructor")
 internal class ScanHighlightView(
     context: Context,
     private val targetDisplayId: Int,
@@ -181,23 +185,21 @@ internal class ScanHighlightView(
         val bounds = highlightBounds
         if (!bounds.isUsable) return
         if (geometryDirty) rebuildGeometry(bounds)
-        canvas.save()
-        canvas.translate(-originX, -originY)
-        if (spotlight) {
-            canvas.save()
-            canvas.clipOutPath(cutout)
-            canvas.drawColor(dimColor)
-            canvas.restore()
+        canvas.withTranslation(-originX, -originY) {
+            if (spotlight) {
+                withSave {
+                    clipOutPath(cutout)
+                    drawColor(dimColor)
+                }
+            }
+            highlightDrawable?.let { drawable ->
+                withTranslation(bounds.x, bounds.y) {
+                    drawable.setBounds(0, 0, bounds.width.roundToInt(), bounds.height.roundToInt())
+                    drawable.draw(this)
+                }
+            }
+            drawCountdown(this)
         }
-        highlightDrawable?.let { drawable ->
-            canvas.save()
-            canvas.translate(bounds.x, bounds.y)
-            drawable.setBounds(0, 0, bounds.width.roundToInt(), bounds.height.roundToInt())
-            drawable.draw(canvas)
-            canvas.restore()
-        }
-        drawCountdown(canvas)
-        canvas.restore()
     }
 
     private fun drawCountdown(canvas: Canvas) {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -14,7 +15,8 @@
         android:contentDescription="@string/pc_widget_open"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="8dp">
+        android:paddingStart="8dp"
+        tools:ignore="RtlSymmetry">
 
         <ImageView
             android:layout_width="16dp"
@@ -42,7 +44,8 @@
             android:importantForAccessibility="no"
             android:padding="5dp"
             android:src="@drawable/ic_pc_widget_open"
-            android:tint="@color/pc_widget_on_surface" />
+            android:tint="@color/pc_widget_on_surface"
+            tools:ignore="UseAppTint" />
     </LinearLayout>
 
     <FrameLayout

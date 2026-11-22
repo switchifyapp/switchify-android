@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
+import androidx.core.graphics.withClip
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
@@ -195,10 +196,9 @@ class RadarSweepUI(private val context: Context) : AccessTechniqueUIBase() {
             )
             val endX = pivotX + maxLength * cos(Math.toRadians(currentAngle.toDouble())).toFloat()
             val endY = pivotY + maxLength * sin(Math.toRadians(currentAngle.toDouble())).toFloat()
-            canvas.save()
-            canvas.clipRect(bounds)
-            canvas.drawLine(pivotX, pivotY, endX, endY, paint)
-            canvas.restore()
+            canvas.withClip(bounds) {
+                drawLine(pivotX, pivotY, endX, endY, paint)
+            }
         }
     }
 }

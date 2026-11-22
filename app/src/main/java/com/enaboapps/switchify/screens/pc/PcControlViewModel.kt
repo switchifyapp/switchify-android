@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.pc
 
+import android.annotation.SuppressLint
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -43,6 +44,7 @@ class PcControlViewModel(
     val startTab: StateFlow<PcControlTab?> = _startTab.asStateFlow()
 
     private val autoConnect = PcAutoConnectPolicy()
+    @SuppressLint("StaticFieldLeak")
     private var foreground: Lifecycle? = null
     private var changingConfigurations: () -> Boolean = { false }
     private val foregroundObserver = LifecycleEventObserver { _, event ->
