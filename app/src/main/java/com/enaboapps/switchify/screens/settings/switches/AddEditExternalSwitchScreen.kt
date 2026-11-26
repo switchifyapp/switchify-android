@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.settings.switches
 
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,11 +25,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,6 +47,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -59,6 +63,9 @@ import com.enaboapps.switchify.components.LoadingIndicator
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
+import com.enaboapps.switchify.switches.JoystickDirection
+import com.enaboapps.switchify.switches.JoystickDirectionDetector
+import com.enaboapps.switchify.switches.JoystickSwitchCapture
 import kotlinx.coroutines.launch
 
 @Composable
@@ -110,9 +117,15 @@ fun AddEditExternalSwitchScreen(
             enableScroll = false,
             padding = 0.dp
         ) {
-            SwitchListener(navController = navController, onKeyEvent = { keyEvent: KeyEvent ->
-                addEditExternalSwitchScreenModel.processKeyCode(keyEvent.key, context)
-            })
+            SwitchListener(
+                navController = navController,
+                onKeyEvent = { keyEvent: KeyEvent ->
+                    addEditExternalSwitchScreenModel.processKeyCode(keyEvent.key, context)
+                },
+                onJoystickDirection = { direction ->
+                    addEditExternalSwitchScreenModel.processSwitchCode(direction.code, context)
+                }
+            )
         }
     } else {
         BaseView(
@@ -237,8 +250,13 @@ fun AddEditExternalSwitchScreen(
 }
 
 @Composable
-fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit) {
+fun SwitchListener(
+    navController: NavController,
+    onKeyEvent: (KeyEvent) -> Unit,
+    onJoystickDirection: (JoystickDirection) -> Unit
+) {
     val requester = remember { FocusRequester() }
+    JoystickDirectionListener(onJoystickDirection)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -290,6 +308,28 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
     }
     LaunchedEffect(requester) {
         requester.requestFocus()
+    }
+}
+
+@Composable
+private fun JoystickDirectionListener(onJoystickDirection: (JoystickDirection) -> Unit) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+    val view = LocalView.current
+    val currentOnJoystickDirection by rememberUpdatedState(onJoystickDirection)
+    DisposableEffect(view) {
+        val detector = JoystickDirectionDetector()
+        JoystickSwitchCapture.begin()
+        view.setOnGenericMotionListener { _, event ->
+            if (!JoystickDirectionDetector.isJoystickEvent(event)) return@setOnGenericMotionListener false
+            detector.process(event).firstOrNull { it.pressed }?.let {
+                currentOnJoystickDirection(it.direction)
+            }
+            true
+        }
+        onDispose {
+            view.setOnGenericMotionListener(null)
+            JoystickSwitchCapture.end()
+        }
     }
 }
 

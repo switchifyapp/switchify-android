@@ -1,7 +1,7 @@
 Switchify helps people with limited mobility use an Android phone or tablet with one or more switches, camera gestures or on-screen scanning. It scans the screen, you press a switch when the highlight reaches what you want, and Switchify taps, swipes, scrolls and types for you.
 
 WAYS TO PRESS
-Use adaptive switches, Bluetooth buttons or any key on an external keyboard. Or use the front camera: a smile, a blink, a left or right wink, a pucker or a head turn can act as a switch. Camera gesture recognition runs on your device.
+Use adaptive switches, Bluetooth buttons, any key on an external keyboard, or the buttons and sticks of a joystick or game controller. Or use the front camera: a smile, a blink, a left or right wink, a pucker or a head turn can act as a switch. Camera gesture recognition runs on your device.
 
 THREE WAYS TO REACH ANYTHING ON SCREEN
 • Item scan highlights the buttons, links and fields one by one

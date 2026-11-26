@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -29,6 +30,7 @@ import com.enaboapps.switchify.service.scanning.preferences.ScanPreferenceEffect
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
+import com.enaboapps.switchify.service.switches.external.JoystickSwitchRouter
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.trial.ServiceTrialOverlay
@@ -68,6 +70,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private lateinit var scanPreferenceChangeCoordinator: ScanPreferenceChangeCoordinator
+    private var joystickSwitchRouter: JoystickSwitchRouter? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var protectedStorageMigrationAttempted = false
     private val adbTestingBridgeReceiver = AdbTestingBridgeReceiver()
@@ -129,6 +132,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
 
         screenWatcherManager.register(scanningManager, externalSwitchListener)
+        joystickSwitchRouter = JoystickSwitchRouter(this, switchEventProvider, externalSwitchListener).also {
+            it.start(serviceScope)
+        }
 
         scanSettings = ScanSettings(this)
         nodeUpdateCoordinator = NodeUpdateCoordinator(this, scanSettings, scanningManager)
@@ -456,6 +462,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             return handleSwitchEvent(event)
         }
         return false
+    }
+
+    override fun onMotionEvent(event: MotionEvent) {
+        joystickSwitchRouter?.onMotionEvent(event)
     }
 
     /**

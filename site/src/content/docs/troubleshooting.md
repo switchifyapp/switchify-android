@@ -15,6 +15,10 @@ description: The switch does nothing, the service stopped, camera switches, keyb
 <figure><img src="/screenshots/paused.webp" alt="A message at the bottom of the screen reading Switchify is paused. You can now use your switches with other apps. To resume, don't press any switches for 30 seconds" loading="lazy"><figcaption>If you see this, Switchify is paused, not broken.</figcaption></figure>
 </div>
 
+## My joystick no longer moves things in games
+
+While a joystick direction is set up as a switch, Switchify takes over the sticks, D-pad hat and triggers of every connected joystick. Delete the direction switches, or change to a switch profile without any, to give them back. Joystick directions as switches need Android 14 or later. See [Use a joystick or game controller](/get-started/connect-a-switch/#use-a-joystick-or-game-controller).
+
 ## Switchify stopped after an hour
 
 That is the free session limit. Turn the service off and on again in Android's accessibility settings for a fresh hour, or see [Pro and your account](/pro-and-account/). A new session cannot start while the device is locked.

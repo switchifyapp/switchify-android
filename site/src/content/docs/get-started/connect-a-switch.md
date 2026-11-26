@@ -1,9 +1,9 @@
 ---
 title: Connect a switch
-description: Add an external USB or Bluetooth switch or a camera gesture, choose what a press does, and set up long press actions, stability and switch profiles.
+description: Add an external USB or Bluetooth switch, a joystick or a camera gesture, choose what a press does, and set up long press actions, stability and switch profiles.
 ---
 
-Switchify sees an **external switch** as a key press. Anything that sends a key when you press it will work: a USB or Bluetooth switch interface, a Bluetooth button, or a key on an external keyboard. A **camera switch** is a facial gesture recognised by the front camera, and needs no hardware at all. You can mix the two.
+Switchify sees an **external switch** as a key press. Anything that sends a key when you press it will work: a USB or Bluetooth switch interface, a Bluetooth button, a key on an external keyboard, or a button on a joystick or game controller. On Android 14 and later, joystick directions can be switches too. A **camera switch** is a facial gesture recognised by the front camera, and needs no hardware at all. You can mix the two.
 
 Switches live under **Settings → General → Switches**.
 
@@ -21,6 +21,20 @@ Switches live under **Settings → General → Switches**.
 5. Save. Long press actions can be set once the switch is saved.
 
 Each key can belong to only one switch.
+
+## Use a joystick or game controller
+
+Buttons on a joystick or game controller send key presses, so you add them like any other external switch.
+
+On Android 14 and later, you can also use the joystick's directions as switches. Each of these is a switch of its own:
+
+- **Left Stick** and **Right Stick**: up, down, left and right
+- **D-pad**: up, down, left and right, on controllers whose D-pad reports as a hat
+- **Left Trigger** and **Right Trigger**, on controllers with analog triggers
+
+To add one, push the stick, D-pad or trigger on the Add switch screen, the same way you would press a switch. A direction counts as pressed once it is pushed about halfway, and as released when it is back near the centre, so long press actions work too. You can add several directions from the same joystick, for example Left Stick Left for Next and Left Stick Right for Select.
+
+While at least one direction switch is set up, Switchify takes over the sticks, D-pad hat and triggers of every connected joystick, including while Switchify is paused, so other apps and games stop seeing them. Buttons you have not added as switches still work in other apps. To give the sticks back to a game, delete the direction switches or change to a [switch profile](#switch-profiles) without any.
 
 <div class="screenshots">
 <figure><img src="/screenshots/add-switch.webp" alt="The Add New Switch screen asking you to press the switch that you want to use, with advice for USB and Bluetooth switches" loading="lazy"><figcaption>Switchify waits for a press.</figcaption></figure>

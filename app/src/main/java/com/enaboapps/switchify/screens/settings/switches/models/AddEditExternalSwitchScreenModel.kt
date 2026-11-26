@@ -128,17 +128,21 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     }
 
     fun processKeyCode(key: Key, context: Context) {
-        Log.d(TAG, "processKeyCode: ${key.nativeKeyCode}")
+        processSwitchCode(key.nativeKeyCode, context)
+    }
+
+    fun processSwitchCode(switchCode: Int, context: Context) {
+        Log.d(TAG, "processSwitchCode: $switchCode")
 
         // If switch already exists, don't save and show toast
-        if (store.find(key.nativeKeyCode.toString(), profileId) != null) {
+        if (store.find(switchCode.toString(), profileId) != null) {
             shouldSave.value = false
             Toast.makeText(context, R.string.toast_switch_already_exists, Toast.LENGTH_SHORT).show()
             return
         }
 
-        code = key.nativeKeyCode.toString()
-        autoName = SwitchNameGenerator.forKeyCode(key.nativeKeyCode)
+        code = switchCode.toString()
+        autoName = SwitchNameGenerator.forKeyCode(switchCode)
         refreshName()
         hasUnsavedChanges.value = true
         validateIfInitialized()
