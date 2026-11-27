@@ -12,6 +12,7 @@ import com.enaboapps.switchify.service.stats.models.DailyActivity
 import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
 import com.enaboapps.switchify.service.stats.models.SwitchPressStats
 import com.enaboapps.switchify.service.stats.models.TimeRange
+import com.enaboapps.switchify.switches.JoystickDirection
 import com.enaboapps.switchify.utils.StatsFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -131,7 +132,7 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
             .sortedByDescending { it.value }
             .map { (keyCode, count) ->
                 BreakdownItem(
-                    label = "Key $keyCode",
+                    label = JoystickDirection.fromCode(keyCode)?.displayName ?: "Key $keyCode",
                     count = count,
                     formattedCount = StatsFormatter.formatNumber(count),
                     percentage = if (total > 0) StatsFormatter.formatPercentage(count, total) else null

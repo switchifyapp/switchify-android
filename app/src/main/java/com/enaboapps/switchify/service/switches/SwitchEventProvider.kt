@@ -22,6 +22,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.Collections
@@ -38,6 +41,8 @@ class SwitchEventProvider(private val context: Context) {
     @Volatile
     private var isShutdown = false
     private var runtimeGeneration = 0L
+    private val switchesVersion = MutableStateFlow(0L)
+    val switchesChanged: StateFlow<Long> = switchesVersion
     var hasCameraSwitch = false
         private set
 
@@ -93,6 +98,7 @@ class SwitchEventProvider(private val context: Context) {
             }
             if (!applied) return@withLock
             checkCameraSwitchAvailability()
+            switchesVersion.update { it + 1 }
             val cameraSwitchCount = switchEvents.count { it.type == SWITCH_EVENT_TYPE_CAMERA }
             Log.d(TAG, "Loaded ${switchEvents.size} switches")
             Logger.log(
@@ -211,6 +217,7 @@ class SwitchEventProvider(private val context: Context) {
             stagedSwitchEvents = events.map { it.copy(holdActions = it.holdActions.toList()) }
         }
         checkCameraSwitchAvailability()
+        switchesVersion.update { it + 1 }
     }
 
     fun clearStage() {
@@ -218,6 +225,7 @@ class SwitchEventProvider(private val context: Context) {
             stagedSwitchEvents = null
         }
         checkCameraSwitchAvailability()
+        switchesVersion.update { it + 1 }
     }
 
     fun promoteStage(events: List<SwitchEvent>): Boolean {
@@ -229,6 +237,7 @@ class SwitchEventProvider(private val context: Context) {
             runtimeGeneration += 1
         }
         checkCameraSwitchAvailability()
+        switchesVersion.update { it + 1 }
         SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
         ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.SwitchEventsUpdated)
         return true

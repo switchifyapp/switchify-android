@@ -24,7 +24,9 @@ object SwitchNameGenerator {
     )
 
     fun forKeyCode(keyCode: Int): String =
-        friendlyKeyNames[keyCode] ?: fromKeyCodeString(KeyEvent.keyCodeToString(keyCode), keyCode)
+        JoystickDirection.fromCode(keyCode)?.displayName
+            ?: friendlyKeyNames[keyCode]
+            ?: fromKeyCodeString(KeyEvent.keyCodeToString(keyCode), keyCode)
 
     fun fromKeyCodeString(raw: String?, keyCode: Int): String {
         val stripped = raw?.removePrefix(KEYCODE_PREFIX)?.trim().orEmpty()
