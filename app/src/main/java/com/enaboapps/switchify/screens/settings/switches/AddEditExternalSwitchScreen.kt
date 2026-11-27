@@ -265,6 +265,7 @@ fun SwitchListener(
             .onKeyEvent { keyEvent ->
                 when {
                     keyEvent.key == Key.Back -> false
+                    (keyEvent.nativeKeyEvent.flags and android.view.KeyEvent.FLAG_FALLBACK) != 0 -> true
                     keyEvent.type == KeyEventType.KeyDown -> {
                         onKeyEvent(keyEvent)
                         true

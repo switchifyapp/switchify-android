@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.update
 
 class JoystickDirectionDetector(
     private val pressThreshold: Float = DEFAULT_PRESS_THRESHOLD,
-    private val releaseThreshold: Float = DEFAULT_RELEASE_THRESHOLD
+    private val releaseThreshold: Float = DEFAULT_RELEASE_THRESHOLD,
+    private val dominanceRatio: Float = DEFAULT_DOMINANCE_RATIO
 ) {
     data class Edge(
         val direction: JoystickDirection,
@@ -17,46 +18,93 @@ class JoystickDirectionDetector(
         val eventTimeMs: Long
     )
 
-    private data class HeldDirection(val deviceId: Int, val direction: JoystickDirection)
+    private data class ControlKey(val deviceId: Int, val control: JoystickControl)
 
-    private val downTimes = mutableMapOf<HeldDirection, Long>()
+    private data class DirectionKey(val deviceId: Int, val direction: JoystickDirection)
+
+    private data class HeldDirection(val direction: JoystickDirection, val downTimeMs: Long)
+
+    private val held = mutableMapOf<ControlKey, HeldDirection>()
+    private val armed = mutableSetOf<DirectionKey>()
+    private val seen = mutableSetOf<ControlKey>()
 
     fun process(event: MotionEvent): List<Edge> {
         if (!isJoystickEvent(event) || event.actionMasked != MotionEvent.ACTION_MOVE) {
             return emptyList()
         }
-        return process(event.deviceId, event.eventTime) { axis -> event.getAxisValue(axis) }
+        val device = event.device
+        return process(
+            deviceId = event.deviceId,
+            eventTimeMs = event.eventTime,
+            hasAxis = { axis -> device == null || device.getMotionRange(axis, InputDevice.SOURCE_JOYSTICK) != null },
+            axisValue = { axis -> event.getAxisValue(axis) }
+        )
     }
 
-    fun process(deviceId: Int, eventTimeMs: Long, axisValue: (Int) -> Float): List<Edge> {
+    fun process(
+        deviceId: Int,
+        eventTimeMs: Long,
+        hasAxis: (Int) -> Boolean = { true },
+        axisValue: (Int) -> Float
+    ): List<Edge> {
         val releases = mutableListOf<Edge>()
         val presses = mutableListOf<Edge>()
-        JoystickDirection.entries.forEach { direction ->
-            val held = HeldDirection(deviceId, direction)
-            val value = direction.valueFrom(axisValue)
-            val downTime = downTimes[held]
-            if (downTime == null && value >= pressThreshold) {
-                downTimes[held] = eventTimeMs
-                presses += Edge(direction, true, eventTimeMs, eventTimeMs)
-            } else if (downTime != null && value < releaseThreshold) {
-                downTimes.remove(held)
-                releases += Edge(direction, false, downTime, eventTimeMs)
+        directionsByControl.forEach { (control, directions) ->
+            val controlKey = ControlKey(deviceId, control)
+            val values = directions.associateWith { it.valueFrom(axisValue, hasAxis) }
+            if (seen.add(controlKey) && control.armsOnFirstEvent) {
+                directions.forEach { armed += DirectionKey(deviceId, it) }
+            }
+            values.forEach { (direction, value) ->
+                if (value < releaseThreshold) armed += DirectionKey(deviceId, direction)
+            }
+
+            held[controlKey]?.let { current ->
+                if (values.getValue(current.direction) < releaseThreshold) {
+                    held.remove(controlKey)
+                    releases += Edge(current.direction, false, current.downTimeMs, eventTimeMs)
+                }
+            }
+            if (controlKey in held) return@forEach
+
+            val ranked = values.entries.sortedByDescending { it.value }
+            val strongest = ranked.first()
+            val runnerUp = ranked.getOrNull(1)?.value?.coerceAtLeast(0f) ?: 0f
+            val isDominant = strongest.value >= runnerUp * dominanceRatio
+            if (strongest.value >= pressThreshold && isDominant &&
+                DirectionKey(deviceId, strongest.key) in armed
+            ) {
+                armed -= DirectionKey(deviceId, strongest.key)
+                held[controlKey] = HeldDirection(strongest.key, eventTimeMs)
+                presses += Edge(strongest.key, true, eventTimeMs, eventTimeMs)
             }
         }
         return releases + presses
     }
 
-    fun releaseAll(eventTimeMs: Long): List<Edge> {
-        val releases = downTimes.map { (held, downTime) ->
-            Edge(held.direction, false, downTime, eventTimeMs)
+    fun releaseDevice(deviceId: Int, eventTimeMs: Long): List<Edge> {
+        armed.removeAll { it.deviceId == deviceId }
+        seen.removeAll { it.deviceId == deviceId }
+        val releasedKeys = held.keys.filter { it.deviceId == deviceId }
+        return releasedKeys.mapNotNull { key ->
+            held.remove(key)?.let { Edge(it.direction, false, it.downTimeMs, eventTimeMs) }
         }
-        downTimes.clear()
+    }
+
+    fun releaseAll(eventTimeMs: Long): List<Edge> {
+        val releases = held.values.map { Edge(it.direction, false, it.downTimeMs, eventTimeMs) }
+        held.clear()
+        armed.clear()
+        seen.clear()
         return releases
     }
 
     companion object {
         const val DEFAULT_PRESS_THRESHOLD = 0.5f
         const val DEFAULT_RELEASE_THRESHOLD = 0.3f
+        const val DEFAULT_DOMINANCE_RATIO = 1.5f
+
+        private val directionsByControl = JoystickDirection.entries.groupBy { it.control }
 
         fun isJoystickEvent(event: MotionEvent): Boolean =
             event.isFromSource(InputDevice.SOURCE_JOYSTICK)

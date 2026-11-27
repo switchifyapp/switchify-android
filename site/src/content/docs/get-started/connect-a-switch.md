@@ -24,15 +24,15 @@ Each key can belong to only one switch.
 
 ## Use a joystick or game controller
 
-Buttons on a joystick or game controller send key presses, so you add them like any other external switch.
+Buttons on a joystick or game controller send key presses, so you add them like any other external switch. Some D-pads send key presses too and work on any Android version.
 
 On Android 14 and later, you can also use the joystick's directions as switches. Each of these is a switch of its own:
 
 - **Left Stick** and **Right Stick**: up, down, left and right
-- **D-pad**: up, down, left and right, on controllers whose D-pad reports as a hat
+- **D-pad**: up, down, left and right, on controllers whose D-pad moves like a small stick (a "hat"). On Android 13 and earlier, the Add switch screen does not respond to this kind of D-pad
 - **Left Trigger** and **Right Trigger**, on controllers with analog triggers
 
-To add one, push the stick, D-pad or trigger on the Add switch screen, the same way you would press a switch. A direction counts as pressed once it is pushed about halfway, and as released when it is back near the centre, so long press actions work too. You can add several directions from the same joystick, for example Left Stick Left for Next and Left Stick Right for Select.
+To add one, push the stick, D-pad or trigger on the Add switch screen, the same way you would press a switch. A direction counts as pressed once it is pushed about halfway, and as released when it is back near the centre, so long press actions work too. Push straight: a diagonal push between two directions does not count as either. Each stick and D-pad presses one direction at a time. You can add several directions from the same joystick, for example Left Stick Left for Next and Left Stick Right for Select.
 
 While at least one direction switch is set up, Switchify takes over the sticks, D-pad hat and triggers of every connected joystick, including while Switchify is paused, so other apps and games stop seeing them. Buttons you have not added as switches still work in other apps. To give the sticks back to a game, delete the direction switches or change to a [switch profile](#switch-profiles) without any.
 

@@ -393,6 +393,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         if (::eventPipeline.isInitialized) {
             eventPipeline.stop()
         }
+        joystickSwitchRouter?.stop()
+        joystickSwitchRouter = null
         ServiceCore.cleanup()
         clearAccessibilityNodeSnapshots()
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
@@ -433,6 +435,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             eventPipeline.stop()
         }
 
+        joystickSwitchRouter?.stop()
+        joystickSwitchRouter = null
         ServiceCore.cleanup()
         clearAccessibilityNodeSnapshots()
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()

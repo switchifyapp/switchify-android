@@ -1,24 +1,24 @@
 package com.enaboapps.switchify.service.switches.external
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
+import android.hardware.input.InputManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.view.InputDevice
 import android.view.MotionEvent
 import androidx.annotation.RequiresApi
-import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.switches.JoystickDirection
 import com.enaboapps.switchify.switches.JoystickDirectionDetector
 import com.enaboapps.switchify.switches.JoystickSwitchCapture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
 class JoystickSwitchRouter(
@@ -28,27 +28,42 @@ class JoystickSwitchRouter(
 ) {
     companion object {
         private const val TAG = "JoystickSwitchRouter"
-
-        val isSupported: Boolean
-            get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
     }
 
     private val detector = JoystickDirectionDetector()
     private var intercepting = false
+    private var job: Job? = null
+    private val inputManager = service.getSystemService(Context.INPUT_SERVICE) as? InputManager
+    private val inputDeviceListener = object : InputManager.InputDeviceListener {
+        override fun onInputDeviceAdded(deviceId: Int) = Unit
+
+        override fun onInputDeviceChanged(deviceId: Int) = Unit
+
+        override fun onInputDeviceRemoved(deviceId: Int) {
+            detector.releaseDevice(deviceId, SystemClock.uptimeMillis())
+                .forEach { dispatch(it, cancelled = true) }
+        }
+    }
 
     fun start(scope: CoroutineScope) {
-        if (!isSupported) return
-        val switchesChanged = ServiceBridge.serviceEvents
-            .filter { it is ServiceBridge.ServiceEvent.SwitchEventsUpdated }
-            .map { }
-            .onStart { emit(Unit) }
-        scope.launch(Dispatchers.Main) {
-            combine(switchesChanged, JoystickSwitchCapture.activeCaptures) { _, captures ->
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        inputManager?.registerInputDeviceListener(inputDeviceListener, Handler(Looper.getMainLooper()))
+        job = scope.launch(Dispatchers.Main) {
+            combine(
+                switchEventProvider.switchesChanged,
+                JoystickSwitchCapture.activeCaptures
+            ) { _, captures ->
                 captures == 0 && hasJoystickSwitches()
-            }
-                .distinctUntilChanged()
-                .collect { setIntercepting(it) }
+            }.collect { setIntercepting(it) }
         }
+    }
+
+    fun stop() {
+        job?.cancel()
+        job = null
+        inputManager?.unregisterInputDeviceListener(inputDeviceListener)
+        releaseHeldDirections()
+        intercepting = false
     }
 
     fun onMotionEvent(event: MotionEvent) {
@@ -61,13 +76,15 @@ class JoystickSwitchRouter(
 
     private fun setIntercepting(enabled: Boolean) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || intercepting == enabled) return
-        if (!enabled) {
-            detector.releaseAll(SystemClock.uptimeMillis()).forEach { dispatch(it, cancelled = true) }
-        }
+        if (!enabled) releaseHeldDirections()
         if (applyMotionEventSources(if (enabled) InputDevice.SOURCE_JOYSTICK else 0)) {
             intercepting = enabled
             Log.d(TAG, "Joystick interception ${if (enabled) "enabled" else "disabled"}")
         }
+    }
+
+    private fun releaseHeldDirections() {
+        detector.releaseAll(SystemClock.uptimeMillis()).forEach { dispatch(it, cancelled = true) }
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
